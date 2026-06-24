@@ -1,0 +1,58 @@
+# --- Python ---
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+
+# --- Environment files (never commit secrets) ---
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# --- Runtime data and generated cache ---
+backend/data/cache/
+backend/data/chroma/
+backend/data/index/
+
+# --- Model artifacts (large binaries — stored on HuggingFace Hub) ---
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.ckpt
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.user
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs ---
+*.log
+uvicorn.log
+/tmp/
+
+# --- Test / coverage ---
+.coverage
+htmlcov/
