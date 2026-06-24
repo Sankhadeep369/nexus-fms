@@ -1,0 +1,262 @@
+import { motion } from "framer-motion";
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { CheckIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
+import ThinkingIndicator from "./ThinkingIndicator";
+
+function flattenText(node) {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(flattenText).join("");
+  if (node?.props?.children != null) return flattenText(node.props.children);
+  return "";
+}
+
+// Renders fenced code blocks with a ChatGPT-style header bar: detected
+// language on the left, a copy-to-clipboard button on the right.
+function CodeBlock({ children }) {
+  const [copied, setCopied] = useState(false);
+  const codeEl = Array.isArray(children) ? children[0] : children;
+  const lang = /language-(\w+)/.exec(codeEl?.props?.className ?? "")?.[1] ?? "text";
+  const text = flattenText(codeEl?.props?.children).replace(/\n$/, "");
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="mb-2.5 overflow-hidden rounded-xl border border-nexus-border last:mb-0">
+      <div className="flex items-center justify-between bg-nexus-panel2 px-3 py-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-nexus-muted">{lang}</span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-nexus-muted transition-colors hover:bg-nexus-bg hover:text-nexus-text"
+        >
+          {copied ? <CheckIcon className="h-3 w-3 text-emerald-400" /> : <CopyIcon className="h-3 w-3" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto bg-nexus-panel p-3">{children}</pre>
+    </div>
+  );
+}
+
+const markdownComponents = {
+  p: ({ children }) => <p className="mb-2.5 text-sm leading-relaxed last:mb-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold text-nexus-text">{children}</strong>,
+  em: ({ children }) => <em className="italic text-nexus-text">{children}</em>,
+  a: ({ children, href }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="text-nexus-accent underline decoration-nexus-accent/40 underline-offset-2 hover:decoration-nexus-accent"
+    >
+      {children}
+    </a>
+  ),
+  h1: ({ children }) => (
+    <h1 className="mb-2 mt-1 font-display text-base font-semibold text-nexus-text first:mt-0">{children}</h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="mb-2 mt-3 font-display text-sm font-semibold text-nexus-text first:mt-0">{children}</h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="mb-1.5 mt-2.5 text-sm font-semibold text-nexus-text first:mt-0">{children}</h3>
+  ),
+  ul: ({ children }) => <ul className="mb-2.5 ml-4 list-disc space-y-1 text-sm leading-relaxed last:mb-0">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2.5 ml-4 list-decimal space-y-1 text-sm leading-relaxed last:mb-0">{children}</ol>,
+  li: ({ children }) => <li className="pl-1">{children}</li>,
+  blockquote: ({ children }) => (
+    <blockquote className="mb-2.5 border-l-2 border-nexus-accent/50 pl-3 text-sm italic text-nexus-muted last:mb-0">
+      {children}
+    </blockquote>
+  ),
+  code: ({ className, children }) => {
+    if (/language-/.test(className ?? "")) {
+      return <code className={`${className} font-mono text-[0.85em] leading-relaxed`}>{children}</code>;
+    }
+    return (
+      <code className="rounded bg-nexus-panel2 px-1.5 py-0.5 font-mono text-[0.85em] text-nexus-accent">{children}</code>
+    );
+  },
+  pre: CodeBlock,
+  hr: () => <hr className="my-3 border-nexus-border" />,
+  table: ({ children }) => (
+    <div className="mb-2.5 overflow-x-auto rounded-xl border border-nexus-border last:mb-0">
+      <table className="w-full border-collapse text-left text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="bg-nexus-panel2">{children}</thead>,
+  th: ({ children }) => (
+    <th className="border-b border-nexus-border px-3 py-2 font-semibold text-nexus-text">{children}</th>
+  ),
+  td: ({ children }) => (
+    <td className="border-b border-nexus-border px-3 py-2 align-top text-nexus-text last:border-b-0">{children}</td>
+  ),
+  tr: ({ children }) => <tr className="last:[&>td]:border-b-0">{children}</tr>,
+};
+
+const toolbarBtn =
+  "rounded-md p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
+
+export default function MessageBubble({ message, disabled, onRegenerate, onEditResend }) {
+  const isUser = message.role === "user";
+  const showThinking = !isUser && message.isStreaming && message.content === "";
+  const showCursor = !isUser && message.isStreaming && message.content !== "";
+
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(message.content);
+  const [copied, setCopied] = useState(false);
+
+  const startEdit = () => {
+    setEditValue(message.content);
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const trimmed = editValue.trim();
+    setEditing(false);
+    if (!trimmed || trimmed === message.content) return;
+    onEditResend?.(message.id, trimmed);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard?.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className={`group flex items-start gap-2.5 ${isUser ? "justify-end" : "justify-start"}`}
+    >
+      {!isUser && (
+        <span
+          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg transition-shadow ${
+            message.isStreaming ? "shadow-glow-sm animate-pulse" : ""
+          }`}
+        >
+          <LogoIcon className="h-4 w-4" />
+        </span>
+      )}
+
+      <div className={`flex max-w-[80%] flex-col ${isUser ? "items-end" : "items-start"}`}>
+        <div
+          className={`w-full rounded-2xl px-4 py-3 ${
+            isUser
+              ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
+              : "border border-nexus-border bg-nexus-panel text-nexus-text"
+          }`}
+        >
+          {editing ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEdit();
+                  } else if (e.key === "Escape") {
+                    setEditing(false);
+                  }
+                }}
+                rows={Math.min(8, Math.max(2, editValue.split("\n").length))}
+                autoFocus
+                className="w-full resize-none rounded-lg bg-black/10 px-2 py-1.5 text-sm leading-relaxed text-inherit placeholder:text-current focus:outline-none"
+              />
+              <div className="flex justify-end gap-1.5 text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-md px-2.5 py-1 transition-colors hover:bg-black/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEdit}
+                  className="rounded-md bg-black/15 px-2.5 py-1 transition-colors hover:bg-black/25"
+                >
+                  Save &amp; resend
+                </button>
+              </div>
+            </div>
+          ) : showThinking ? (
+            <ThinkingIndicator />
+          ) : isUser ? (
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+          ) : (
+            <div className="markdown-body">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {message.content}
+              </ReactMarkdown>
+              {showCursor && (
+                <span className="inline-block h-3.5 w-[3px] animate-pulse rounded-sm bg-nexus-accent align-text-bottom" />
+              )}
+            </div>
+          )}
+
+          {!isUser && message.error && (
+            <p className="mt-2 text-xs text-red-400">Error: {message.error}</p>
+          )}
+
+          {!isUser && message.stopped && (
+            <p className="mt-2 text-xs text-nexus-muted">Stopped generating.</p>
+          )}
+
+          {!isUser && message.latencyMs != null && (
+            <div className="mt-1.5 text-[10px] text-nexus-muted">
+              {message.cacheHit ? `cached` : "generated"} · {message.latencyMs} ms
+            </div>
+          )}
+        </div>
+
+        {!editing && (
+          <div
+            className={`mt-1 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${
+              isUser ? "justify-end" : "justify-start"
+            }`}
+          >
+            {isUser ? (
+              <button type="button" onClick={startEdit} disabled={disabled} title="Edit & resend" className={toolbarBtn}>
+                <EditIcon className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              !message.isStreaming &&
+              message.content && (
+                <>
+                  <button type="button" onClick={handleCopy} title="Copy response" className={toolbarBtn}>
+                    {copied ? <CheckIcon className="h-3.5 w-3.5 text-emerald-400" /> : <CopyIcon className="h-3.5 w-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRegenerate?.(message.id)}
+                    disabled={disabled}
+                    title="Regenerate response"
+                    className={toolbarBtn}
+                  >
+                    <RegenerateIcon className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {isUser && (
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-nexus-border bg-nexus-panel2 text-nexus-muted">
+          <UserIcon className="h-4 w-4" />
+        </span>
+      )}
+    </motion.div>
+  );
+}

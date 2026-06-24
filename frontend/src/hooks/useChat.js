@@ -1,0 +1,186 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useChatHistory } from "../context/ChatHistoryContext";
+import { parseSSEStream } from "../lib/sse";
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+
+// Cached answers can return almost instantly. Hold them behind the "thinking"
+// indicator for at least this long so the UI doesn't feel like it skipped a step.
+const MIN_THINKING_MS = 600;
+
+export const STEP_LABELS = {
+  cache_lookup: "Checking cache",
+  generation: "Generating answer",
+};
+
+function newId() {
+  return crypto.randomUUID();
+}
+
+function freshAssistant(id) {
+  return {
+    id,
+    role: "assistant",
+    content: "",
+    steps: [],
+    cacheHit: null,
+    latencyMs: null,
+    isStreaming: true,
+    error: null,
+    stopped: false,
+  };
+}
+
+export function useChat() {
+  const { activeId, activeConversation, commitMessages } = useChatHistory();
+  const [messages, setMessages] = useState(activeConversation.messages);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [mode, setMode] = useState("simple");
+  const conversationIdRef = useRef(activeId);
+  const abortControllerRef = useRef(null);
+
+  // Switching conversations swaps the working message list to the selected one.
+  useEffect(() => {
+    conversationIdRef.current = activeId;
+    setMessages(activeConversation.messages);
+  }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
+  // Sends `userMsg` (already appended to `baseMessages`) and streams the response
+  // into a fresh assistant message identified by `assistantId`.
+  const runStream = useCallback(
+    async (baseMessages, userMsg, assistantId) => {
+      const conversationId = conversationIdRef.current;
+      const withUser = [...baseMessages, userMsg, freshAssistant(assistantId)];
+      setMessages(withUser);
+      commitMessages(conversationId, [...baseMessages, userMsg]);
+      setIsStreaming(true);
+
+      let finalMessages = withUser;
+      const applyUpdate = (updater) => {
+        setMessages((prev) => {
+          const next = prev.map((m) => (m.id === assistantId ? updater(m) : m));
+          finalMessages = next;
+          return next;
+        });
+      };
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      try {
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: userMsg.content, mode }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok || !response.body) {
+          throw new Error(`Request failed (${response.status})`);
+        }
+
+        const streamStart = Date.now();
+        let cacheHit = false;
+        let pendingContent = "";
+
+        for await (const evt of parseSSEStream(response)) {
+          const payload = JSON.parse(evt.data);
+
+          if (payload.type === "step") {
+            if (payload.name === "cache_lookup" && payload.status === "done") {
+              cacheHit = Boolean(payload.detail?.hit);
+            }
+            applyUpdate((msg) => {
+              const steps = [...msg.steps];
+              const idx = steps.findIndex((s) => s.name === payload.name);
+              const step = {
+                name: payload.name,
+                label: STEP_LABELS[payload.name] ?? payload.name,
+                status: payload.status,
+                detail: payload.detail,
+              };
+              if (idx === -1) steps.push(step);
+              else steps[idx] = step;
+              return { ...msg, steps };
+            });
+          } else if (payload.type === "token") {
+            if (cacheHit) {
+              // Buffer cached output so it doesn't flash in instantly.
+              pendingContent += payload.text;
+            } else {
+              applyUpdate((msg) => ({ ...msg, content: msg.content + payload.text }));
+            }
+          } else if (payload.type === "done") {
+            if (cacheHit) {
+              const elapsed = Date.now() - streamStart;
+              if (elapsed < MIN_THINKING_MS) {
+                await new Promise((resolve) => setTimeout(resolve, MIN_THINKING_MS - elapsed));
+              }
+              applyUpdate((msg) => ({ ...msg, content: msg.content + pendingContent }));
+            }
+            applyUpdate((msg) => ({
+              ...msg,
+              latencyMs: payload.latency_ms?.total ?? null,
+              cacheHit: payload.cache_hit ?? null,
+              isStreaming: false,
+            }));
+          }
+        }
+      } catch (err) {
+        if (err.name === "AbortError") {
+          applyUpdate((msg) => ({ ...msg, isStreaming: false, stopped: true }));
+        } else {
+          applyUpdate((msg) => ({ ...msg, isStreaming: false, error: err.message }));
+        }
+      } finally {
+        abortControllerRef.current = null;
+        setIsStreaming(false);
+        commitMessages(conversationId, finalMessages);
+      }
+    },
+    [commitMessages, mode]
+  );
+
+  const sendMessage = useCallback(
+    (query) => {
+      const trimmed = query.trim();
+      if (!trimmed || isStreaming) return;
+      const userMsg = { id: newId(), role: "user", content: trimmed };
+      runStream(messages, userMsg, newId());
+    },
+    [isStreaming, messages, runStream]
+  );
+
+  // Re-runs the user message that produced `assistantId`, replacing that answer.
+  const regenerate = useCallback(
+    (assistantId) => {
+      if (isStreaming) return;
+      const idx = messages.findIndex((m) => m.id === assistantId);
+      if (idx <= 0) return;
+      const userMsg = messages[idx - 1];
+      if (userMsg.role !== "user") return;
+      runStream(messages.slice(0, idx - 1), userMsg, assistantId);
+    },
+    [isStreaming, messages, runStream]
+  );
+
+  // Edits a previously sent user message and re-sends it, discarding everything
+  // that came after it (including the old response).
+  const editAndResend = useCallback(
+    (userMsgId, newContent) => {
+      const trimmed = newContent.trim();
+      if (!trimmed || isStreaming) return;
+      const idx = messages.findIndex((m) => m.id === userMsgId);
+      if (idx === -1) return;
+      const userMsg = { ...messages[idx], content: trimmed };
+      runStream(messages.slice(0, idx), userMsg, newId());
+    },
+    [isStreaming, messages, runStream]
+  );
+
+  return { messages, isStreaming, sendMessage, regenerate, editAndResend, stopGeneration, mode, setMode };
+}
