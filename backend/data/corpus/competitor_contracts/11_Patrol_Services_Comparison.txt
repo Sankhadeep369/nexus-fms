@@ -1,0 +1,64 @@
+Apex One Commercial Services LLC
+
+14th Floor, Orion House
+78 MG Road
+Bengaluru, Karnataka 560001
+India
+
+# Perimeter Patrol and Mobile Response Agreement
+
+Document Type: Internal Vendor Comparison Agreement
+
+Purpose: To compare the current vendor scope and commercial position against market alternatives for procurement analysis.
+
+## Parties and Site Details
+
+| Company / Contracting Party | Apex One Commercial Services LLC 14th Floor, Orion House 78 MG Road Bengaluru, Karnataka 560001 India |
+| --- | --- |
+| Primary Vendor | PatrolPro Guarding Services LLP 22, Patrol House Yelahanka Bengaluru, Karnataka 560064 India |
+| Facility / Site | Apex One Commercial Services LLC - Warehouse District |
+
+## Primary Agreement Scope of Services
+
+| Line | Service Item | Frequency / SLA | Commercial Treatment |
+| --- | --- | --- | --- |
+| 1 | Vehicle-based perimeter patrols | Every 2 hours | Included |
+| 2 | Suspicious activity escalation | 24x7 | Included |
+| 3 | Gate lock and asset area checks | Nightly | Included |
+| 4 | Rapid response to alarm activation | On call | Included |
+| 5 | Patrol log review and reporting | Daily | Included |
+
+## Commercial Terms
+
+| Cost Item | Amount / Rate | Notes |
+| --- | --- | --- |
+| Monthly retainer | INR 9,20,000 | 2 vehicles, 6 officers |
+| Fuel surcharge | Actuals | Pre-approved trips only |
+| Extra deployment | INR 1,200 / hour | Beyond roster |
+| SLA | 20 minutes | Alarm response |
+
+## Competitor Company Agreements / Market Alternatives
+
+| Competitor | Scenario | Service Position | Cost Position | Key Notes |
+| --- | --- | --- | --- | --- |
+| Patrol Prime Care Pvt Ltd | Premium Plus | Service better, cost worse | Higher than current | Enhanced response times, more included visits, higher fee |
+| Patrol Value Systems Pvt Ltd | Value Lean | Cost better, service worse | Lower than current | Lower fee, reduced visit frequency, longer response time |
+| Patrol Efficiency Services Pvt Ltd | Balanced Efficiency | Both better | Lower / same via efficiency | Improved service with optimized pricing through remote diagnostics / bundling |
+| Patrol Budget Support Pvt Ltd | Budget Basic | Both worse | Lower, but fewer inclusions | Reduced scope and lower coverage, but still compliant |
+
+## Scenario Matrix for Procurement Analysis
+
+| Option | Scope Depth | Response Time | Price Outlook | Best Fit |
+| --- | --- | --- | --- | --- |
+| Premium Plus | Expanded scope / extra visits | Faster than current | 15-30% higher | Critical uptime |
+| Value Lean | Reduced inclusions | Slower than current | 10-20% lower | Budget control |
+| Balanced Efficiency | Same or better scope | Equal or faster | 0-10% lower or equal | Best overall value |
+| Budget Basic | Minimum compliant scope | Longer lead time | Lowest | Low-risk / low-cost sites |
+
+Procurement note: Use the matrix above to benchmark service continuity, compliance, and total cost of ownership before awarding or renewing the primary contract.
+
+## Prepared By / For Internal Review Only
+
+| Prepared by | Procurement and Legal Review Team |
+| --- | --- |
+| Date | 08 May 2026 |

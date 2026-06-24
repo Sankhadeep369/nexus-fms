@@ -1,0 +1,105 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Health and Safety, Risk Assessment, PPE, and Permit Controls
+Hazard identification, PPE rules, permits to work, risk assessments, and incident prevention
+
+Document Code: FCL-006
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-006 | Version | 1.0 |
+| Owner | Health and Safety | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Creates a practical HSE operating layer for all work on site, especially maintenance, contractor activity, and non-routine operations.
+
+# 2. Scope
+
+Covers risk registers, PPE issue and use, work permits, toolbox talks, incident reporting, near-miss management, and contractor safety oversight.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| HSE Officer | Defines control measures, audits work, and closes safety actions. |
+| Line Manager | Ensures staff comply with permits, PPE, and training. |
+| Permit Issuer | Reviews task risk and authorizes controlled work. |
+| Contractor Supervisor | Briefs workers and maintains discipline on site. |
+| Worker / Technician | Uses PPE correctly and reports hazards immediately. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Confirm task-specific PPE availability and use | Workers are protected for the task | PPE checklist |
+| Daily | Review permits, JSA/JHA, and toolbox talk completion | No non-approved work begins | Permit register |
+| Daily | Inspect high-risk work zones and barricades | Hazards are controlled and signed | Safety walk log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review near-miss reports and unsafe conditions | Corrective actions assigned | Near-miss tracker |
+| Weekly | Check expiry of training, medical, and competency records | Only competent staff work unsupervised | Competency register |
+| Weekly | Audit contractor safety behavior and housekeeping | Work areas remain orderly | Audit report |
+| Monthly | Review risk assessment updates for recurring jobs | Controls match actual hazards | Risk register |
+| Monthly | Run safety refresher / toolbox session | Staff can describe critical controls | Attendance record |
+| Monthly | Trend incidents, first-aid cases, and lost time events | Root causes are visible | HSE dashboard |
+
+# 6. Records, Logs, and Registers
+
+Risk register, incident report, permit log, PPE issuance register, toolbox talk record, training matrix
+
+# 7. Precautions and Critical Controls
+
+Do not start work without permit where required; PPE is the last line, not the primary control; stop work if conditions change; use barricades and signage for open hazards; document every near miss; revalidate risk before non-routine jobs.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | PPE non-compliance or housekeeping issue | Correct immediately | Supervisor |
+| Major | Unsafe act, near miss, or permit deviation | Stop work and investigate | HSE Officer |
+| Critical | Serious injury or life-threatening hazard | Emergency response and scene control | Site Head + HSE + Medical |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# 10. Permit and PPE Control Matrix
+
+| Activity | Mandatory Control |
+| --- | --- |
+| Hot work | Permit, fire watch, extinguishers, and isolation |
+| Work at height | Harness, anchor check, barricade, and rescue plan |
+| Electrical work | LOTO, tester check, and competence |
+| Confined space | Entry permit, gas test, attendant, and rescue |
+| Chemical handling | Gloves, goggles, MSDS, and spill control |
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

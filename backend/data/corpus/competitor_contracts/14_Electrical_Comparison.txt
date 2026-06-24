@@ -1,0 +1,64 @@
+Apex One Commercial Services LLC
+
+14th Floor, Orion House
+78 MG Road
+Bengaluru, Karnataka 560001
+India
+
+# Electrical Maintenance and Critical Power Support Agreement
+
+Document Type: Internal Vendor Comparison Agreement
+
+Purpose: To compare the current vendor scope and commercial position against market alternatives for procurement analysis.
+
+## Parties and Site Details
+
+| Company / Contracting Party | Apex One Commercial Services LLC 14th Floor, Orion House 78 MG Road Bengaluru, Karnataka 560001 India |
+| --- | --- |
+| Primary Vendor | VoltEdge Electrical Works LLP 40, Circuit Plaza Kalyan Nagar Bengaluru, Karnataka 560043 India |
+| Facility / Site | Apex One Commercial Services LLC - Data Center Floor |
+
+## Primary Agreement Scope of Services
+
+| Line | Service Item | Frequency / SLA | Commercial Treatment |
+| --- | --- | --- | --- |
+| 1 | LT panel inspection and tightening | Monthly | Included |
+| 2 | Earthing and insulation testing | Quarterly | Included |
+| 3 | Lighting and small power support | On call | Included |
+| 4 | UPS and battery room check | Monthly | Included |
+| 5 | Preventive shutdown support | Planned | Included |
+
+## Commercial Terms
+
+| Cost Item | Amount / Rate | Notes |
+| --- | --- | --- |
+| Monthly fee | INR 8,40,000 | Critical infrastructure |
+| Shutdown support | INR 25,000 / event | Planned only |
+| Emergency visit | INR 5,500 | Critical faults |
+| Term | 12 months | Includes reports |
+
+## Competitor Company Agreements / Market Alternatives
+
+| Competitor | Scenario | Service Position | Cost Position | Key Notes |
+| --- | --- | --- | --- | --- |
+| Volt Prime Care Pvt Ltd | Premium Plus | Service better, cost worse | Higher than current | Enhanced response times, more included visits, higher fee |
+| Volt Value Systems Pvt Ltd | Value Lean | Cost better, service worse | Lower than current | Lower fee, reduced visit frequency, longer response time |
+| Volt Efficiency Services Pvt Ltd | Balanced Efficiency | Both better | Lower / same via efficiency | Improved service with optimized pricing through remote diagnostics / bundling |
+| Volt Budget Support Pvt Ltd | Budget Basic | Both worse | Lower, but fewer inclusions | Reduced scope and lower coverage, but still compliant |
+
+## Scenario Matrix for Procurement Analysis
+
+| Option | Scope Depth | Response Time | Price Outlook | Best Fit |
+| --- | --- | --- | --- | --- |
+| Premium Plus | Expanded scope / extra visits | Faster than current | 15-30% higher | Critical uptime |
+| Value Lean | Reduced inclusions | Slower than current | 10-20% lower | Budget control |
+| Balanced Efficiency | Same or better scope | Equal or faster | 0-10% lower or equal | Best overall value |
+| Budget Basic | Minimum compliant scope | Longer lead time | Lowest | Low-risk / low-cost sites |
+
+Procurement note: Use the matrix above to benchmark service continuity, compliance, and total cost of ownership before awarding or renewing the primary contract.
+
+## Prepared By / For Internal Review Only
+
+| Prepared by | Procurement and Legal Review Team |
+| --- | --- |
+| Date | 08 May 2026 |

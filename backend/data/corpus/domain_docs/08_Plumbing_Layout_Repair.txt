@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Plumbing Layout, Repair, and Preventive Maintenance
+Plumbing network layout, repair workflows, leak response, drainage, and fixture maintenance
+
+Document Code: FCL-008
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-008 | Version | 1.0 |
+| Owner | Plumbing Layout | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Standardizes how plumbing assets are inspected, repaired, and documented to reduce leaks, blockages, water loss, and service disruption.
+
+# 2. Scope
+
+Applies to toilets, wash basins, urinals, traps, floor drains, valves, pumps, water closets, pipe networks, and drainage lines.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Plumber | Performs inspections, unclogging, fixture repairs, and leak correction. |
+| Facilities Engineer | Approves major repairs and monitors repeat failures. |
+| Housekeeping Team | Reports overflow, blockage, and abnormal odor quickly. |
+| AMC Vendor | Handles specialized materials and major replacement work. |
+| HSE Officer | Ensures hygiene and confined-space precautions. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check washroom function, leaks, odors, and drain performance | No overflow or visible leakage | Plumbing round log |
+| Daily | Confirm traps and drains are not dry or blocked | Odor and backflow controlled | Patrol log |
+| Daily | Verify repair requests from occupants are captured | Tickets are logged and prioritized | Helpdesk queue |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Inspect exposed piping, joints, valves, and supports | No dripping or looseness | Inspection sheet |
+| Weekly | Flush and clean floor drains / gully traps where required | Drainage remains free-flowing | Cleaning record |
+| Weekly | Review repeat complaints and root cause | Trend is understood and addressed | Repeat defect tracker |
+| Monthly | Audit pipe route drawings and valve tags | Isolation points are identifiable | Valve map register |
+| Monthly | Test pumps and drainage devices where installed | Backup flow works | Functional test log |
+| Monthly | Plan replacement of worn fixtures and seals | Predictive maintenance is in place | Replacement plan |
+
+# 6. Records, Logs, and Registers
+
+Repair ticket log, valve schedule, blockage report, water leak register, cleaning checklist, drawing revision log
+
+# 7. Precautions and Critical Controls
+
+Confirm water isolation before repair; do not use makeshift joints for permanent fixes; clean up standing water immediately; protect finished surfaces during breaking work; validate drainage after every repair; maintain hygiene controls in washroom areas.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Single fixture defect | Repair same day or next service window | Plumber |
+| Medium | Repeated blockage or concealed leak | Investigate root cause and monitor | Supervisor |
+| High | Major flood or sewage backflow | Isolate area and call emergency response | Facilities Manager + HSE |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Parking Operations, AMC, ANPR, and Barrier Control
+Parking operations, access technology, barrier maintenance, bay management, and incident handling
+
+Document Code: FCL-012
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-012 | Version | 1.0 |
+| Owner | Parking | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Keeps vehicle movement safe and predictable through defined parking rules, system checks, and maintenance routines.
+
+# 2. Scope
+
+Covers visitor parking, reserved bays, basement routing, ANPR cameras, boom barriers, ticketing, signage, and emergency vehicle access.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Parking Supervisor | Manages flow, bay allocation, and incident resolution. |
+| Security Guard | Checks access and directs vehicles safely. |
+| AMC Vendor | Services barriers, ANPR, and lane devices. |
+| Facilities Manager | Approves layout changes and traffic controls. |
+| Fire / Emergency Lead | Ensures emergency access stays unobstructed. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Test barriers, ANPR recognition, and lane clearances | Entry/exit works without delay | Parking system log |
+| Daily | Inspect signage, speed control, and bay markings | Drivers receive clear instructions | Patrol log |
+| Daily | Check emergency lanes and disabled bays | Access remains unobstructed | Inspection sheet |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review congestion points and incident timings | Queue patterns are understood | Traffic report |
+| Weekly | Check barrier arms, loops, sensors, and cameras | Equipment is functional | AM C checklist |
+| Weekly | Validate permit and reserved parking lists | Only authorized users are assigned | Allocation register |
+| Monthly | Trend occupancy, overtime, and peak demand | Capacity planning is data-driven | Monthly KPI |
+| Monthly | Test manual override and emergency release | System can be opened safely | Functional test log |
+| Monthly | Review vendor service performance and spare parts | AMC deliverables are met | Vendor scorecard |
+
+# 6. Records, Logs, and Registers
+
+Parking register, incident log, barrier service report, ANPR exception log, bay allocation sheet, maintenance certificate
+
+# 7. Precautions and Critical Controls
+
+Keep pedestrian crossings visible; never block fire lanes; train staff on manual barrier operation; protect ANPR privacy and system credentials; record vehicle damage or access disputes immediately; coordinate with fire and emergency plans.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Single barrier fault or lost ticket issue | Resolve and document | Parking Supervisor |
+| Medium | ANPR mismatch or repeated congestion | Escalate to vendor and adjust flow | Facilities Manager |
+| High | Accident or emergency access blockage | Clear lane and activate response | Security + Emergency Lead |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

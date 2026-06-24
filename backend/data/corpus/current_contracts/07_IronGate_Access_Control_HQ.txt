@@ -1,0 +1,96 @@
+ACCESS CONTROL SYSTEMS MAINTENANCE AGREEMENT
+
+Agreement No.: NML-FS-2026-007
+
+| Effective Date | 08 May 2026 |
+| --- | --- |
+| Company / Client | Northbridge Meridian Holdings LLC |
+| Client Address | 4100 Trinity Plaza, Suite 900, Dallas, TX 75201, USA |
+| Vendor | IronGate Access Control Systems Pvt. Ltd. |
+| Vendor Address | 9 Secure Tech Road, HSR Layout, Bengaluru, Karnataka 560102, India |
+| Facility / Site | Northbridge Meridian Tower |
+| Site Address | 4100 Trinity Plaza, Dallas, TX 75201, USA |
+| Service Category | Access Control |
+
+# 1. Parties
+
+This Agreement is entered into by and between Northbridge Meridian Holdings LLC (the “Client”) and IronGate Access Control Systems Pvt. Ltd. (the “Vendor”).
+
+The Client owns or operates the facility known as Northbridge Meridian Tower located at 4100 Trinity Plaza, Dallas, TX 75201, USA.
+
+# 2. Purpose
+
+The Vendor shall provide access control services for the Client facility. Scope summary: Maintenance of card readers, access panels, door hardware integration, and visitor control devices.
+
+# 3. Site Scope
+
+The service area covers: Main lobby turnstiles, server room readers, conference floor access points, and executive suite doors.
+
+# 4. Scope of Services
+
+| Item | Service / Task | Frequency / SLA | Deliverable |
+| --- | --- | --- | --- |
+| 1 | Reader and panel inspection | Monthly | Check readers, panels, cabling, and controller communications. |
+| 2 | User access support | As requested | Add, remove, or update badges following approved authorization. |
+| 3 | Door hardware testing | Quarterly | Confirm maglocks, strikes, and door contacts are functioning correctly. |
+| 4 | Audit log review | Monthly | Provide summary of access exceptions and device faults. |
+
+# 5. Commercial Terms
+
+| Charge Item | Amount | Notes |
+| --- | --- | --- |
+| Monthly service fee | $4,800 | Includes routine preventive visits. |
+| Badge replacement | $12 each | Charged per replacement badge issued. |
+| After-hours support | $165 per hour | For urgent access restoration requests. |
+
+Invoices shall be submitted monthly unless otherwise stated. The Client may reasonably withhold payment for disputed items until resolved.
+
+# 6. Vendor Obligations
+
+• Provide trained personnel, tools, and consumables necessary to perform the services in a safe and professional manner.
+
+• Comply with all applicable laws, site rules, and permit-to-work requirements.
+
+• Notify the Client promptly of any hazard, defect, or condition that may affect safety, service continuity, or compliance.
+
+• Maintain service records, inspection logs, and corrective action reports for the term of the Agreement.
+
+# 7. Client Obligations
+
+• Provide reasonable site access, work permits where required, and a designated point of contact.
+
+• Review and approve any chargeable parts, replacements, or out-of-scope work before procurement or execution.
+
+• Ensure the Vendor is informed of any site-specific hazards or operational restrictions.
+
+# 8. Safety, Compliance, and Insurance
+
+The Vendor shall perform the services in accordance with accepted industry practice and shall implement appropriate safety controls, lockout/tagout procedures where applicable, and personal protective equipment requirements.
+
+The Vendor shall maintain commercially reasonable general liability and workers’ compensation coverage and shall provide evidence upon request.
+
+# 9. Term and Termination
+
+This Agreement shall remain in effect for twelve (12) months from the Effective Date unless terminated earlier in accordance with this clause.
+
+Either party may terminate for material breach upon written notice and a reasonable opportunity to cure, except where immediate termination is justified by safety, fraud, or gross misconduct.
+
+# 10. Confidentiality and Records
+
+The Vendor shall keep confidential all non-public information obtained in connection with the services and shall use such information only for performance of this Agreement.
+
+Service reports, checklists, and incident records relating to the facility shall be retained for at least three (3) years, unless otherwise required by law or site policy.
+
+# 11. Miscellaneous
+
+This Agreement constitutes the entire understanding between the parties regarding the services described herein and may be amended only in writing signed by both parties.
+
+The governing law shall be the laws of the State of Texas, without regard to conflict of laws principles.
+
+# 12. Signatures
+
+| CLIENT Northbridge Meridian Holdings LLC By: ____________________ Name: __________________ Title: ___________________ Date: ___________________ | VENDOR IronGate Access Control Systems Pvt. Ltd. By: ____________________ Name: __________________ Title: ___________________ Date: ___________________ |
+| --- | --- |
+|  |  |
+
+Document Control: NML-FS-2026-007 | Northbridge Meridian Tower

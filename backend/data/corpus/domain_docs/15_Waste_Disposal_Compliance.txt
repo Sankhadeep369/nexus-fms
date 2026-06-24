@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Waste Management, Disposal Compliance, and Segregation
+General, industrial, recyclable, and compliant waste handling procedures
+
+Document Code: FCL-015
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-015 | Version | 1.0 |
+| Owner | Waste Management | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Ensures waste is segregated, stored, moved, and disposed of in line with internal standards and external compliance expectations.
+
+# 2. Scope
+
+Covers waste bins, labeling, storage areas, pickup schedules, manifests, compliance records, and safe handling of general and industrial waste.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Waste Coordinator | Monitors segregation, storage, and disposal records. |
+| Housekeeping Team | Collects and labels waste correctly. |
+| Vendor / Recycler | Picks up authorized waste streams and provides proof. |
+| HSE / Compliance | Checks legal and site compliance. |
+| Area Owner | Prevents mixing, dumping, or overflow in own area. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Verify segregation at source for wet, dry, recyclables, and industrial waste | No mixing at bins | Waste inspection log |
+| Daily | Remove full bins and confirm labeled collection | No overflow or odor | Collection sheet |
+| Daily | Check waste rooms for spill, pests, and safe storage | Waste area remains controlled | Waste room log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review pickup schedule and manifest completeness | Every pickup is traceable | Manifest register |
+| Weekly | Inspect hazardous or industrial waste storage areas | Storage is secure and compliant | Storage audit |
+| Weekly | Confirm bins, liners, and signage are in place | Users understand segregation | Bin audit |
+| Monthly | Audit waste volume by stream and disposal route | Management sees waste trend | Monthly waste report |
+| Monthly | Review vendor licenses, permissions, and expiry dates | Only approved vendors operate | Compliance file |
+| Monthly | Run spot checks on records and training | Process knowledge is maintained | Training log |
+
+# 6. Records, Logs, and Registers
+
+Waste manifest, vendor authorization file, bin inspection sheet, disposal receipt, spill log, complaint log
+
+# 7. Precautions and Critical Controls
+
+Never leave waste uncovered or mixed; keep industrial waste classified and labeled; use PPE for sharps or contaminated items; record chain-of-custody for pickups; clean spills immediately; keep storage areas away from food and potable water lines.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | Segregation issue or overflowing bin | Correct and retrain | Waste Coordinator |
+| High | Illegal dumping, spill, or missing manifest | Escalate and isolate area | HSE + Compliance |
+| Critical | Hazardous exposure or regulatory breach | Immediate containment and notification | Site Head + Legal/Compliance |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

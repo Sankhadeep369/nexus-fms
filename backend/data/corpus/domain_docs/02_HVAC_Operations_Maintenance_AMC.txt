@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+HVAC Maintenance, AMC, and Logs
+HVAC systems, maintenance routines, AMC controls, breakdown response, and operating logs
+
+Document Code: FCL-002
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-002 | Version | 1.0 |
+| Owner | HVAC Maintenance | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Keeps HVAC equipment performing within temperature, humidity, filtration, airflow, and energy targets while ensuring preventive maintenance and AMC obligations are tracked.
+
+# 2. Scope
+
+Covers chillers, AHUs, FCUs, cooling towers, pumps, condensers, filters, thermostats, dampers, BMS points, and associated controls.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| HVAC Technician | Performs inspections, cleaning, belt/filter checks, leakage detection, and operational tests. |
+| AMC Vendor | Delivers contract maintenance, spares, consumables, and service reports. |
+| Facilities Engineer | Reviews logs, validates performance, and approves shutdowns. |
+| BMS Operator | Monitors alarms, temperatures, and schedules. |
+| HSE Representative | Ensures lockout/tagout and work-at-height controls. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check supply/return air temperatures, differential pressure, alarms, and water levels | Parameters remain within target band | HVAC daily log |
+| Daily | Inspect visible leaks, unusual noise, vibration, and filter condition | No abnormal condition left unattended | Patrol log |
+| Daily | Review BMS alarms and trend deviations | Any out-of-range condition is assigned immediately | Alarm register |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Clean strainers, inspect belts, tighten fasteners, check drain pans | Equipment remains clean, secure, and leak-free | Weekly maintenance sheet |
+| Weekly | Verify thermostat calibration spot checks and sensor readings | Occupied spaces maintain comfort setpoint | Calibration check log |
+| Weekly | Review AMC pending actions and spare parts status | All open items have ETA and owner | AMC tracker |
+| Monthly | Inspect chillers/AHUs/FCUs as per OEM schedule | Preventive tasks completed and signed | PM report |
+| Monthly | Test safeties, interlocks, and emergency shutdown logic | Controls trip as designed | Functional test record |
+| Monthly | Review energy consumption versus tonnage / occupancy | No unexplained increase | Efficiency dashboard |
+
+# 6. Records, Logs, and Registers
+
+Daily log, weekly PM sheet, AMC service report, breakdown report, spare consumption record, calibration certificates
+
+# 7. Precautions and Critical Controls
+
+Always isolate electrical supply before opening panels; use PPE for refrigerant and rotating parts; never bypass safeties; verify condensation drainage to avoid slips; keep chemical cleaning controlled; maintain access clearance around plant.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Critical | Loss of cooling in occupied area | Move to backup mode / portable support and notify | Facilities Manager + AMC Lead |
+| Major | Repeated alarm or compressor trip | Stop equipment and diagnose root cause | Site Head + OEM / AMC |
+| Emergency | Safety hazard, refrigerant leak, or electrical smell | Isolate area, evacuate if required | HSE + Emergency response |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

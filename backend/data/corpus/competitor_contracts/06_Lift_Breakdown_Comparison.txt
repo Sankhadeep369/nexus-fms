@@ -1,0 +1,64 @@
+Apex One Commercial Services LLC
+
+14th Floor, Orion House
+78 MG Road
+Bengaluru, Karnataka 560001
+India
+
+# Lift Breakdown Response and Rescue Agreement
+
+Document Type: Internal Vendor Comparison Agreement
+
+Purpose: To compare the current vendor scope and commercial position against market alternatives for procurement analysis.
+
+## Parties and Site Details
+
+| Company / Contracting Party | Apex One Commercial Services LLC 14th Floor, Orion House 78 MG Road Bengaluru, Karnataka 560001 India |
+| --- | --- |
+| Primary Vendor | VertiRise Mobility Systems LLP 3rd Floor, Summit Court Bannerghatta Road Bengaluru, Karnataka 560076 India |
+| Facility / Site | Apex One Commercial Services LLC - Residential Annex |
+
+## Primary Agreement Scope of Services
+
+| Line | Service Item | Frequency / SLA | Commercial Treatment |
+| --- | --- | --- | --- |
+| 1 | Rapid response for entrapment and stall events | 24x7 | Included |
+| 2 | Technician dispatch with rescue tools | On call | Included |
+| 3 | Temporary shutdown and safety isolation | As needed | Included |
+| 4 | Post-incident inspection and restoration | Within 24 hours | Included |
+| 5 | Monthly trend review of recurring faults | Monthly | Included |
+
+## Commercial Terms
+
+| Cost Item | Amount / Rate | Notes |
+| --- | --- | --- |
+| Emergency retainer | INR 8,80,000 | Dedicated rescue service |
+| Per event fee | INR 6,000 | Beyond retainer threshold |
+| Night response premium | 20% | 10 pm to 6 am |
+| Term | 12 months | Auto-renewal optional |
+
+## Competitor Company Agreements / Market Alternatives
+
+| Competitor | Scenario | Service Position | Cost Position | Key Notes |
+| --- | --- | --- | --- | --- |
+| Elevate Prime Care Pvt Ltd | Premium Plus | Service better, cost worse | Higher than current | Enhanced response times, more included visits, higher fee |
+| Elevate Value Systems Pvt Ltd | Value Lean | Cost better, service worse | Lower than current | Lower fee, reduced visit frequency, longer response time |
+| Elevate Efficiency Services Pvt Ltd | Balanced Efficiency | Both better | Lower / same via efficiency | Improved service with optimized pricing through remote diagnostics / bundling |
+| Elevate Budget Support Pvt Ltd | Budget Basic | Both worse | Lower, but fewer inclusions | Reduced scope and lower coverage, but still compliant |
+
+## Scenario Matrix for Procurement Analysis
+
+| Option | Scope Depth | Response Time | Price Outlook | Best Fit |
+| --- | --- | --- | --- | --- |
+| Premium Plus | Expanded scope / extra visits | Faster than current | 15-30% higher | Critical uptime |
+| Value Lean | Reduced inclusions | Slower than current | 10-20% lower | Budget control |
+| Balanced Efficiency | Same or better scope | Equal or faster | 0-10% lower or equal | Best overall value |
+| Budget Basic | Minimum compliant scope | Longer lead time | Lowest | Low-risk / low-cost sites |
+
+Procurement note: Use the matrix above to benchmark service continuity, compliance, and total cost of ownership before awarding or renewing the primary contract.
+
+## Prepared By / For Internal Review Only
+
+| Prepared by | Procurement and Legal Review Team |
+| --- | --- |
+| Date | 08 May 2026 |

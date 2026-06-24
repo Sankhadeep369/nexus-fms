@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Water Systems, Treatment, Testing, and Pipe Management
+Water supply treatment, testing, distribution, and pipe maintenance procedures
+
+Document Code: FCL-007
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-007 | Version | 1.0 |
+| Owner | Water Systems | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Maintains potable, domestic, and utility water quality while keeping treatment equipment and piping assets serviceable.
+
+# 2. Scope
+
+Includes pumps, tanks, softeners, filtration, chlorination, sampling, pipe routes, valves, pressure control, and water quality records.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Water Technician | Checks treatment plant operation, sample points, and leakage. |
+| Facilities Engineer | Reviews test results, failures, and corrective actions. |
+| AMC Vendor | Services treatment equipment and dosing systems. |
+| HSE Officer | Ensures chemical handling and confined space controls. |
+| Housekeeping Lead | Keeps tank rooms, sumps, and sample points clean. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check tank levels, pump status, pressure, and visible leaks | Supply stable and leak-free | Water log |
+| Daily | Confirm dosing / treatment operation where applicable | Residual treatment within set range | Treatment log |
+| Daily | Inspect sample taps and accessibility | Sampling points usable and clean | Patrol sheet |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Flush dead legs and low-use points as per plan | Stagnation risk reduced | Flushing log |
+| Weekly | Check pipe supports, joints, and corrosion signs | No visible deterioration | Inspection report |
+| Weekly | Review water meter readings and abnormal consumption | Leaks or wastage identified | Consumption log |
+| Monthly | Send water samples for quality testing | Results meet standards / internal limits | Lab report |
+| Monthly | Service filters, softeners, and dosing units | Equipment remains effective | PM report |
+| Monthly | Review tanks, cleaning schedule, and disinfection plan | No overdue cleaning | Tank maintenance record |
+
+# 6. Records, Logs, and Registers
+
+Water quality test register, tank cleaning log, chemical issue log, leak report, meter reading sheet
+
+# 7. Precautions and Critical Controls
+
+Use approved chemicals only; label dosing containers; never enter tanks or pits without permit and gas testing where applicable; protect potable water from cross-connection; isolate contaminated lines and flush after repairs; keep sample chain-of-custody intact.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | Minor leak or pressure fluctuation | Repair and monitor | Supervisor |
+| High | Water contamination or disinfection failure | Stop use and isolate affected line | Facilities Manager + HSE |
+| Emergency | Tank, pump, or pipeline failure affecting operations | Activate contingency supply | Site Head + Utilities |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

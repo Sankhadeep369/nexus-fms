@@ -1,0 +1,105 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Vendor Contracts, Onboarding, and Service Acceptance
+Vendor onboarding, contract control, SLA management, compliance, and service acceptance
+
+Document Code: FCL-017
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-017 | Version | 1.0 |
+| Owner | Vendor Contracts | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Ensures every vendor is screened, contracted, inducted, monitored, and offboarded with a clear record trail.
+
+# 2. Scope
+
+Applies to all facilities, security, safety, and support vendors, including AMC providers, contractors, consultants, and service agencies.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Contracts Manager | Owns contracts, renewals, scopes, and signatures. |
+| Facilities Owner | Defines the technical scope and acceptance criteria. |
+| Procurement | Checks commercial terms and documentation. |
+| HSE / Compliance | Reviews safety, insurance, and legal compliance. |
+| Vendor Manager | Coordinates onboarding, access, and performance tracking. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Track active vendor attendance, work permits, and site entry | Only authorized personnel work on site | Entry / permit log |
+| Daily | Verify open service requests and completion evidence | Work is closed with evidence | Service ticket log |
+| Daily | Capture deviations from contract scope or SLA | Exceptions are documented | Exception register |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review vendor performance, quality, and response times | Issues are visible early | Scorecard |
+| Weekly | Confirm insurance, license, and compliance documents are current | No lapse in mandatory docs | Compliance tracker |
+| Weekly | Check onboarding status for any new vendor staff | Induction completed before work | Induction log |
+| Monthly | Conduct formal vendor review and renewal readiness check | Contract management is proactive | Monthly vendor pack |
+| Monthly | Reconcile billing against scope and service evidence | Invoices match delivered service | Invoice validation sheet |
+| Monthly | Update approved vendor list and blacklist / watchlist if applicable | Supplier governance is current | Vendor master register |
+
+# 6. Records, Logs, and Registers
+
+Contract register, onboarding checklist, insurance copies, license register, SLA scorecard, scope acceptance form, offboarding checklist
+
+# 7. Precautions and Critical Controls
+
+Do not allow work to begin before induction, insurance, and authorization are complete; keep evidence for every service claim; align scope, price, and acceptance criteria; record deviations immediately; tie performance review to measurable service outcomes.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | Missing document or minor SLA drift | Correct and follow up | Vendor Manager |
+| High | Unauthorized work, unsafe act, or contract breach | Stop work and escalate | Contracts Manager + HSE |
+| Critical | Fraud, major non-compliance, or site risk | Suspend vendor and initiate review | Site Head + Legal/Procurement |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# 10. Vendor Onboarding Checklist
+
+| Checkpoint | Status / Evidence |
+| --- | --- |
+| Legal identity | PAN / GST / registration / entity name verified |
+| Commercials | Rate card, scope, invoice process, and payment terms agreed |
+| Compliance | Insurance, licenses, statutory documents, and safety obligations checked |
+| Site induction | Access rules, PPE, emergency procedures, and work permits explained |
+| Go-live | Service start date, contact tree, and escalation path confirmed |
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

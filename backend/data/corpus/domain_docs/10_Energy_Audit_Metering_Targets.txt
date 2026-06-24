@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Energy Management, Metering, Audit, and Target Tracking
+Energy audits, utility metering, conservation targets, and action tracking
+
+Document Code: FCL-010
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-010 | Version | 1.0 |
+| Owner | Energy Management | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Transforms utility consumption into a managed process with metering discipline, audit actions, and operational targets.
+
+# 2. Scope
+
+Covers meters, submeters, demand monitoring, energy audits, load scheduling, conservation initiatives, and reporting against targets.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Energy Manager | Sets targets, reviews trends, and initiates improvements. |
+| BMS / Metering Operator | Maintains meter accuracy and data capture. |
+| Facilities Manager | Implements operational changes affecting consumption. |
+| Vendor / Auditor | Conducts formal audit and recommends actions. |
+| Finance Representative | Tracks savings, budget, and payback impacts. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Capture main meter and critical submeter data | Readings are complete and consistent | Meter log |
+| Daily | Monitor peak demand and unusual load spikes | Excess load identified early | Demand dashboard |
+| Daily | Check switched-off areas, lights, and HVAC schedules | No obvious waste remains | Walk-through log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Compare consumption per occupied area / operating hour | Trend is improving or explained | Weekly energy report |
+| Weekly | Verify meter communication and data gaps | No missing data | Meter health report |
+| Weekly | Review candidate energy saving actions | Actions are prioritized | Action tracker |
+| Monthly | Review audit findings and action closure | Savings actions are tracked to closure | Audit action register |
+| Monthly | Assess target versus actual consumption | Variance is explained | Target dashboard |
+| Monthly | Publish management summary with opportunities | Leadership gets clear next steps | Energy KPI pack |
+
+# 6. Records, Logs, and Registers
+
+Meter register, audit report, utility invoice tracker, target sheet, energy-saving action log, savings validation sheet
+
+# 7. Precautions and Critical Controls
+
+Never optimize energy at the cost of life safety or comfort-critical operations; verify metering accuracy before analyzing data; keep baselines stable enough to compare; document assumptions; coordinate with operations before schedule changes.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Single sensor or data gap | Correct and backfill if possible | Energy operator |
+| Medium | Unexpected monthly overrun | Investigate load drivers and propose controls | Energy Manager |
+| High | Sustained high demand or utility risk | Escalate to leadership for action | Site Head + Finance |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

@@ -1,0 +1,104 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Budgeting, AMC Calendar, and Renewal Planning
+Budget preparation, AMC calendars, renewal tracking, and vendor cost control
+
+Document Code: FCL-013
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-013 | Version | 1.0 |
+| Owner | Budgeting | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Provides a disciplined annual budgeting and renewal process tied to current service contracts and operational commitments.
+
+# 2. Scope
+
+Covers AMC planning, contract renewals, forecast cycles, budget approvals, current vendor baseline, procurement lead time, and cost review.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Budget Controller | Maintains annual plan, accruals, and renewal calendar. |
+| Facilities Manager | Confirms technical scope and service continuity needs. |
+| Procurement / Contracts | Manages RFQ, renewals, and commercial terms. |
+| Finance | Approves budget, accruals, and variance tracking. |
+| Current Vendor Owner | Confirms current service baseline and scope assumptions. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Capture any urgent spend, breakdown risk, or scope change | Budget impact is identified early | Exception log |
+| Daily | Track expiring POs, contracts, and service requests | No missed renewal date | Renewal tracker |
+| Daily | Compare actual spend to committed budget | Overruns are visible | Spend dashboard |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review AMC calendar for the next 90 days | Renewals are planned in advance | AMC calendar |
+| Weekly | Validate current vendor service baseline against actual service delivered | No unsupported charge remains | Service baseline tracker |
+| Weekly | Update forecast for critical utilities and outsourced services | Forecast reflects latest need | Forecast sheet |
+| Monthly | Produce budget variance and accrual review | Management sees cost movement | Monthly budget pack |
+| Monthly | Reforecast based on seasonality and known shutdowns | Budget stays realistic | Rolling forecast |
+| Monthly | Review supplier performance and pricing trends | Renewal strategy is informed | Commercial review |
+
+# 6. Records, Logs, and Registers
+
+Annual budget, AMC calendar, renewal log, current vendor baseline sheet, PO tracker, variance report, approval matrix
+
+# 7. Precautions and Critical Controls
+
+Maintain a current-vendor baseline for every service before comparing alternatives; separate mandatory safety spend from discretionary spend; track contract dates early; do not allow service continuity gaps; document assumptions behind each budget line.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | Budget variance above threshold | Investigate drivers and reforecast | Budget Controller |
+| High | Critical renewal due within 30 days | Escalate for approval and continuity | Finance + Facilities |
+| Critical | Service loss due to missed renewal | Invoke contingency service arrangement | Site Head + Procurement |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# 10. Budget Baseline and Current Vendor Reference
+
+| Field | Control |
+| --- | --- |
+| Current Vendor Baseline | Use the incumbent service provider, agreed scope, and current commercial rate as the reference case. |
+| Budget Variance Rule | Any proposed change must state whether it improves cost, service, or both, and how it affects continuity. |
+| Renewal Lead Time | Start comparison and approval activity well before expiry to avoid service gaps. |
+| Approval Evidence | Keep quotation comparison, technical evaluation, and finance approval in the file. |
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

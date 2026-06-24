@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Security Operations, CCTV, Asset Protection, and Incident Reporting
+Security post operations, CCTV coverage, access control, incident handling, and asset protection
+
+Document Code: FCL-005
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-005 | Version | 1.0 |
+| Owner | Security | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Standardizes how guards, supervisors, and facility staff protect people, assets, and evidence through consistent patrol, monitoring, and reporting.
+
+# 2. Scope
+
+Applies to security posts, CCTV rooms, access control points, patrol routes, visitor control, asset custody, incident logging, and evidence retention.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Security Supervisor | Manages shift allocation, patrol discipline, and incident closure. |
+| CCTV Operator | Monitors cameras, records events, and flags anomalies. |
+| Security Guard | Controls entry/exit, visitor checks, and patrols. |
+| Facilities Manager | Coordinates action on security-related facility defects. |
+| Incident Controller | Assesses incident severity and communication. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Verify CCTV live feed, recording, storage health, and time sync | Camera coverage is available and accurate | CCTV health log |
+| Daily | Check visitor register, ID validation, and vehicle entry control | Only authorized entry occurs | Visitor log |
+| Daily | Complete perimeter and critical asset patrol | No access breach or tampering | Patrol sheet |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review incident trends, blind spots, camera angles, and access logs | Risks are identified early | Security review report |
+| Weekly | Inspect barriers, locks, seals, and tamper indicators | Physical security remains intact | Asset inspection log |
+| Weekly | Conduct evidence backup test and restore spot check | Video evidence is retrievable | Backup verification log |
+| Monthly | Audit all incident reports, response times, and closure quality | Reports are complete and signed off | Monthly KPI pack |
+| Monthly | Validate asset master list and high-value item tagging | Asset register is accurate | Asset register audit |
+| Monthly | Test panic buttons, alarms, and communication channels | Response pathways work as designed | Test certificate |
+
+# 6. Records, Logs, and Registers
+
+CCTV uptime log, incident register, visitor log, access card issue log, patrol log, evidence handover form
+
+# 7. Precautions and Critical Controls
+
+Never leave gaps in evidence chain; preserve original footage; report unusual loitering, forced entry, or seal tamper immediately; restrict access to control rooms; use calm verbal escalation before physical intervention; protect personal data and follow privacy rules.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Minor access discrepancy or lost visitor pass | Correct and record | Security Supervisor |
+| High | Intrusion, theft, violence, or sabotage | Secure scene and call emergency response | Site Head + Police if required |
+| Critical | Evidence compromise or major breach | Preserve logs and escalate instantly | Compliance + Legal + Management |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

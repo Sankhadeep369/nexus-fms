@@ -1,0 +1,110 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Facility Operations SOP and Training Manual
+Overall facility governance, floor plans, design documents, access control, and day-to-day operational standards
+
+Document Code: FCL-001
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-001 | Version | 1.0 |
+| Owner | Head of Facilities | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Defines how the overall facility is documented, operated, inspected, and controlled so that every floor, asset zone, and building utility can be traced against approved drawings, current occupancy, and live operating conditions.
+
+# 2. Scope
+
+Applies to all buildings, floors, common areas, plant rooms, basements, terraces, loading zones, tenant areas, service corridors, and outsourced service zones. This module also covers floor plans, design documents, as-built records, room numbering, and change-control for layout variations.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Facilities Manager | Owns the master floor plan set, space allocation, daily monitoring, and approval of layout changes. |
+| Shift Supervisor | Conducts floor rounds, checks housekeeping and serviceability, and logs defects. |
+| MEP Coordinator | Maintains interface between facility drawings and live utility changes. |
+| Security Lead | Protects access to sensitive areas, keys, and controlled spaces. |
+| Admin / Workplace Team | Tracks occupancy, seating moves, and workplace change requests. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Verify occupancy status, access status, and critical areas on all floors | No unauthorized space use, blocked exits, or inaccessible rooms | Daily floor round log |
+| Daily | Check notice boards, evacuation maps, and floor plan postings are current | Displayed information matches approved layout | Photo evidence / inspection log |
+| Daily | Confirm service rooms, risers, shafts, and plant access are locked and labeled | Only authorized entry and clear labels | Access register / key log |
+| Daily | Check change requests for furniture, partition, or equipment moves | No unapproved changes remain open | Change register |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Compare live floor occupancy with approved seating and room allocation | No unexplained variance | Space utilization report |
+| Weekly | Review outstanding defects, snagging items, and layout issues | Open items assigned to owners | Defect tracker |
+| Weekly | Inspect master drawings against actual arrangement in critical areas | No mismatch in egress, plant, or controlled rooms | Drawing verification log |
+| Monthly | Audit floor plans, emergency maps, and tenant/departmental layouts | Documents are current and revision-controlled | Master drawing register |
+| Monthly | Check as-built records for all completed works and tenant changes | All changes filed and indexed | As-built repository log |
+| Monthly | Review space utilization, vacancy, and churn trends | Management receives updated occupancy summary | Monthly dashboard |
+
+# 6. Records, Logs, and Registers
+
+Master floor plan register with revision history.
+
+As-built drawing register and document control log.
+
+Space allocation matrix and occupancy register.
+
+Floor round checklists and defect closure log.
+
+Access key / card register for controlled areas.
+
+# 7. Precautions and Critical Controls
+
+Never rely on verbal layout changes; update drawings after every approved change.
+
+Keep emergency exits, fire paths, and electrical access clear at all times.
+
+Do not share sensitive plans externally without authorization.
+
+Mark temporary works, barricades, and out-of-service spaces clearly.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Minor mismatch or missing label | Correct same day | Shift Supervisor |
+| Medium | Unapproved floor change or blocked route | Stop activity and restore condition | Facilities Manager |
+| High | Safety-critical layout issue or access breach | Escalate immediately and isolate area | Site Head / Security / HSE |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Document ID | Unique code for each drawing / revision. |
+| Revision | Approved version number and issue date. |
+| Area | Floor, zone, room, plant area, or common space. |
+| Owner | Business unit or facilities owner responsible for accuracy. |
+| Retention | Maintain current + obsolete copies per record control rules. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

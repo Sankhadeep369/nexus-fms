@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Electrical Systems, Drawings, and Certificates
+HT/LT systems, panels, electrical drawings, test certificates, and safe operating checks
+
+Document Code: FCL-003
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-003 | Version | 1.0 |
+| Owner | Electrical Systems | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Controls the safe operation and documentation of electrical distribution, backup power, and statutory certificates across the facility.
+
+# 2. Scope
+
+Includes transformer rooms, LT panels, DBs, DG sets, UPS, batteries, cable routes, lighting, earthing, protection devices, and single-line diagrams.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Electrical Supervisor | Operates and inspects equipment, records loads, and coordinates maintenance. |
+| Certified Electrician | Carries out authorized repairs, cable work, terminations, and replacements. |
+| Facilities Engineer | Reviews certificates, load trends, and shutdown approvals. |
+| AMC Vendor | Provides testing, servicing, and statutory support. |
+| Safety Officer | Ensures isolation and permit-to-work compliance. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check panel indicators, load levels, room temperature, and abnormal smells | No overheating or alarm condition | Electrical daily log |
+| Daily | Verify DG/UPS availability and auto-changeover status | Backup systems ready for use | Backup equipment log |
+| Daily | Ensure panel rooms are clean, dry, and access controlled | No storage or water ingress | Patrol record |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Inspect earthing, cable trays, visible terminations, and illumination | No loose or exposed condition | Weekly inspection sheet |
+| Weekly | Test emergency lighting and signage | Devices function during test | Test log |
+| Weekly | Check drawing set against installed configuration | Single-line and layout drawings remain current | Drawing register |
+| Monthly | Record load balance, power factor, demand trend, and generator runtime | Usage aligns with business profile | Energy / load report |
+| Monthly | Review statutory certificates, relay test reports, and calibration evidence | No expired compliance item | Certificate register |
+| Monthly | Carry out thermography or targeted hot-spot survey where applicable | High-risk hotspots identified early | Thermography report |
+
+# 6. Records, Logs, and Registers
+
+Panel logbook, SLD register, test certificates, relay calibration reports, shutdown permit, incident log
+
+# 7. Precautions and Critical Controls
+
+Do not open live panels without authorization; maintain LOTO and discharge checks; keep drawings updated after every change; maintain dry floors and cable trenches; use insulated tools and arc-flash precautions; only certified persons may perform energization or termination work.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Single lamp, socket, or minor DB issue | Repair during routine window | Supervisor |
+| Medium | Repeated tripping or unknown load increase | Investigate and isolate affected circuit | Facilities Manager |
+| High | Fire/smoke, shock risk, or main incomer trip | Emergency isolation and evacuation | Site Head + HSE + Utility provider |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

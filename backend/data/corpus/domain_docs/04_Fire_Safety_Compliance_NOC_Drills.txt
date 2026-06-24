@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Fire Safety, NOC, Drills, and Inspection
+Fire prevention, statutory compliance, evacuation drills, inspection routines, and fire system readiness
+
+Document Code: FCL-004
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-004 | Version | 1.0 |
+| Owner | Fire Safety | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Ensures the facility can obtain, maintain, and demonstrate compliance with fire safety requirements while keeping response readiness high.
+
+# 2. Scope
+
+Covers fire NOC files, hydrants, extinguishers, alarms, sprinklers, smoke detection, fire doors, evacuation plans, drills, and inspection schedules.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Fire Officer | Maintains fire equipment readiness, drills, and inspection closure. |
+| Facilities Manager | Tracks compliance, vendor support, and corrective actions. |
+| Security Team | Manages evacuation guidance, access control, and assembly points. |
+| AMC Vendor | Services suppression and detection systems. |
+| HSE Team | Validates risk controls and incident learning. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check fire alarm panel status, exit access, and extinguisher location visibility | No fire equipment blocked or tampered | Daily fire round log |
+| Daily | Inspect housekeeping in electrical and storage areas | No combustible clutter | Housekeeping report |
+| Daily | Verify assembly point signage and fire door self-closing condition | Routes remain usable | Patrol checklist |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Inspect extinguishers, hose reels, hydrant cabinets, and fire doors | Seal, pressure, and accessibility are intact | Weekly fire inspection |
+| Weekly | Review hot work permits and temporary fire watch arrangements | Work is controlled and monitored | Permit register |
+| Weekly | Check drill preparedness and occupant communication lists | Call tree is current | Communication test log |
+| Monthly | Conduct evacuation drill or partial drill as scheduled | Occupants respond within target time | Drill report |
+| Monthly | Test alarm audibility, panel health, and pump auto-start where permitted | System functions end-to-end | Functional test record |
+| Monthly | Review fire NOC conditions and statutory expiry dates | No compliance gap remains | NOC tracker |
+
+# 6. Records, Logs, and Registers
+
+Fire inspection register, drill attendance sheet, equipment service certificates, NOC file, incident record, corrective action tracker
+
+# 7. Precautions and Critical Controls
+
+Keep fire exits unlocked as required; never obstruct sprinklers or detectors; isolate temporary fire risks with permits and fire watch; replace discharged or damaged extinguishers immediately; learn the evacuation script and assembly point roles; treat repeated false alarms as a corrective-action issue.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Critical | Alarm activation or visible smoke/fire | Raise alarm, evacuate, and call response | Fire Officer + Security + Site Head |
+| Major | Disabled fire equipment or expired certificate | Escalate and replace within deadline | Facilities Manager |
+| Regulatory | NOC deviation or authority notice | Close corrective actions and document evidence | Compliance Owner |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

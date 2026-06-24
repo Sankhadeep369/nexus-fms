@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Network, BMS, IT Infrastructure, and License Management
+BMS operation, network dependencies, IT support coordination, and software/license control
+
+Document Code: FCL-011
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-011 | Version | 1.0 |
+| Owner | Network | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Maintains the digital backbone that supports building automation, connectivity, and licensed software operations.
+
+# 2. Scope
+
+Includes BMS front ends, controllers, switches, access points, servers, CCTV-network interfaces, licenses, backups, and access rights.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| BMS / IT Coordinator | Monitors system availability, users, and backups. |
+| Network Technician | Checks connectivity, cabinets, and equipment health. |
+| Vendor / OEM | Supports patches, licenses, and failures. |
+| Facilities Manager | Approves downtime windows and change requests. |
+| Information Security / IT Lead | Controls access, passwords, and cyber hygiene. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Review BMS alarms, controller health, and network connectivity | No unexplained outage or alarm backlog | System health log |
+| Daily | Confirm backups and time synchronization | Recovery points are current | Backup check log |
+| Daily | Validate critical dashboards and remote access | Users can monitor required systems | Access log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Inspect cabinets, cabling, cooling, and labeling | No loose patching or overheating | Cabinet inspection |
+| Weekly | Review patching, antivirus, and license expiries | No compliance or security gap | License / patch tracker |
+| Weekly | Test alarm forwarding and notification pathways | Escalation messages reach owners | Alert test record |
+| Monthly | Archive configuration backups and change history | Roll-back is possible | Configuration backup log |
+| Monthly | Review user access list and remove stale accounts | Access is least-privilege | Access review |
+| Monthly | Validate integration points with HVAC, fire, and security systems | Interfaces are stable | Integration test sheet |
+
+# 6. Records, Logs, and Registers
+
+BMS alarm log, network fault log, license register, backup confirmation, access matrix, change request register
+
+# 7. Precautions and Critical Controls
+
+Never share admin credentials; change only through approved window; back up before updates; document every controller swap or IP change; maintain vendor support evidence; ensure cyber and physical protection of comms rooms.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | System degradation or alarm burst | Monitor and restore from backup path | BMS Coordinator |
+| High | Loss of monitoring to critical assets | Escalate to IT/OEM and apply workaround | Facilities Manager |
+| Critical | Security breach or total system outage | Isolate access and invoke incident plan | IT Lead + Management |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

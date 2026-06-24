@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+General Housekeeping, Pest Control, and Space Management
+Cleaning standards, pest control, shared space upkeep, and workplace order
+
+Document Code: FCL-014
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-014 | Version | 1.0 |
+| Owner | General Housekeeping | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Maintains a clean, safe, and organized facility environment while controlling pest risk and space clutter.
+
+# 2. Scope
+
+Covers cleaning schedules, consumables, hygiene checks, pest inspections, storage rules, shared areas, and move management.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Housekeeping Lead | Schedules cleaning, checks quality, and closes issues. |
+| Pest Control Vendor | Carries out preventive and corrective treatment. |
+| Facilities Coordinator | Manages space use, moves, and storage. |
+| Area Owner | Ensures work area standards are maintained. |
+| Security | Reports overnight housekeeping or pest anomalies. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Clean common areas, washrooms, pantry, and touch points | Areas remain hygienic and presentable | Cleaning checklist |
+| Daily | Remove waste and restock consumables | Bins and supplies are in order | Consumable log |
+| Daily | Inspect for pest traces, food residue, and water seepage | Attractants are eliminated | Pest observation log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Deep clean assigned zones and hidden corners | No buildup of dust or grime | Deep-clean record |
+| Weekly | Inspect storage, pantry, and waste rooms | Space is orderly and labeled | Storage audit |
+| Weekly | Review occupancy changes and space reuse requests | Areas are assigned correctly | Space change register |
+| Monthly | Review pest trend, treatment effectiveness, and high-risk zones | Control measures remain effective | Pest trend report |
+| Monthly | Audit housekeeping SLA and housekeeping supplies | Service quality is measurable | SLA scorecard |
+| Monthly | Reconcile space occupancy against approved plan | No unauthorized storage or occupancy | Space utilization record |
+
+# 6. Records, Logs, and Registers
+
+Cleaning schedule, pest log, consumables register, occupancy map, move request form, quality audit checklist
+
+# 7. Precautions and Critical Controls
+
+Separate food waste and standing water from work areas; do not mix chemicals without guidance; keep chemical stores locked; maintain ventilation when cleaning; tag abandoned items before disposal; monitor recurring pest sources rather than only treating symptoms.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Low | Minor cleanliness issue | Correct during shift | Housekeeping Lead |
+| Medium | Recurring pest or clutter issue | Escalate and trend analysis | Facilities Coordinator |
+| High | Infestation or hygiene-related complaint | Immediate action and vendor callout | Site Head + HSE |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

@@ -27,6 +27,8 @@ backend/.env
 backend/data/cache/
 backend/data/chroma/
 backend/data/index/
+# Downloaded model weights (pulled from HF Hub at runtime — not committed)
+backend/data/models/
 
 # --- Model artifacts (large binaries — stored on HuggingFace Hub) ---
 *.gguf

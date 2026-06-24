@@ -1,0 +1,95 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Civil Works, Structural Care, and Drawing Control
+Civil maintenance, structural observations, drawing control, and repair planning
+
+Document Code: FCL-009
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-009 | Version | 1.0 |
+| Owner | Civil Works | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Protects the building fabric through inspection, controlled repair, and clear drawing-based recordkeeping for civil assets.
+
+# 2. Scope
+
+Includes masonry, plaster, flooring, ceilings, waterproofing, ramps, roads, kerbs, handrails, doors, finishes, and structural observation points.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Civil Supervisor | Inspects defects, plans repairs, and records closeout. |
+| Facilities Manager | Approves scope, shutdowns, and contractor engagement. |
+| Structural Consultant | Reviews major cracks, settlement, or load concerns. |
+| Contractor | Executes repairs as per approved method statement. |
+| HSE Officer | Confirms work area barriers and fall protection. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Look for cracks, dampness, spalling, leakage staining, and trip hazards | No emerging structural or finish hazard is ignored | Civil inspection log |
+| Daily | Check public areas, ramps, and steps for damage | Safe walking surfaces maintained | Patrol record |
+| Daily | Track open snagging and defect tickets | No item exceeds target age | Defect register |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Monitor recurring cracks or water ingress points | Trend and severity are understood | Observation sheet |
+| Weekly | Review barricades, curing, and temporary works | Work areas remain protected | Temporary works log |
+| Weekly | Check drawing references for repair locations | Every repair links to a plan/location | Drawing index |
+| Monthly | Review preventive civil maintenance plan | Major defects are prioritized | PM plan |
+| Monthly | Audit waterproofing and exterior sealant areas | No overdue deterioration remains | Condition survey |
+| Monthly | Update as-built marks for completed works | Records match site condition | As-built update log |
+
+# 6. Records, Logs, and Registers
+
+Condition survey report, crack monitoring log, waterproofing history, repair order, drawing revision register
+
+# 7. Precautions and Critical Controls
+
+Do not ignore small cracks that change in pattern or width; protect occupants from falling debris; use proper curing and barricading; record exact location and dimensions; obtain engineer review before altering load-bearing elements.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| Medium | Finish damage, minor crack, or local dampness | Repair and monitor | Civil Supervisor |
+| High | Structural concern or falling material | Restrict access and call engineer | Facilities Manager + Consultant |
+| Critical | Collapse risk or major safety hazard | Evacuate and isolate area | Site Head + Emergency team |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

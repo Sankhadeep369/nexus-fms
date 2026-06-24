@@ -1,0 +1,105 @@
+Apex Integrated Facilities LLC
+14th Floor, Orion Business Park
+Whitefield Main Road, Bengaluru, Karnataka 560066, India
+Emergency Preparedness, BCP, Evaluations, and Drills
+Business continuity, emergency response, scenario evaluation, and drill management
+
+Document Code: FCL-016
+
+# Document Control
+
+| Field 1 | Value 1 | Field 2 | Value 2 |
+| --- | --- | --- | --- |
+| Document Code | FCL-016 | Version | 1.0 |
+| Owner | Emergency Preparedness | Effective Date | Upon issue |
+| Classification | Internal Training / Operating Reference | Review Cycle | Annual or as required |
+
+# 1. Purpose
+
+Prepares the site to continue critical functions and respond effectively to incidents through tested continuity plans and drills.
+
+# 2. Scope
+
+Covers emergency plans, recovery priorities, communication trees, evacuation, sheltering, business continuity, and after-action evaluation.
+
+# 3. Roles and Responsibilities
+
+| Role | Key Responsibilities |
+| --- | --- |
+| Emergency Controller | Leads incident command and recovery coordination. |
+| Facilities Manager | Protects critical utilities and facility continuity. |
+| Security Lead | Manages alarms, access, and evacuation control. |
+| IT / BCP Lead | Supports data, systems, and alternate work modes. |
+| Department Heads | Confirm critical staff, processes, and recovery needs. |
+
+# 4. Day-to-Day Operating Procedure
+
+| Frequency | Task | What Good Looks Like | Evidence / Record |
+| --- | --- | --- | --- |
+| Daily | Check readiness of emergency contacts, radios, and key systems | Communication tools are functional | Readiness log |
+| Daily | Verify emergency exits, signage, and kits | No critical item missing | Daily emergency round |
+| Daily | Monitor for conditions that could trigger emergency mode | Early warning is escalated | Watchlist log |
+
+# 5. Preventive Maintenance and Periodic Tasks
+
+| Frequency | Task | Control Point | Record |
+| --- | --- | --- | --- |
+| Weekly | Review emergency supplies, batteries, torches, and first aid | Kits are stocked | Inventory log |
+| Weekly | Test notification tree or mass message process | Messages reach responders | Communication test |
+| Weekly | Validate critical utility fallback arrangements | Fallback can be executed | Continuity checklist |
+| Monthly | Run scenario-based drill or tabletop exercise | Roles are understood and tested | Exercise report |
+| Monthly | Evaluate response times and decision points | Lessons are identified | After-action report |
+| Monthly | Update continuity procedures and recovery dependencies | BCP remains current | BCP revision log |
+
+# 6. Records, Logs, and Registers
+
+Emergency contact tree, drill report, BCP register, lessons learned log, critical asset list, alternate site plan
+
+# 7. Precautions and Critical Controls
+
+Practice the sequence before crisis day; protect life first, then critical operations; document decisions during incidents; keep fallback copies of plans off-site; include vendors in recovery dependencies; convert lessons learned into a tracked action list.
+
+# 8. Escalation and Incident Response
+
+| Severity | Trigger | Action | Escalation |
+| --- | --- | --- | --- |
+| High | Localized emergency with limited impact | Execute response and monitor | Emergency Controller |
+| Critical | Life safety event or major utility failure | Activate command center and evacuation | Site Head + All responders |
+| Recovery | Post-incident service restoration | Track actions to stable closure | BCP Lead |
+
+# 9. Training Notes for SLM Use
+
+For training and model fine-tuning, keep each action paired with the required record, the triggering condition, and the expected outcome. Prefer concise operational verbs such as inspect, isolate, record, notify, verify, and close.
+
+# 10. BCP Critical Services Register
+
+| Service Area | Minimum Continuity Expectation |
+| --- | --- |
+| Life safety | Fire, security, evacuation, and medical response |
+| Utilities | Power, HVAC, water, and comms required to keep the site functional |
+| Data and access | BMS, network, CCTV, and key systems |
+| People readiness | Call tree, role backup, and alternate reporting |
+| Recovery evidence | Action log, timestamps, approvals, and closure proof |
+
+# Appendix: Standard Training Artifacts
+
+| Template Field | Description / Sample Entry |
+| --- | --- |
+| Log / Register | Keep a dated, signed record for every inspection or action. |
+| Photo Evidence | Capture before/after images for defects and repairs. |
+| Approval | Record authorization for shutdowns and non-routine work. |
+| Escalation Trigger | Define what causes immediate escalation. |
+| Retention | Store records according to company policy and contract terms. |
+
+# Module Forms and Checklists
+
+| Form | Required Content |
+| --- | --- |
+| Inspection / Service Log | Date, time, area, task, reading, observation, action, owner, closure date. |
+| Exception Report | Issue, impact, containment, root cause, corrective action, target date. |
+| Approval Record | Requestor, approver, scope, date, and conditions of approval. |
+| Closeout Note | Work completed, evidence attached, and handover status. |
+
+Prepared for internal training and operating-reference use only.
+
+Generated on 2026-06-07

@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
-PROJECT_ROOT = BACKEND_ROOT.parents[1]
 
 
 class Settings(BaseSettings):
@@ -14,10 +13,13 @@ class Settings(BaseSettings):
     )
 
     # --- Paths ---
+    # Defaults resolve inside the repo so the app is self-contained in Docker and
+    # on any fresh clone.  Override via .env to point at the larger project tree
+    # on a local dev machine (e.g. GGUF_DIR=D:/NEXUS/06_model_artifacts/gguf).
     data_dir: Path = BACKEND_ROOT / "data"
-    gguf_dir: Path = PROJECT_ROOT / "06_model_artifacts" / "gguf"
+    gguf_dir: Path = BACKEND_ROOT / "data" / "models"
     system_prompt_path: Path = BACKEND_ROOT / "app" / "prompts" / "system_prompt.md"
-    corpus_dir: Path = PROJECT_ROOT / "02_extracted_text"
+    corpus_dir: Path = BACKEND_ROOT / "data" / "corpus"
 
     @property
     def cache_dir(self) -> Path:
