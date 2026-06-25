@@ -1,13 +1,4 @@
----
-title: NEXUS FMS
-emoji: 🏢
-colorFrom: indigo
-colorTo: cyan
-sdk: docker
-pinned: false
-license: mit
-short_description: Facilities management AI assistant — fine-tuned Gemma 3 4B
----
+
 
 # NEXUS — Facilities Management AI Assistant
 
