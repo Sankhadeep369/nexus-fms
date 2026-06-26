@@ -32,11 +32,15 @@ class Settings(BaseSettings):
 
     # --- LLM runtime ---
     llm_n_ctx: int = 4096
-    # Physical core count tends to outperform logical (hyperthreaded) core count for
-    # llama.cpp CPU inference -- extra threads from hyperthreading mostly add contention.
-    llm_n_threads: int = 4
+    # Match physical core count of the deployment target.
+    # HF Spaces cpu-basic = 2 vCPU → set to 2.
+    # More threads than physical cores adds contention and slows inference.
+    llm_n_threads: int = 2
     llm_n_gpu_layers: int = 0
     max_new_tokens: int = 512
+    # Larger batch size speeds up prompt evaluation (prefill). 1024 works well
+    # on CPU for context lengths up to ~2 k tokens.
+    llm_n_batch: int = 1024
     # "Simple" mode favors focused, deterministic answers; "Thinking" mode raises the
     # temperature for more exploratory, multi-angle reasoning on harder questions.
     temperature_simple: float = 0.2
@@ -54,7 +58,8 @@ class Settings(BaseSettings):
     hf_endpoint_url: str | None = None
 
     # --- Retrieval (hybrid BM25 + embeddings over 02_extracted_text) ---
-    retrieval_top_k: int = 4
+    # Fewer chunks = shorter prompt = faster prefill. 2 is enough for most queries.
+    retrieval_top_k: int = 2
     retrieval_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     # Weight on the (min-max normalized) BM25 score vs. the dense cosine score when
     # combining the two rankings, in [0, 1].

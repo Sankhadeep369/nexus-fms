@@ -18,8 +18,11 @@ def _build_user_content(query: str, retrieved: list[dict]) -> str:
     if not retrieved:
         return query
 
+    # File paths are stripped from the context block so the model never echoes
+    # raw filenames in its response. The UI surfaces source references separately
+    # as a collapsible reference tile via the `retrieved_sources` field on `done`.
     context_block = "\n\n---\n\n".join(
-        f"[Source: {r['source_doc']} | Section: {r['section']}]\n{r['text']}" for r in retrieved
+        f"[Section: {r['section']}]\n{r['text']}" for r in retrieved
     )
     return (
         "Context (retrieved from internal facilities documents -- treat this as the "

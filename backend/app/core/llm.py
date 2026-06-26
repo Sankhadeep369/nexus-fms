@@ -72,6 +72,7 @@ class LLM(ChatModel):
             n_ctx=settings.llm_n_ctx,
             n_threads=settings.llm_n_threads or None,
             n_gpu_layers=settings.llm_n_gpu_layers,
+            n_batch=settings.llm_n_batch,
             verbose=False,
         )
 

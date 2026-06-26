@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CheckIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
+import { BookIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
 import ThinkingIndicator from "./ThinkingIndicator";
 
 function flattenText(node) {
@@ -99,6 +99,59 @@ const markdownComponents = {
   ),
   tr: ({ children }) => <tr className="last:[&>td]:border-b-0">{children}</tr>,
 };
+
+// Converts raw source paths like "current_contracts/13_PrimeEdge_Electrical_HQ.txt"
+// into a readable label and category badge.
+function formatSource(path) {
+  const folder = path.split("/")[0];
+  const filename = path.split("/").pop().replace(".txt", "").replace(/^\d+_/, "");
+  const name = filename.replace(/_/g, " ");
+  const category =
+    folder === "current_contracts"
+      ? "Current Contract"
+      : folder === "competitor_contracts"
+      ? "Market Reference"
+      : "Domain Reference";
+  return { name, category };
+}
+
+function SourcesPanel({ sources }) {
+  const [open, setOpen] = useState(false);
+  if (!sources || sources.length === 0) return null;
+
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border border-nexus-border bg-nexus-panel2/60">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-nexus-muted transition-colors hover:text-nexus-text"
+      >
+        <BookIcon className="h-3.5 w-3.5 shrink-0" />
+        <span className="flex-1">{sources.length} source{sources.length > 1 ? "s" : ""} referenced</span>
+        <ChevronDownIcon
+          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-nexus-border px-3 pb-2.5 pt-2">
+          <ul className="space-y-1.5">
+            {sources.map((src) => {
+              const { name, category } = formatSource(src);
+              return (
+                <li key={src} className="flex items-start gap-2">
+                  <span className="mt-0.5 shrink-0 rounded bg-nexus-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-nexus-accent">
+                    {category}
+                  </span>
+                  <span className="text-[11px] leading-relaxed text-nexus-text">{name}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const toolbarBtn =
   "rounded-md p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
@@ -218,6 +271,12 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
             </div>
           )}
         </div>
+
+        {!isUser && !message.isStreaming && message.sources?.length > 0 && (
+          <div className="mt-1 w-full">
+            <SourcesPanel sources={message.sources} />
+          </div>
+        )}
 
         {!editing && (
           <div

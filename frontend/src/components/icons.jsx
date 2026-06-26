@@ -178,6 +178,23 @@ export function CheckIcon(props) {
 }
 
 /** Stylized "N" mark -- two diagonal bars bridged by a connector, used as the NEXUS logo. */
+export function BookIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+export function ChevronDownIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 export function LogoIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

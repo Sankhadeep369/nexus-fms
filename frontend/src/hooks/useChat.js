@@ -25,6 +25,7 @@ function freshAssistant(id) {
     steps: [],
     cacheHit: null,
     latencyMs: null,
+    sources: [],
     isStreaming: true,
     error: null,
     stopped: false,
@@ -126,6 +127,7 @@ export function useChat() {
               ...msg,
               latencyMs: payload.latency_ms?.total ?? null,
               cacheHit: payload.cache_hit ?? null,
+              sources: payload.retrieved_sources ?? [],
               isStreaming: false,
             }));
           }
