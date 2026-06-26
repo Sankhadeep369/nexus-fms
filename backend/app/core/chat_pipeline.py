@@ -1,3 +1,4 @@
+import re
 import time
 from collections.abc import Iterator
 from functools import lru_cache
@@ -12,6 +13,22 @@ from app.core.retrieval import Retriever, get_retriever
 # {"type": "step", "name": <str>, "status": "start" | "done", "detail": {...}?}
 # {"type": "token", "text": <str>}
 # {"type": "done", "latency_ms": {...}, "cache_hit": <str | None>, "retrieved_sources": [...]}
+
+# Patterns that mark the start of training-data template artifacts that the
+# fine-tuned model sometimes appends at the end of a response. Everything from
+# the first match to the end of the string is stripped before caching.
+_ARTIFACT_PATTERNS = [
+    re.compile(r"\n*This response was assembled from[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*End of template use[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*Do not reuse this formatted text[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*Note:\s*This (response|answer|output) (was|is)[\s\S]{0,300}template[\s\S]*", re.IGNORECASE),
+]
+
+
+def _strip_artifacts(text: str) -> str:
+    for pattern in _ARTIFACT_PATTERNS:
+        text = pattern.sub("", text)
+    return text.rstrip()
 
 
 def _build_user_content(query: str, retrieved: list[dict]) -> str:
@@ -89,7 +106,7 @@ class ChatPipeline:
         for token in self.llm.stream_chat(messages, temperature=temperature):
             answer_parts.append(token)
             yield {"type": "token", "text": token}
-        answer = "".join(answer_parts)
+        answer = _strip_artifacts("".join(answer_parts))
         yield {"type": "step", "name": "generation", "status": "done", "detail": {"ms": int((time.time() - t0) * 1000)}}
 
         source_docs = sorted({r["source_doc"] for r in retrieved})

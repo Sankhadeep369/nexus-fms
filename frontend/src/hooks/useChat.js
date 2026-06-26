@@ -4,6 +4,19 @@ import { parseSSEStream } from "../lib/sse";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
+const ARTIFACT_PATTERNS = [
+  /\n*This response was assembled from[\s\S]*/i,
+  /\n*End of template use[\s\S]*/i,
+  /\n*Do not reuse this formatted text[\s\S]*/i,
+  /\n*Note:\s*This (?:response|answer|output) (?:was|is)[\s\S]{0,300}template[\s\S]*/i,
+];
+
+function stripArtifacts(text) {
+  let result = text;
+  for (const p of ARTIFACT_PATTERNS) result = result.replace(p, "");
+  return result.trimEnd();
+}
+
 // Cached answers can return almost instantly. Hold them behind the "thinking"
 // indicator for at least this long so the UI doesn't feel like it skipped a step.
 const MIN_THINKING_MS = 600;
@@ -125,6 +138,7 @@ export function useChat() {
             }
             applyUpdate((msg) => ({
               ...msg,
+              content: stripArtifacts(msg.content),
               latencyMs: payload.latency_ms?.total ?? null,
               cacheHit: payload.cache_hit ?? null,
               sources: payload.retrieved_sources ?? [],
