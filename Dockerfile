@@ -12,8 +12,12 @@ RUN useradd -m -u 1000 nexus
 # correctly when uvicorn is launched from this directory.
 WORKDIR /app/backend
 
-# libgomp1 is a runtime dep of the llama-cpp-python CPU wheel (OpenMP)
+# build-essential + cmake: needed if the llama-cpp-python prebuilt wheel is
+# not available for this platform and pip falls back to compiling from source.
+# libgomp1: OpenMP runtime linked by the compiled llama.cpp binary.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
         libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
