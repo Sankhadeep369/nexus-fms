@@ -31,15 +31,16 @@ class Settings(BaseSettings):
     hf_token: str | None = None
 
     # --- LLM runtime ---
-    llm_n_ctx: int = 4096
+    # 2048 is enough for system prompt (~300 tok) + 2 retrieved chunks (~750 tok)
+    # + query (~50 tok) + generated answer (400 tok max). Smaller ctx = faster KV ops.
+    llm_n_ctx: int = 2048
     # Match physical core count of the deployment target.
     # HF Spaces cpu-basic = 2 vCPU → set to 2.
-    # More threads than physical cores adds contention and slows inference.
     llm_n_threads: int = 2
     llm_n_gpu_layers: int = 0
-    max_new_tokens: int = 512
-    # Larger batch size speeds up prompt evaluation (prefill). 1024 works well
-    # on CPU for context lengths up to ~2 k tokens.
+    # Capped at 400 to keep response time reasonable on CPU; covers all FM answers.
+    max_new_tokens: int = 400
+    # Larger batch speeds up prompt prefill on CPU.
     llm_n_batch: int = 1024
     # "Simple" mode favors focused, deterministic answers; "Thinking" mode raises the
     # temperature for more exploratory, multi-angle reasoning on harder questions.
@@ -75,6 +76,16 @@ class Settings(BaseSettings):
     # corpus (e.g. "write an email about my vacation") and no context is injected.
     retrieval_min_dense_score: float = 0.3
     retrieval_min_bm25_score: float = 20.0
+
+    # --- Output validation (LLM judge) ---
+    # Groq API key for the post-generation quality judge. When set, every generated
+    # answer is validated for English-only content and factual grounding before being
+    # shown to the user or written to the cache.
+    groq_api_key: str | None = None
+    groq_judge_model: str = "llama-3.1-8b-instant"
+    # Minimum score (0-10) from the Groq judge to accept an answer. Below this
+    # threshold the answer is replaced with a safe fallback message.
+    validation_min_score: int = 6
 
     # --- Cache ---
     cache_ttl_seconds: int = 60 * 60 * 24 * 7

@@ -136,14 +136,27 @@ export function useChat() {
               }
               applyUpdate((msg) => ({ ...msg, content: msg.content + pendingContent }));
             }
-            applyUpdate((msg) => ({
-              ...msg,
-              content: stripArtifacts(msg.content),
-              latencyMs: payload.latency_ms?.total ?? null,
-              cacheHit: payload.cache_hit ?? null,
-              sources: payload.retrieved_sources ?? [],
-              isStreaming: false,
-            }));
+            if (payload.valid === false) {
+              // Validation failed — replace streamed content with the safe fallback
+              applyUpdate((msg) => ({
+                ...msg,
+                content: payload.fallback ?? "NEXUS couldn't produce a reliable answer. Please try rephrasing.",
+                latencyMs: payload.latency_ms?.total ?? null,
+                cacheHit: null,
+                sources: [],
+                validationFailed: true,
+                isStreaming: false,
+              }));
+            } else {
+              applyUpdate((msg) => ({
+                ...msg,
+                content: stripArtifacts(msg.content),
+                latencyMs: payload.latency_ms?.total ?? null,
+                cacheHit: payload.cache_hit ?? null,
+                sources: payload.retrieved_sources ?? [],
+                isStreaming: false,
+              }));
+            }
           }
         }
       } catch (err) {

@@ -8,6 +8,7 @@ from app.core.cache import ResponseCache, get_response_cache
 from app.core.config import settings
 from app.core.llm import ChatModel, get_llm, load_system_prompt
 from app.core.retrieval import Retriever, get_retriever
+from app.core.validator import validate
 
 # --- SSE event shapes (all dicts get JSON-encoded as-is by the API layer) ---
 # {"type": "step", "name": <str>, "status": "start" | "done", "detail": {...}?}
@@ -109,15 +110,49 @@ class ChatPipeline:
         answer = _strip_artifacts("".join(answer_parts))
         yield {"type": "step", "name": "generation", "status": "done", "detail": {"ms": int((time.time() - t0) * 1000)}}
 
-        source_docs = sorted({r["source_doc"] for r in retrieved})
-        self.cache.set(query, mode, {"answer": answer, "retrieved_sources": source_docs})
+        # --- Output validation ---
+        validation = validate(
+            query=query,
+            context_chunks=retrieved,
+            answer=answer,
+            api_key=settings.groq_api_key,
+            model=settings.groq_judge_model,
+            min_score=settings.validation_min_score,
+        )
 
-        yield {
-            "type": "done",
-            "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-            "cache_hit": None,
-            "retrieved_sources": source_docs,
-        }
+        source_docs = sorted({r["source_doc"] for r in retrieved})
+
+        if validation.passed:
+            # Only cache answers that passed validation
+            self.cache.set(query, mode, {"answer": answer, "retrieved_sources": source_docs})
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None,
+                "retrieved_sources": source_docs,
+                "valid": True,
+            }
+        else:
+            # Replace the streamed answer with a safe fallback; do not cache
+            fallback = (
+                "NEXUS wasn't able to produce a reliable answer for this query.\n\n"
+                "This can happen when the question spans multiple documents or asks "
+                "for very specific contract details that aren't fully captured in the "
+                "retrieved context.\n\n"
+                "**Try:**\n"
+                "- Rephrasing the question more specifically\n"
+                "- Asking about one vendor at a time\n"
+                "- Using the suggestion chips above for instant verified answers"
+            )
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None,
+                "retrieved_sources": [],
+                "valid": False,
+                "fallback": fallback,
+                "validation_reason": validation.reason,
+            }
 
 
 @lru_cache(maxsize=1)

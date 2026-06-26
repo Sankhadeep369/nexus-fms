@@ -11,6 +11,10 @@ python-multipart==0.0.20
 rank-bm25==0.2.2
 sentence-transformers==3.3.1
 
+# Groq SDK — used by the output validator (LLM judge) to verify generated answers
+# before returning them to the user. Fast inference via Groq's free API tier.
+groq==0.13.1
+
 # llama-cpp-python is installed separately from a prebuilt CPU wheel index because
 # building it from source requires a C++ toolchain (MSVC/nmake) that isn't installed:
 #   pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu

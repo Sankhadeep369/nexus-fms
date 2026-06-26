@@ -265,6 +265,12 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
             <p className="mt-2 text-xs text-nexus-muted">Stopped generating.</p>
           )}
 
+          {!isUser && message.validationFailed && (
+            <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-400">
+              Answer quality check failed — try rephrasing.
+            </div>
+          )}
+
           {!isUser && message.latencyMs != null && (
             <div className="mt-1.5 text-[10px] text-nexus-muted">
               {message.cacheHit ? `cached` : "generated"} · {message.latencyMs} ms
