@@ -148,6 +148,21 @@ class ChatPipeline:
         yield {"type": "step", "name": "cache_lookup", "status": "start"}
         cached = self.cache.get(query, mode)
         if cached is not None:
+            # Run the fast rule-based check on cached answers to evict any bad entries
+            # that were stored before the validator was tightened (no API call needed).
+            from app.core.validator import _rule_check
+            cache_rule = _rule_check(cached["answer"])
+            if cache_rule is not None:
+                # Evict the bad cached entry and fall through to regenerate
+                import hashlib
+                bad_key = hashlib.sha256(f"{mode}:{query.strip().lower()}".encode()).hexdigest()
+                try:
+                    del self.cache._cache[bad_key]
+                except Exception:
+                    pass
+                cached = None
+
+        if cached is not None:
             yield {"type": "step", "name": "cache_lookup", "status": "done", "detail": {"hit": True}}
             yield {"type": "token", "text": cached["answer"]}
             yield {
