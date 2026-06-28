@@ -41,13 +41,21 @@ _IDENTITY_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Cap each chunk's body so a handful of retrieved chunks can't blow the model's
-# context window (the largest sections in the corpus are well under this).
-_MAX_CHUNK_CHARS = 1500
+# Cap each chunk's body. With n_ctx=4096 and 3 chunks we can afford 2000 chars each.
+_MAX_CHUNK_CHARS = 2000
 
 
 def _tokenize(text: str) -> list[str]:
-    return _TOKEN_RE.findall(text.lower())
+    """Unigram + bigram tokenisation for BM25.
+
+    Adding bigrams allows BM25 to match FM phrases like "preventive maintenance",
+    "fire safety", and "annual maintenance contract" as units rather than just
+    matching the individual words separately.  Bigrams are joined with '_' so they
+    are treated as single vocabulary items by BM25Okapi.
+    """
+    tokens = _TOKEN_RE.findall(text.lower())
+    bigrams = [f"{a}_{b}" for a, b in zip(tokens, tokens[1:])]
+    return tokens + bigrams
 
 
 @dataclass

@@ -1,27 +1,29 @@
-"""Two-layer output validation for generated answers.
+"""Two-layer output pipeline: rule-based filter → Groq rewriter/validator.
 
 Layer 1 — rule-based (instant, no API call):
-  - Detects non-Latin script contamination (Hindi, Bengali, Arabic, etc.)
-  - Rejects answers that are too short to be useful
+  Detects non-Latin script contamination and rejects trivially short answers.
 
-Layer 2 — Groq LLM judge (~1-2s, uses free Groq API tier):
-  - Sends {query, retrieved context, generated answer} to llama-3.1-8b-instant
-  - Checks: English only, factually grounded in context, no hallucinated specifics
-  - Returns a 0-10 score; below validation_min_score triggers a fallback
+Layer 2 — Groq rewriter+validator (1-2s, single API call):
+  In one call, Groq both validates AND rewrites the answer:
+  - Validates: English only, grounded in context, coherent
+  - Rewrites: condenses verbosity, removes padding, enforces correct format
+    for the query type (table for comparisons, numbered list for checklists, etc.)
+  - If fundamentally wrong: returns invalid signal → fallback shown to user
 
-If the Groq API key is not configured or the judge call fails, Layer 2 is
-skipped and the answer is passed through (fail-open so a config issue never
-silently breaks the chat endpoint).
+Single-call design keeps latency low (one round-trip instead of two).
+Fail-open: any Groq error passes the answer through unchanged so a config
+issue never silently breaks the chat endpoint.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 
-# Unicode ranges for non-Latin scripts commonly seen as contamination artifacts
-# from multilingual training data: Devanagari (Hindi), Bengali, Arabic, CJK, etc.
+logger = logging.getLogger("nexus.validator")
+
 _NON_LATIN_SCRIPTS = re.compile(
     r"["
     r"؀-ۿ"   # Arabic
@@ -36,62 +38,80 @@ _NON_LATIN_SCRIPTS = re.compile(
 
 _MIN_ANSWER_LENGTH = 40
 
-_JUDGE_PROMPT = """\
-You are a strict quality-control reviewer for an AI assistant that answers \
-facilities-management questions.
+_REWRITE_PROMPT = """\
+You are a quality-control rewriter for NEXUS, an AI facilities-management assistant.
 
-ORIGINAL QUERY:
-{query}
+ORIGINAL QUERY: {query}
+QUERY TYPE: {query_type}
 
-RETRIEVED CONTEXT (what the assistant was given to work with):
+RETRIEVED CONTEXT (what the assistant had access to):
 {context}
 
-GENERATED ANSWER:
+GENERATED ANSWER (raw output from the assistant):
 {answer}
 
-Evaluate the answer against these three criteria:
-1. english_only   — Is every word in English? No other language or script?
-2. grounded       — Does the answer use ONLY facts present in the context or \
-universally-known FM standards? No invented names, locations, addresses, or amounts?
-3. coherent       — Is the answer coherent, on-topic, and free of garbled/repeated text?
+Your task — do BOTH in one pass:
 
-Reply with ONLY a valid JSON object, no other text:
-{{"english_only": true/false, "grounded": true/false, "coherent": true/false, "score": <int 0-10>}}
+STEP 1 — VALIDATE. Check all three:
+  a) Is the entire answer in English? No other language or script?
+  b) Does it contain only facts from the context or general FM knowledge?
+     No invented vendor names, locations, addresses, or specific numbers
+     not present in the context or the user's own query?
+  c) Is it coherent and on-topic for the query?
 
-Score guide: 10 = perfect, 7-9 = minor issues, 4-6 = significant problems, 0-3 = reject."""
+If ANY check fails → respond with ONLY: {{"valid": false, "answer": ""}}
+
+STEP 2 — REWRITE (only if all checks passed):
+  Rewrite the answer to be:
+  - Concise: remove repetition, padding, trailing disclaimers, meta-commentary
+  - Correctly formatted for the query type:
+    * comparison  → Markdown table (| col | col | with | --- | separator)
+    * checklist   → numbered or bulleted list
+    * draft       → full document (Subject / Greeting / Body / Sign-off for emails)
+    * factual     → direct answer; ## headings only if genuinely multi-section
+    * general     → short structured answer with bold key terms
+  - English only: translate or silently remove any non-English fragments
+  - Grounded: remove specific details not in the context (replace with "not specified"
+    rather than inventing values)
+  - Do NOT add any facts not in the original answer or context
+
+Respond with ONLY valid JSON, no markdown fences, no other text:
+{{"valid": true, "answer": "...rewritten answer..."}}"""
 
 
 @dataclass
 class ValidationResult:
     passed: bool
-    reason: str
-    score: int | None = None
+    answer: str          # rewritten answer (if passed) or empty string (if failed)
+    reason: str = "ok"
     layer: str = "none"
     details: dict = field(default_factory=dict)
 
 
-def _rule_check(answer: str) -> ValidationResult:
+def _rule_check(answer: str) -> ValidationResult | None:
+    """Returns a failure ValidationResult if the answer fails a rule, else None."""
     match = _NON_LATIN_SCRIPTS.search(answer)
     if match:
         snippet = answer[max(0, match.start() - 10): match.end() + 10]
         return ValidationResult(
-            passed=False,
+            passed=False, answer="",
             reason="non-Latin script detected",
             layer="rule",
             details={"snippet": snippet},
         )
     if len(answer.strip()) < _MIN_ANSWER_LENGTH:
         return ValidationResult(
-            passed=False,
+            passed=False, answer="",
             reason="answer too short",
             layer="rule",
             details={"length": len(answer.strip())},
         )
-    return ValidationResult(passed=True, reason="ok", layer="rule")
+    return None
 
 
-def _groq_judge(
+def _groq_rewrite(
     query: str,
+    query_type: str,
     context_chunks: list[dict],
     answer: str,
     api_key: str,
@@ -111,67 +131,75 @@ def _groq_judge(
             messages=[
                 {
                     "role": "user",
-                    "content": _JUDGE_PROMPT.format(
+                    "content": _REWRITE_PROMPT.format(
                         query=query[:500],
+                        query_type=query_type,
                         context=context_text,
-                        answer=answer[:2000],
+                        answer=answer[:2500],
                     ),
                 }
             ],
-            max_tokens=120,
-            temperature=0.0,
+            max_tokens=1200,
+            temperature=0.1,
         )
 
         raw = response.choices[0].message.content.strip()
-        # Extract the JSON object even if the model wraps it in markdown fences
-        json_match = re.search(r"\{[^{}]+\}", raw, re.DOTALL)
+        # Strip markdown fences if present
+        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
+        json_match = re.search(r"\{[\s\S]+\}", raw)
         if not json_match:
-            return ValidationResult(passed=True, reason="judge parse error (pass-through)", layer="groq")
+            logger.warning("rewriter returned no JSON: %s", raw[:120])
+            return ValidationResult(passed=True, answer=answer, reason="parse error — pass-through", layer="groq")
 
-        result = json.loads(json_match.group())
-        score = int(result.get("score", 10))
+        # Strip control characters (U+0000–U+001F except \t \n \r) that Groq
+        # occasionally embeds in its output and that cause json.loads to fail.
+        clean_json = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", json_match.group())
+        data = json.loads(clean_json)
 
-        if not result.get("english_only", True):
-            return ValidationResult(
-                passed=False, reason="non-English content confirmed by judge",
-                score=score, layer="groq", details=result,
-            )
-        if not result.get("grounded", True) and score < min_score:
-            return ValidationResult(
-                passed=False, reason=f"hallucination detected (score {score}/{min_score})",
-                score=score, layer="groq", details=result,
-            )
-        if score < min_score:
-            return ValidationResult(
-                passed=False, reason=f"low quality score {score} < {min_score}",
-                score=score, layer="groq", details=result,
-            )
+        if not data.get("valid", True):
+            return ValidationResult(passed=False, answer="", reason="failed Groq validation", layer="groq")
 
-        return ValidationResult(passed=True, reason="ok", score=score, layer="groq", details=result)
+        rewritten = str(data.get("answer", "")).strip()
+        if not rewritten or len(rewritten) < _MIN_ANSWER_LENGTH:
+            logger.warning("rewriter returned empty answer — keeping original")
+            return ValidationResult(passed=True, answer=answer, reason="empty rewrite — kept original", layer="groq")
+
+        logger.info("answer rewritten by Groq (%d→%d chars)", len(answer), len(rewritten))
+        return ValidationResult(passed=True, answer=rewritten, reason="ok", layer="groq")
 
     except Exception as exc:
-        # Fail-open: a network error or bad response must not break the chat endpoint
-        return ValidationResult(
-            passed=True,
-            reason=f"judge unavailable ({type(exc).__name__}) — pass-through",
-            layer="groq",
-        )
+        logger.warning("Groq rewriter failed (%s) — pass-through", exc)
+        return ValidationResult(passed=True, answer=answer, reason=f"groq error: {exc}", layer="groq")
 
 
-def validate(
+def validate_and_rewrite(
     query: str,
+    query_type: str,
     context_chunks: list[dict],
     answer: str,
     api_key: str | None,
     model: str,
     min_score: int,
 ) -> ValidationResult:
-    """Run both validation layers. Returns the first failure or a passing result."""
-    rule_result = _rule_check(answer)
-    if not rule_result.passed:
-        return rule_result
+    """Run rule check then Groq rewrite+validate. Returns the final answer to cache/show."""
+    rule_failure = _rule_check(answer)
+    if rule_failure is not None:
+        return rule_failure
 
     if not api_key:
-        return ValidationResult(passed=True, reason="judge disabled (no API key)", layer="none")
+        return ValidationResult(passed=True, answer=answer, reason="rewriter disabled (no API key)", layer="none")
 
-    return _groq_judge(query, context_chunks, answer, api_key, model, min_score)
+    return _groq_rewrite(query, query_type, context_chunks, answer, api_key, model, min_score)
+
+
+# Keep the old name importable for any code that still references it
+def validate(query, context_chunks, answer, api_key, model, min_score):
+    return validate_and_rewrite(
+        query=query,
+        query_type="general",
+        context_chunks=context_chunks,
+        answer=answer,
+        api_key=api_key,
+        model=model,
+        min_score=min_score,
+    )

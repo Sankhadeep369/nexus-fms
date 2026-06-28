@@ -23,7 +23,10 @@ const MIN_THINKING_MS = 600;
 
 export const STEP_LABELS = {
   cache_lookup: "Checking cache",
+  query_analysis: "Analysing query",
+  retrieval: "Searching documents",
   generation: "Generating answer",
+  refinement: "Refining answer",
 };
 
 function newId() {
@@ -86,10 +89,17 @@ export function useChat() {
       abortControllerRef.current = controller;
 
       try {
+        // Send last max_history_turns * 2 messages as conversation context.
+        // Exclude the fresh assistant placeholder we just appended.
+        const historyMessages = [...baseMessages, userMsg]
+          .filter((m) => m.role === "user" || (m.role === "assistant" && m.content))
+          .slice(-8)
+          .map(({ role, content }) => ({ role, content }));
+
         const response = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: userMsg.content, mode }),
+          body: JSON.stringify({ query: userMsg.content, mode, history: historyMessages }),
           signal: controller.signal,
         });
 
@@ -137,7 +147,6 @@ export function useChat() {
               applyUpdate((msg) => ({ ...msg, content: msg.content + pendingContent }));
             }
             if (payload.valid === false) {
-              // Validation failed — replace streamed content with the safe fallback
               applyUpdate((msg) => ({
                 ...msg,
                 content: payload.fallback ?? "NEXUS couldn't produce a reliable answer. Please try rephrasing.",
@@ -148,9 +157,14 @@ export function useChat() {
                 isStreaming: false,
               }));
             } else {
+              // Prefer final_answer (Groq-rewritten) over raw streamed content.
+              // On cache hits, final_answer equals the cached text; on fresh
+              // generations it is the Groq-cleaned version of what was streamed.
               applyUpdate((msg) => ({
                 ...msg,
-                content: stripArtifacts(msg.content),
+                content: payload.final_answer
+                  ? stripArtifacts(payload.final_answer)
+                  : stripArtifacts(msg.content),
                 latencyMs: payload.latency_ms?.total ?? null,
                 cacheHit: payload.cache_hit ?? null,
                 sources: payload.retrieved_sources ?? [],

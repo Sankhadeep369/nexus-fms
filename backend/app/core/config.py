@@ -31,11 +31,11 @@ class Settings(BaseSettings):
     hf_token: str | None = None
 
     # --- LLM runtime ---
-    # 2048 is enough for system prompt (~300 tok) + 2 retrieved chunks (~750 tok)
-    # + query (~50 tok) + generated answer (400 tok max). Smaller ctx = faster KV ops.
-    llm_n_ctx: int = 2048
+    # 4096 gives headroom for system prompt (~500 tok) + conversation history (~400 tok)
+    # + 3 retrieved chunks (~1500 tok) + query (~50 tok) + generated answer (400 tok).
+    llm_n_ctx: int = 4096
     # Match physical core count of the deployment target.
-    # HF Spaces cpu-basic = 2 vCPU → set to 2.
+    # HF Spaces cpu-basic = 2 vCPU → set to 2. Local dev can override via .env.
     llm_n_threads: int = 2
     llm_n_gpu_layers: int = 0
     # Capped at 400 to keep response time reasonable on CPU; covers all FM answers.
@@ -59,8 +59,7 @@ class Settings(BaseSettings):
     hf_endpoint_url: str | None = None
 
     # --- Retrieval (hybrid BM25 + embeddings over 02_extracted_text) ---
-    # Fewer chunks = shorter prompt = faster prefill. 2 is enough for most queries.
-    retrieval_top_k: int = 2
+    retrieval_top_k: int = 3
     retrieval_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     # Weight on the (min-max normalized) BM25 score vs. the dense cosine score when
     # combining the two rankings, in [0, 1].
@@ -77,15 +76,23 @@ class Settings(BaseSettings):
     retrieval_min_dense_score: float = 0.3
     retrieval_min_bm25_score: float = 20.0
 
-    # --- Output validation (LLM judge) ---
-    # Groq API key for the post-generation quality judge. When set, every generated
-    # answer is validated for English-only content and factual grounding before being
-    # shown to the user or written to the cache.
+    # --- Groq (query pre-processor + answer rewriter/validator) ---
     groq_api_key: str | None = None
-    groq_judge_model: str = "llama-3.1-8b-instant"
-    # Minimum score (0-10) from the Groq judge to accept an answer. Below this
-    # threshold the answer is replaced with a safe fallback message.
+    groq_model: str = "llama-3.1-8b-instant"
+    # Toggle the Groq query pre-processor (rewrites/classifies the query before retrieval)
+    query_preprocessor_enabled: bool = True
+    # Toggle the Groq answer rewriter (validates + rewrites the generated answer)
+    answer_rewriter_enabled: bool = True
+    # Minimum quality score (0-10) to accept an answer; below this a fallback is shown.
     validation_min_score: int = 6
+    # How many previous conversation turns (user+assistant pairs) to include in the
+    # prompt for context. 0 disables conversation memory.
+    max_history_turns: int = 2
+
+    # Legacy alias kept for backwards compat with existing .env files
+    @property
+    def groq_judge_model(self) -> str:
+        return self.groq_model
 
     # --- Cache ---
     cache_ttl_seconds: int = 60 * 60 * 24 * 7
