@@ -1,5 +1,16 @@
 
 
+---
+title: NEXUS FMS
+emoji: 🏢
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+pinned: false
+license: mit
+short_description: Facilities management AI assistant — fine-tuned Gemma 3 4B
+---
+
 # NEXUS — Facilities Management AI Assistant
 
 NEXUS is a domain-specific AI assistant built for facilities management teams. It answers operational questions — maintenance schedules, compliance checklists, vendor contract comparisons, SLA benchmarks, safety drills — the kind of thing that usually means digging through binders or chasing down the right person.
