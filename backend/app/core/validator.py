@@ -54,12 +54,18 @@ GENERATED ANSWER (raw output from the assistant):
 
 Your task — do BOTH in one pass:
 
-STEP 1 — VALIDATE. Check all three:
+STEP 1 — VALIDATE. Check all four:
   a) Is the entire answer in English? No other language or script?
   b) Does it contain only facts from the context or general FM knowledge?
-     No invented vendor names, locations, addresses, or specific numbers
-     not present in the context or the user's own query?
-  c) Is it coherent and on-topic for the query?
+     Reject if it contains specific street addresses, building names, company
+     registration details, or dollar amounts that do not appear verbatim in
+     the retrieved context shown above.
+  c) Does it contain implausible data? Reject if it has: years before 2000 or
+     after 2050, amounts over $5 million for a single AMC, incorrect country/state
+     pairings (e.g. "Dallas IL"), or section references that don't exist in context.
+  d) Does it contain meta-commentary quoting rules or instructions? e.g. phrases
+     like "This response follows all four mandatory rules" or "no invented facts"
+     copied from the system instructions. Reject if yes.
 
 If ANY check fails → respond with ONLY: {{"valid": false, "answer": ""}}
 
