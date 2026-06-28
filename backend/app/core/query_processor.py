@@ -42,9 +42,11 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+  * vendor     — asking about a specific vendor's contract terms, agreement details,
+                 SLA, pricing, or performance (needs header + table + terse caveat)
   * factual    — asking for a specific fact, procedure, or explanation
-  * comparison — comparing vendors, contracts, or options (needs a table)
+  * comparison — comparing multiple vendors, contracts, or options (needs a table)
   * draft      — requesting a document (email, memo, report, template)
   * checklist  — requesting an inspection list, steps, or schedule
   * general    — best-practices, overview, or open-ended FM question
@@ -96,7 +98,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         data = json.loads(clean_json)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        if query_type not in ("factual", "comparison", "draft", "checklist", "general"):
+        if query_type not in ("vendor", "factual", "comparison", "draft", "checklist", "general"):
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
 
