@@ -63,13 +63,16 @@ If ANY check fails → respond with ONLY: {{"valid": false, "answer": ""}}
 
 STEP 2 — REWRITE (only if all checks passed):
   Rewrite the answer to be:
-  - Concise: remove repetition, padding, trailing disclaimers, meta-commentary
+  - Complete but concise: remove repetition, padding, trailing disclaimers, and
+    meta-commentary, but KEEP all substantive points. Do NOT reduce a checklist
+    answer to fewer than 5 items, and do NOT produce fewer than 80 words for any
+    procedural or factual query. The rewritten answer must be useful, not just short.
   - Correctly formatted for the query type:
     * comparison  → Markdown table (| col | col | with | --- | separator)
-    * checklist   → numbered or bulleted list
+    * checklist   → numbered or bulleted list with all relevant items
     * draft       → full document (Subject / Greeting / Body / Sign-off for emails)
     * factual     → direct answer; ## headings only if genuinely multi-section
-    * general     → short structured answer with bold key terms
+    * general     → structured answer with bold **key terms**
   - English only: translate or silently remove any non-English fragments
   - Grounded: remove specific details not in the context (replace with "not specified"
     rather than inventing values)

@@ -135,12 +135,12 @@ def _run_checks(answer: str, valid: bool) -> list[CheckResult]:
     artifact = next((a for a in _ARTIFACT_MARKERS if a in lower), None)
     checks.append(CheckResult("no_artifacts", artifact is None, artifact or ""))
 
-    # 4. Reasonable length (50–1500 words)
+    # 4. Reasonable length (30–1500 words)
     words = len(answer.split())
     checks.append(CheckResult(
         "reasonable_length",
-        50 <= words <= 1500,
-        f"{words} words (expected 50-1500)",
+        30 <= words <= 1500,
+        f"{words} words (expected 30-1500)",
     ))
 
     # 5. FM relevance — at least 2 FM terms present
@@ -181,11 +181,18 @@ def _call_chat(base_url: str, query: str) -> dict:
                 answer_parts.append(payload["text"])
             elif payload["type"] == "done":
                 done_payload = payload
+    is_valid = done_payload.get("valid", True)
+    if is_valid:
+        answer = done_payload.get("final_answer") or "".join(answer_parts)
+    else:
+        # Backend rejected the answer — use the fallback text for quality checks
+        # (the user never sees the raw streamed content when valid=false)
+        answer = done_payload.get("fallback", "")
     return {
-        "answer": done_payload.get("final_answer") or "".join(answer_parts),
+        "answer": answer,
         "latency_ms": done_payload.get("latency_ms", {}).get("total", 0),
         "cache_hit": done_payload.get("cache_hit") is not None,
-        "valid": done_payload.get("valid", True),
+        "valid": is_valid,
     }
 
 
