@@ -174,3 +174,89 @@ class Retriever:
 @lru_cache(maxsize=1)
 def get_retriever() -> Retriever:
     return Retriever()
+
+
+# ---------------------------------------------------------------------------
+# Entity-Aware (Graph-style) Retriever
+# ---------------------------------------------------------------------------
+
+class EntityAwareRetriever(Retriever):
+    """Extends the hybrid BM25+dense retriever with entity-anchored retrieval.
+
+    When the query mentions a known entity (vendor name, agreement number,
+    site name), chunks from the matched document are retrieved first with a
+    high anchor score, before BM25+dense fills any remaining slots from the
+    full corpus.
+
+    This prevents competitor-comparison documents from polluting vendor-
+    specific queries (e.g. "Summit Lift terms" should not pull chunks from
+    the Apex One lift comparison doc just because both mention lift PMVs).
+
+    Comparison vs. conventional Retriever:
+    - Conventional: top-k from corpus ranked purely by BM25+dense score
+    - Entity-Aware: entity-matched chunks first → BM25+dense for remainder
+    """
+
+    def retrieve(self, query: str, k: int | None = None) -> list[dict]:
+        from app.core.entity_registry import get_entity_registry
+
+        k = k or settings.retrieval_top_k
+        registry = get_entity_registry()
+        matched_docs = registry.find_docs(query)
+
+        if not matched_docs:
+            # No entity match — fall back to standard retrieval
+            return super().retrieve(query, k)
+
+        # Separate chunks into: entity-anchored (matched docs) vs. rest
+        anchor_doc = matched_docs[0]  # highest-scoring entity match
+        anchor_indices = [
+            i for i, c in enumerate(self.chunks)
+            if c.source_doc == anchor_doc
+        ]
+        rest_indices = [
+            i for i in range(len(self.chunks))
+            if i not in set(anchor_indices)
+        ]
+
+        # Score the full corpus normally
+        bm25_scores = np.asarray(
+            self._bm25.get_scores(_tokenize(query)), dtype=np.float32
+        )
+        query_emb = self._embedder.encode(
+            [query], normalize_embeddings=True, show_progress_bar=False
+        )[0]
+        dense_scores = self._embeddings @ query_emb
+        w = settings.retrieval_bm25_weight
+        combined = w * _min_max(bm25_scores) + (1 - w) * _min_max(dense_scores)
+
+        # Anchor chunks: take up to ceil(k * 0.67) from the matched document
+        anchor_slots = max(1, round(k * 0.67))
+        anchor_sorted = sorted(anchor_indices, key=lambda i: -combined[i])
+        chosen_anchors = anchor_sorted[:anchor_slots]
+
+        # Fill remaining slots from the rest of the corpus
+        fill_slots = k - len(chosen_anchors)
+        chosen_set = set(chosen_anchors)
+        fill_sorted = sorted(rest_indices, key=lambda i: -combined[i])
+        chosen_fill = [i for i in fill_sorted if i not in chosen_set][:fill_slots]
+
+        final_indices = chosen_anchors + chosen_fill
+
+        return [
+            {
+                "source_doc": self.chunks[i].source_doc,
+                "section": self.chunks[i].section,
+                "text": self.chunks[i].text,
+                "score": float(combined[i]),
+                "dense_score": float(dense_scores[i]),
+                "bm25_score": float(bm25_scores[i]),
+                "entity_anchored": i in set(chosen_anchors),
+            }
+            for i in final_indices
+        ]
+
+
+@lru_cache(maxsize=1)
+def get_entity_retriever() -> EntityAwareRetriever:
+    return EntityAwareRetriever()

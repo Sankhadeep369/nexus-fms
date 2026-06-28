@@ -30,7 +30,7 @@ from app.core.cache import ResponseCache, get_response_cache
 from app.core.config import settings
 from app.core.llm import ChatModel, get_llm, load_system_prompt
 from app.core.query_processor import ProcessedQuery, preprocess
-from app.core.retrieval import Retriever, get_retriever
+from app.core.retrieval import EntityAwareRetriever, Retriever, get_entity_retriever, get_retriever
 from app.core.validator import validate_and_rewrite
 
 # ---------------------------------------------------------------------------
@@ -38,11 +38,23 @@ from app.core.validator import validate_and_rewrite
 # ---------------------------------------------------------------------------
 
 _ARTIFACT_PATTERNS = [
+    # Original template-end markers
     re.compile(r"\n*This response was assembled from[\s\S]*", re.IGNORECASE),
     re.compile(r"\n*End of template[\s\S]*", re.IGNORECASE),
     re.compile(r"\n*Do not reuse this formatted text[\s\S]*", re.IGNORECASE),
     re.compile(r"\n*Note:\s*This (?:response|answer|output) (?:was|is)[\s\S]{0,300}template[\s\S]*", re.IGNORECASE),
     re.compile(r"\n*\[End of (?:response|answer|template)\][\s\S]*", re.IGNORECASE),
+    # Instruction-following meta-commentary
+    re.compile(r"\n*This response follows all[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*All (?:four|five|three|six) (?:mandatory |compliance |format )?(?:rules|checks)[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*(?:This is a |It is a )?role.?play exercise[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*(?:This is an? )?internal training exercise[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*no actual (?:commercial|vendor|contract) data should be used[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*If asked to write[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*The recommendation would be based on[\s\S]{0,200}training[\s\S]*", re.IGNORECASE),
+    # System-prompt echoing
+    re.compile(r"\n*(?:Accuracy|Consistency) \(only using approved internal[\s\S]*", re.IGNORECASE),
+    re.compile(r"\n*Use this source as the definitive record[\s\S]*", re.IGNORECASE),
 ]
 
 
@@ -124,6 +136,10 @@ _FALLBACK_MESSAGE = (
 )
 
 
+# Query types that benefit from entity-anchored retrieval (vendor/contract queries)
+_ENTITY_RETRIEVAL_TYPES = {"vendor", "comparison"}
+
+
 class ChatPipeline:
     def __init__(self, cache: ResponseCache, llm: ChatModel, retriever: Retriever):
         self.cache = cache
@@ -197,8 +213,17 @@ class ChatPipeline:
         retrieval_query = processed.rewritten
 
         # ── 3. Retrieval ─────────────────────────────────────────────────────
+        # Route vendor/comparison queries through the entity-aware retriever
+        # (anchors to the correct contract document before filling slots with
+        # BM25+dense matches). All other query types use conventional retrieval
+        # which is better for general domain / procedural queries.
         yield {"type": "step", "name": "retrieval", "status": "start"}
-        candidates = self.retriever.retrieve(retrieval_query)
+        active_retriever = (
+            get_entity_retriever()
+            if processed.query_type in _ENTITY_RETRIEVAL_TYPES
+            else self.retriever
+        )
+        candidates = active_retriever.retrieve(retrieval_query)
         retrieved = [
             c for c in candidates
             if c["dense_score"] >= settings.retrieval_min_dense_score
