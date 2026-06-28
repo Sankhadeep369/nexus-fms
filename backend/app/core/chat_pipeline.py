@@ -76,17 +76,35 @@ def _build_history_messages(history: list[dict], max_turns: int) -> list[dict]:
     return [msg for pair in recent for msg in pair]
 
 
+_DOC_TYPE_LABELS = {
+    "current_contracts": "CURRENT CONTRACT",
+    "competitor_contracts": "MARKET REFERENCE (benchmark only — not a current agreement)",
+    "domain_docs": "FM REFERENCE DOCUMENT",
+}
+
+
+def _doc_type_label(source_doc: str) -> str:
+    folder = source_doc.split("/")[0]
+    return _DOC_TYPE_LABELS.get(folder, "REFERENCE DOCUMENT")
+
+
 def _build_user_content(query: str, retrieved: list[dict]) -> str:
     if not retrieved:
         return query
+    # Each chunk is labelled with its document type so the model knows whether
+    # it is reading a live contract or a synthetic comparison benchmark.
     context_block = "\n\n---\n\n".join(
-        f"[Section: {r['section']}]\n{r['text']}" for r in retrieved
+        f"[{_doc_type_label(r['source_doc'])} | Section: {r['section']}]\n{r['text']}"
+        for r in retrieved
     )
     return (
-        "Context (retrieved from internal facilities documents — use as the "
-        "authoritative source for vendor names, agreement numbers, sites, dates, "
-        "amounts, and section references; state clearly if something needed is "
-        "not present rather than inventing details):\n"
+        "Context (retrieved from internal facilities documents):\n"
+        "- CURRENT CONTRACT entries are authoritative — use exact figures, names, and dates.\n"
+        "- MARKET REFERENCE entries are synthetic benchmarks for comparison only — "
+        "never present their figures as real contract values.\n"
+        "- FM REFERENCE DOCUMENT entries are general knowledge — not contract-specific.\n"
+        "If needed information is absent from the context, write 'Not specified' — "
+        "do not invent details.\n\n"
         f"{context_block}\n\n---\n\nRequest:\n{query}"
     )
 
