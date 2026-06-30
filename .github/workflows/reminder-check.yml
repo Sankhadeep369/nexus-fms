@@ -1,0 +1,27 @@
+name: Reminder Agent — Daily Check
+
+# Runs daily and hits the NEXUS backend's reminder-check endpoint, which
+# queries Supabase for due reminders and sends emails via Resend. This exists
+# because the backend only executes code on request — without an external
+# trigger, a reminder set for "60 days from now" would never fire if nobody
+# happened to visit the site that day.
+#
+# Also has the side effect of waking a sleeping HF Space, which is fine —
+# the check itself is cheap and idempotent (reminders are marked sent so
+# re-runs never double-email).
+
+on:
+  schedule:
+    # 08:00 UTC daily. Adjust to your timezone preference.
+    - cron: "0 8 * * *"
+  workflow_dispatch: {} # allows manual trigger from the Actions tab
+
+jobs:
+  check-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit reminder check endpoint
+        run: |
+          curl -sf "${{ secrets.NEXUS_BACKEND_URL }}/agents/reminders/check?secret=${{ secrets.REMINDER_CHECK_SECRET }}" \
+            -o response.json
+          cat response.json

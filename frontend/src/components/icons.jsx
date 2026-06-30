@@ -195,6 +195,43 @@ export function ChevronDownIcon(props) {
   );
 }
 
+export function BellIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
+export function BotIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <rect x="3" y="8" width="18" height="12" rx="2" />
+      <path d="M12 8V4M8 4h8" />
+      <circle cx="8.5" cy="14" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15.5" cy="14" r="1" fill="currentColor" stroke="none" />
+      <path d="M9 18h6" />
+    </svg>
+  );
+}
+
+export function ScaleIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M12 3v18M7 8 3 16a4 4 0 0 0 8 0L7 8ZM17 8l-4 8a4 4 0 0 0 8 0l-4-8ZM5 8h4M15 8h4M9 21h6" />
+    </svg>
+  );
+}
+
+export function ArrowRightIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 export function LogoIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

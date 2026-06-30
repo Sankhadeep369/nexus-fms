@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AgentsPage from "./components/AgentsPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
 import Header from "./components/Header";
@@ -8,7 +9,7 @@ import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContex
 import { ThemeProvider } from "./context/ThemeContext";
 import { useChat } from "./hooks/useChat";
 
-function Chat() {
+function Chat({ prefill }) {
   const { messages, isStreaming, sendMessage, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
 
@@ -31,6 +32,7 @@ function Chat() {
         isStreaming={isStreaming}
         mode={mode}
         onModeChange={setMode}
+        prefill={prefill}
       />
     </div>
   );
@@ -39,6 +41,13 @@ function Chat() {
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("chat");
+  const [chatPrefill, setChatPrefill] = useState(null);
+
+  const askInChat = (text) => {
+    setChatPrefill({ text, nonce: Date.now() });
+    setActiveTab("chat");
+  };
 
   return (
     <ThemeProvider>
@@ -48,10 +57,16 @@ export default function App() {
           <Header
             onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
             onToggleOptions={() => setOptionsOpen(true)}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
           />
           <div className="flex flex-1 overflow-hidden">
             <Sidebar collapsed={sidebarCollapsed} />
-            <Chat />
+            {activeTab === "chat" ? (
+              <Chat prefill={chatPrefill} />
+            ) : (
+              <AgentsPage onAskVendorQuestion={askInChat} />
+            )}
           </div>
           <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} />
         </div>

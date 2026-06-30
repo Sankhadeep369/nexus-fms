@@ -94,6 +94,17 @@ class Settings(BaseSettings):
     def groq_judge_model(self) -> str:
         return self.groq_model
 
+    # --- Reminder Agent (Supabase persistence + Resend email) ---
+    supabase_url: str | None = None
+    supabase_anon_key: str | None = None
+    resend_api_key: str | None = None
+    # Sender shown on outgoing reminder emails. Resend's sandbox domain works
+    # without DNS verification; replace with a verified domain in production.
+    reminder_from_email: str = "NEXUS Reminders <onboarding@resend.dev>"
+    # Shared secret required as a query param on the cron-triggered check
+    # endpoint so public internet traffic can't spam-trigger reminder checks.
+    reminder_check_secret: str | None = None
+
     # --- Cache ---
     cache_ttl_seconds: int = 60 * 60 * 24 * 7
 

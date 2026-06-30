@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
-import { CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SunIcon } from "./icons";
+import { BotIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
-export default function Header({ onToggleSidebar, onToggleOptions }) {
+const TABS = [
+  { id: "chat", label: "Chat", icon: SparkleIcon },
+  { id: "agents", label: "Agents", icon: BotIcon },
+];
+
+export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const [status, setStatus] = useState({ online: null, model: null });
 
@@ -61,6 +66,25 @@ export default function Header({ onToggleSidebar, onToggleOptions }) {
           {status.online === true && `Online · ${status.model}`}
           {status.online === false && "Backend offline"}
         </span>
+      </div>
+
+      <div className="inline-flex items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onTabChange?.(id)}
+            aria-pressed={activeTab === id}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === id
+                ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
+                : "text-nexus-muted hover:text-nexus-text"
+            }`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="flex items-center gap-1.5">

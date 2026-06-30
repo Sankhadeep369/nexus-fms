@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSuggestions } from "../hooks/useSuggestions";
 import { SendIcon, SparkleIcon, StopIcon, ZapIcon } from "./icons";
 
@@ -9,11 +9,23 @@ const MODES = [
   { id: "thinking", label: "Thinking", icon: SparkleIcon, title: "Higher temperature -- more exploratory reasoning" },
 ];
 
-export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange }) {
+export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange, prefill }) {
   const [value, setValue] = useState("");
   const [highlight, setHighlight] = useState(0);
   const textareaRef = useRef(null);
   const suggestions = useSuggestions();
+
+  // Agents tab can hand off a draft question (e.g. "Should we renew with X?")
+  // -- populate the input and focus it so the user can review/edit before sending.
+  useEffect(() => {
+    if (!prefill) return;
+    setValue(prefill.text);
+    requestAnimationFrame(() => {
+      resize(textareaRef.current);
+      textareaRef.current?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill]);
 
   const slashFilter = value.startsWith("/") ? value.slice(1).trim().toLowerCase() : null;
   const slashMatches =
