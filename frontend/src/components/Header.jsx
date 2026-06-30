@@ -76,9 +76,11 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
             onClick={() => onTabChange?.(id)}
             aria-pressed={activeTab === id}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              activeTab === id
-                ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
-                : "text-nexus-muted hover:text-nexus-text"
+              activeTab !== id
+                ? "text-nexus-muted hover:text-nexus-text"
+                : id === "agents"
+                ? "bg-gradient-to-br from-nexus-violet to-nexus-accent text-nexus-bg"
+                : "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
             }`}
           >
             <Icon className="h-3.5 w-3.5" />

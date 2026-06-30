@@ -14,6 +14,9 @@ export default {
           muted: "rgb(var(--nexus-muted) / <alpha-value>)",
           accent: "rgb(var(--nexus-accent) / <alpha-value>)",
           accent2: "rgb(var(--nexus-accent2) / <alpha-value>)",
+          // Sparing hint color, used only for agent/AI-specific UI accents
+          // (e.g. the Agents tab, agent workflow steps) -- not the primary brand color.
+          violet: "rgb(var(--nexus-violet) / <alpha-value>)",
         },
       },
       fontFamily: {

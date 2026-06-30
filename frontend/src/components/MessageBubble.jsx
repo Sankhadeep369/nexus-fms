@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { BookIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
 import ThinkingIndicator from "./ThinkingIndicator";
+import { WorkflowStepsDisclosure, WorkflowStepsLive } from "./WorkflowSteps";
 
 function flattenText(node) {
   if (typeof node === "string" || typeof node === "number") return String(node);
@@ -243,7 +244,11 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
               </div>
             </div>
           ) : showThinking ? (
-            <ThinkingIndicator />
+            message.steps && message.steps.length > 0 ? (
+              <WorkflowStepsLive steps={message.steps} />
+            ) : (
+              <ThinkingIndicator />
+            )
           ) : isUser ? (
             <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
           ) : (
@@ -281,6 +286,12 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
         {!isUser && !message.isStreaming && message.sources?.length > 0 && (
           <div className="mt-1 w-full">
             <SourcesPanel sources={message.sources} />
+          </div>
+        )}
+
+        {!isUser && !message.isStreaming && message.cacheHit !== "exact" && message.steps?.length > 0 && (
+          <div className="mt-1 w-full">
+            <WorkflowStepsDisclosure steps={message.steps} />
           </div>
         )}
 

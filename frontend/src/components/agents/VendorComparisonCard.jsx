@@ -14,7 +14,7 @@ export default function VendorComparisonCard({ onAsk }) {
   return (
     <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-5">
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-violet to-nexus-accent text-nexus-bg">
           <ScaleIcon className="h-4.5 w-4.5" />
         </span>
         <div>
