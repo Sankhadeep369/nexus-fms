@@ -154,9 +154,9 @@ The file controls things like: use **bold** for key terms, proper Markdown table
 
 ## Status
 
-This is a proof-of-concept built during dissertation research. Phase 1 (fine-tuning the model) is complete. Phase 2 (this app + deployment) is in progress. Phase 3 (agentic workflows) is next.
+This is a proof-of-concept built during dissertation research. Phase 1 (fine-tuning the model) is complete. Phase 2 (this app + deployment) is complete — the deployed backend runs the actual fine-tuned GGUF, not a stand-in model. Phase 3 (agentic workflows) is underway: a Vendor Comparison Agent and a Reminder Agent are live, with a dedicated Agents tab in the UI.
 
-It's not production-hardened — there's no user auth, no multi-tenancy, and the free-tier inference backend is a stand-in for the actual fine-tuned model. The point right now is to demonstrate the domain capability, not scale it.
+It's not production-hardened — there's no user auth and no multi-tenancy. The point right now is to demonstrate the domain capability, not scale it.
 
 ---
 
