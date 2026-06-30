@@ -26,6 +26,7 @@ export const STEP_LABELS = {
   query_analysis: "Analysing query",
   retrieval: "Searching documents",
   agent_research: "Researching vendor & market data",
+  synthesis: "Synthesising comparison",
   generation: "Generating answer",
   refinement: "Refining answer",
 };

@@ -191,3 +191,79 @@ def run_vendor_comparison_agent(
     except Exception as exc:
         logger.warning("vendor comparison agent failed (%s)", exc)
         return AgentResult(succeeded=False, reason=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# Groq-based synthesis (replaces the slow fine-tuned SLM for vendor_decision)
+# ---------------------------------------------------------------------------
+
+_SYNTHESIS_PROMPT = """\
+You are a facilities management procurement analyst. Using only the retrieved \
+contract context below, write a concise vendor renewal analysis in English.
+
+RETRIEVED CONTEXT:
+{context}
+
+USER QUESTION: {query}
+
+Write:
+1. A Markdown table with columns: Term | Current Vendor | Market Benchmark
+   - Extract exact values VERBATIM from the context, including the currency symbol
+     and units as written (e.g. "$36,000", "INR 14,40,000", "Included", "N/A")
+   - CURRENT CONTRACT entries → Current Vendor column
+   - MARKET REFERENCE entries → Market Benchmark column
+   - Write "Not specified" only if the context genuinely has no value for that term
+2. A bolded **Recommendation:** sentence — state renew, switch, or negotiate, \
+with one brief reason grounded in the table
+
+Rules: English only. No invented names, amounts, or dates. Do not mention \
+"retrieved documents" or "context". No trailing disclaimers or meta-commentary."""
+
+
+def synthesize_comparison(
+    query: str,
+    chunks: list[dict],
+    api_key: str,
+    model: str,
+) -> str | None:
+    """Use Groq to synthesize the final vendor comparison answer from the gathered
+    context chunks. Returns the answer text, or None on failure.
+
+    This replaces the fine-tuned SLM for vendor_decision queries because:
+    - Speed: 2-3s vs ~5-12 min CPU generation
+    - Quality: instruction-following is far more reliable at this task
+    - Grounding: context is explicitly provided, minimizing hallucination risk
+    """
+    if not chunks or not api_key:
+        return None
+    try:
+        from app.core.chat_pipeline import _doc_type_label
+
+        from groq import Groq
+
+        context_text = "\n\n---\n\n".join(
+            f"[{_doc_type_label(c['source_doc'])} | {c['section']}]\n{c['text']}"
+            for c in chunks
+        )[:5000]
+
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": _SYNTHESIS_PROMPT.format(
+                        context=context_text,
+                        query=query[:500],
+                    ),
+                }
+            ],
+            max_tokens=800,
+            temperature=0.1,
+        )
+        answer = response.choices[0].message.content.strip()
+        logger.info("groq synthesis produced %d chars", len(answer))
+        return answer
+    except Exception as exc:
+        logger.warning("groq synthesis failed (%s)", exc)
+        return None

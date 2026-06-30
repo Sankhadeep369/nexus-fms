@@ -137,13 +137,11 @@ def _build_user_content(query: str, retrieved: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 
 _FALLBACK_MESSAGE = (
-    "NEXUS wasn't able to produce a reliable answer for this query.\n\n"
-    "This can happen with complex multi-vendor comparisons or queries that "
-    "require very specific contract details not present in the retrieved context.\n\n"
-    "**Try:**\n"
-    "- Rephrasing the question more specifically\n"
-    "- Asking about one vendor or system at a time\n"
-    "- Using the suggestion chips for instant verified answers"
+    "NEXUS generated an answer but the quality check found it unreliable — "
+    "likely a hallucinated figure or non-English fragment from the fine-tuned model.\n\n"
+    "The answer has been withheld to avoid surfacing incorrect information. "
+    "Try the same question on a fresher session, or use the suggestion chips "
+    "for instant verified answers on common FM topics."
 )
 
 
@@ -251,6 +249,61 @@ class ChatPipeline:
                     "docs_found": sorted({c["source_doc"] for c in retrieved}),
                 },
             }
+
+            t_retrieval = time.time()  # capture timestamp so log statement works in both paths
+
+            # For vendor_decision queries, skip the 5-12 min fine-tuned SLM
+            # generation entirely and use Groq to synthesize the comparison
+            # directly from the gathered context. Groq is 2-3s vs 5-12 min and
+            # produces more reliable, grounded, table-formatted output for this
+            # structured comparison task than the small quantized SLM.
+            if retrieved and settings.groq_api_key:
+                yield {"type": "step", "name": "synthesis", "status": "start"}
+                from app.core.agents.vendor_comparison_agent import synthesize_comparison
+                from app.core.validator import _rule_check, _numeric_grounding_check
+
+                t_synth = time.time()
+                groq_answer = synthesize_comparison(
+                    query=retrieval_query,
+                    chunks=retrieved,
+                    api_key=settings.groq_api_key,
+                    model=settings.groq_model,
+                )
+                synth_ms = int((time.time() - t_synth) * 1000)
+                yield {"type": "step", "name": "synthesis", "status": "done",
+                       "detail": {"ms": synth_ms}}
+
+                if groq_answer:
+                    groq_answer = _strip_artifacts(groq_answer)
+                    rule_fail = _rule_check(groq_answer)
+                    numeric_fail = None if rule_fail else _numeric_grounding_check(groq_answer, retrieved)
+
+                    if rule_fail or numeric_fail:
+                        failure_reason = (rule_fail or numeric_fail).reason
+                        logger.warning("groq synthesis failed safety check: %s", failure_reason)
+                        groq_answer = None
+
+                if groq_answer:
+                    source_docs = sorted({r["source_doc"] for r in retrieved})
+                    self.cache.set(query, mode, {"answer": groq_answer, "retrieved_sources": source_docs})
+                    yield {"type": "token", "text": groq_answer}
+                    total_ms = int((time.time() - t_start) * 1000)
+                    logger.info(
+                        "latency breakdown [vendor_decision/groq]: agent=%.1fs synthesis=%.1fs total=%.1fs",
+                        t_retrieval - t_start, synth_ms / 1000, total_ms / 1000,
+                    )
+                    yield {
+                        "type": "done",
+                        "latency_ms": {"total": total_ms},
+                        "cache_hit": None,
+                        "retrieved_sources": source_docs,
+                        "valid": True,
+                        "final_answer": groq_answer,
+                    }
+                    return
+
+                # Fall through to SLM if Groq synthesis failed entirely
+                logger.warning("groq synthesis unavailable — falling back to SLM")
         else:
             # Route vendor/comparison queries through the entity-aware retriever
             # (anchors to the correct contract document before filling slots with

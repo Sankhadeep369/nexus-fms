@@ -54,7 +54,7 @@ def _rank_chunks_in_docs(
 # Once a document is matched by entity, the ranking query is biased toward these
 # terms so the commercially-relevant sections (not Parties/Signatures boilerplate)
 # are what gets returned for renewal/comparison decisions.
-_COMMERCIAL_BIAS = "commercial terms scope of services pricing fees SLA cost annual"
+_COMMERCIAL_BIAS = "commercial terms annual AMC fee rate pricing cost charges invoice maintenance"
 
 
 def find_vendor_contract(
