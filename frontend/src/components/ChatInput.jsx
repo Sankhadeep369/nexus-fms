@@ -12,18 +12,24 @@ const MODES = [
 export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange, prefill }) {
   const [value, setValue] = useState("");
   const [highlight, setHighlight] = useState(0);
+  const [justArrived, setJustArrived] = useState(false);
   const textareaRef = useRef(null);
   const suggestions = useSuggestions();
 
   // Agents tab can hand off a draft question (e.g. "Should we renew with X?")
-  // -- populate the input and focus it so the user can review/edit before sending.
+  // -- populate the input, focus it, and briefly glow the input box so it's
+  // obvious something just arrived and is ready to review/edit before sending.
   useEffect(() => {
     if (!prefill) return;
     setValue(prefill.text);
+    setJustArrived(true);
     requestAnimationFrame(() => {
       resize(textareaRef.current);
       textareaRef.current?.focus();
+      textareaRef.current?.select();
     });
+    const timer = setTimeout(() => setJustArrived(false), 2200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill]);
 
@@ -76,7 +82,16 @@ export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeCha
           ))}
         </div>
       </div>
-      <div className="relative mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border border-nexus-border bg-nexus-bg px-2 py-2 transition-colors focus-within:border-nexus-accent/60 focus-within:shadow-glow-sm">
+      {justArrived && (
+        <p className="mx-auto mb-1.5 max-w-3xl px-1 text-[11px] font-medium text-nexus-violet">
+          Question ready from Agents — review and press Enter to send.
+        </p>
+      )}
+      <div
+        className={`relative mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border bg-nexus-bg px-2 py-2 transition-all focus-within:border-nexus-accent/60 focus-within:shadow-glow-sm ${
+          justArrived ? "border-nexus-violet shadow-glow-sm" : "border-nexus-border"
+        }`}
+      >
         {showSlashMenu && (
           <div className="scroll-thin absolute bottom-full left-0 right-0 mb-2 max-h-64 overflow-y-auto rounded-xl border border-nexus-border bg-nexus-panel p-1 shadow-lg">
             {slashMatches.map((s, i) => (

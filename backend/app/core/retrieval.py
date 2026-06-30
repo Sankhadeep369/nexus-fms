@@ -41,8 +41,11 @@ _IDENTITY_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Cap each chunk's body. With n_ctx=4096 and 3 chunks we can afford 2000 chars each.
-_MAX_CHUNK_CHARS = 2000
+# Cap each chunk's body. Agent-routed queries can gather up to 4 chunks on top
+# of the system prompt + conversation history, so each chunk needs to stay lean
+# to keep CPU prefill time bounded -- 1500 chars (~375 tokens) keeps 4 chunks
+# plus everything else comfortably under n_ctx=4096 without truncation risk.
+_MAX_CHUNK_CHARS = 1500
 
 
 def _tokenize(text: str) -> list[str]:

@@ -12,6 +12,17 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
+class LLMBusyError(Exception):
+    """Raised when a generation request arrives while another is already running.
+
+    A single llama.cpp context can only run one generation at a time. Blocking
+    silently on the lock let two overlapping requests compound into a 20+ minute
+    wait for the second one (queued behind the first's full ~5-10 min generation,
+    then ran its own). Failing fast instead lets the pipeline return a clear
+    "try again shortly" message immediately rather than hanging.
+    """
+
+
 def load_system_prompt() -> str:
     path = settings.system_prompt_path
     if path.exists():
@@ -82,7 +93,9 @@ class LLM(ChatModel):
         max_tokens: int | None = None,
         temperature: float | None = None,
     ) -> Iterator[str]:
-        with self._lock:
+        if not self._lock.acquire(blocking=False):
+            raise LLMBusyError("Another generation is already in progress")
+        try:
             stream = self._llm.create_chat_completion(
                 messages=messages,
                 max_tokens=max_tokens or settings.max_new_tokens,
@@ -95,6 +108,8 @@ class LLM(ChatModel):
                 text = delta.get("content")
                 if text:
                     yield text
+        finally:
+            self._lock.release()
 
 
 def _resolve_gguf_path() -> Path:

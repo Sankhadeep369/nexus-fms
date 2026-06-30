@@ -58,7 +58,7 @@ _COMMERCIAL_BIAS = "commercial terms scope of services pricing fees SLA cost ann
 
 
 def find_vendor_contract(
-    retriever: Retriever, registry: EntityRegistry, vendor_or_service: str, k: int = 3
+    retriever: Retriever, registry: EntityRegistry, vendor_or_service: str, k: int = 2
 ) -> list[dict]:
     """Find chunks from the CURRENT contract matching a vendor name or service type."""
     matched_docs = [

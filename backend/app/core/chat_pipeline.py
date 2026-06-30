@@ -20,6 +20,7 @@ SSE event shapes emitted by run():
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 from collections.abc import Iterator
@@ -28,10 +29,12 @@ from typing import Any
 
 from app.core.cache import ResponseCache, get_response_cache
 from app.core.config import settings
-from app.core.llm import ChatModel, get_llm, load_system_prompt
+from app.core.llm import ChatModel, LLMBusyError, get_llm, load_system_prompt
 from app.core.query_processor import ProcessedQuery, preprocess
 from app.core.retrieval import EntityAwareRetriever, Retriever, get_entity_retriever, get_retriever
 from app.core.validator import validate_and_rewrite
+
+logger = logging.getLogger("nexus.chat_pipeline")
 
 # ---------------------------------------------------------------------------
 # Artifact stripping — training-data template leakage patterns
@@ -100,6 +103,14 @@ def _doc_type_label(source_doc: str) -> str:
     return _DOC_TYPE_LABELS.get(folder, "REFERENCE DOCUMENT")
 
 
+# Hard ceiling on combined context length regardless of how many chunks were
+# gathered (standard retrieval, entity-aware, or agent) -- defends prefill time
+# even if a future code path passes in more chunks than expected. ~6000 chars
+# (~1500 tokens) leaves comfortable room for system prompt + query + output
+# within n_ctx=4096.
+_MAX_CONTEXT_CHARS = 6000
+
+
 def _build_user_content(query: str, retrieved: list[dict]) -> str:
     if not retrieved:
         return query
@@ -108,7 +119,7 @@ def _build_user_content(query: str, retrieved: list[dict]) -> str:
     context_block = "\n\n---\n\n".join(
         f"[{_doc_type_label(r['source_doc'])} | Section: {r['section']}]\n{r['text']}"
         for r in retrieved
-    )
+    )[:_MAX_CONTEXT_CHARS]
     return (
         "Context (retrieved from internal facilities documents):\n"
         "- CURRENT CONTRACT entries are authoritative — use exact figures, names, and dates.\n"
@@ -211,6 +222,7 @@ class ChatPipeline:
             processed = ProcessedQuery(original=query, rewritten=query)
 
         retrieval_query = processed.rewritten
+        t_query_analysis = time.time()
 
         # ── 3. Retrieval ─────────────────────────────────────────────────────
         if processed.query_type == "vendor_decision" and settings.groq_api_key:
@@ -268,23 +280,54 @@ class ChatPipeline:
                 },
             }
 
+        t_retrieval = time.time()
+
         # ── 4. Generation ─────────────────────────────────────────────────────
-        history_messages = _build_history_messages(history, settings.max_history_turns)
+        # Agent-routed queries are standalone research questions with their own
+        # freshly-gathered context (already up to 4 chunks); conversation history
+        # would only add token overhead without much relevance, so it's skipped
+        # to keep the prompt -- and CPU prefill time -- as small as possible.
+        history_messages = (
+            []
+            if processed.query_type == "vendor_decision"
+            else _build_history_messages(history, settings.max_history_turns)
+        )
         messages = [
             {"role": "system", "content": self.system_prompt},
             *history_messages,
             {"role": "user", "content": _build_user_content(retrieval_query, retrieved)},
         ]
+        prompt_chars = sum(len(m["content"]) for m in messages)
 
         yield {"type": "step", "name": "generation", "status": "start"}
         t0 = time.time()
         answer_parts: list[str] = []
-        for token in self.llm.stream_chat(messages, temperature=temperature):
-            answer_parts.append(token)
-            yield {"type": "token", "text": token}
+        try:
+            for token in self.llm.stream_chat(messages, temperature=temperature):
+                answer_parts.append(token)
+                yield {"type": "token", "text": token}
+        except LLMBusyError:
+            # Fail fast instead of silently queueing behind another generation --
+            # queueing let two overlapping requests compound into 20+ minute waits.
+            yield {"type": "step", "name": "generation", "status": "done", "detail": {"busy": True}}
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None,
+                "retrieved_sources": [],
+                "valid": False,
+                "fallback": (
+                    "NEXUS is currently generating another answer and can only handle one "
+                    "request at a time on this free-tier deployment.\n\n"
+                    "Please wait a minute and try again."
+                ),
+                "validation_reason": "llm busy",
+            }
+            return
         raw_answer = _strip_artifacts("".join(answer_parts))
+        t_generation = time.time()
         yield {"type": "step", "name": "generation", "status": "done",
-               "detail": {"ms": int((time.time() - t0) * 1000)}}
+               "detail": {"ms": int((t_generation - t0) * 1000)}}
 
         # ── 5. Refinement (Groq validate + rewrite) ──────────────────────────
         source_docs = sorted({r["source_doc"] for r in retrieved})
@@ -308,6 +351,18 @@ class ChatPipeline:
             result = ValidationResult(passed=True, answer=raw_answer, reason="rewriter disabled")
 
         # ── 6. Done ──────────────────────────────────────────────────────────
+        t_end = time.time()
+        logger.info(
+            "latency breakdown [%s]: query_analysis=%.1fs retrieval/agent=%.1fs "
+            "generation=%.1fs refinement=%.1fs total=%.1fs prompt_chars=%d",
+            processed.query_type,
+            t_query_analysis - t_start,
+            t_retrieval - t_query_analysis,
+            t_generation - t0,
+            t_end - t_generation,
+            t_end - t_start,
+            prompt_chars,
+        )
         if result.passed:
             final_answer = result.answer
             self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
