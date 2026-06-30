@@ -58,3 +58,4 @@ uvicorn.log
 # --- Test / coverage ---
 .coverage
 htmlcov/
+backend/metrics_report.json

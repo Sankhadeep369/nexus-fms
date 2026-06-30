@@ -42,7 +42,11 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of "vendor_decision" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+  * vendor_decision — asking whether to RENEW, SWITCH, or NEGOTIATE with a vendor,
+                 or whether current terms are competitive (e.g. "should we renew with
+                 X", "is this a good deal", "should we switch vendors"). Requires
+                 researching BOTH the current contract AND competitor benchmarks.
   * vendor     — asking about a specific vendor's contract terms, agreement details,
                  SLA, pricing, or performance (needs header + table + terse caveat)
   * factual    — asking for a specific fact, procedure, or explanation
@@ -95,10 +99,11 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
             raise ValueError(f"no JSON in response: {raw[:100]}")
 
         clean_json = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", json_match.group())
-        data = json.loads(clean_json)
+        data = json.loads(clean_json, strict=False)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        if query_type not in ("vendor", "factual", "comparison", "draft", "checklist", "general"):
+        valid_types = ("vendor_decision", "vendor", "factual", "comparison", "draft", "checklist", "general")
+        if query_type not in valid_types:
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
 

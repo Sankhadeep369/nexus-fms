@@ -38,12 +38,75 @@ _NON_LATIN_SCRIPTS = re.compile(
 
 _MIN_ANSWER_LENGTH = 40
 
+# --- Deterministic numeric grounding check ---
+# Catches hallucinated currency figures that an LLM judge unreliably misses,
+# including Indian lakh/crore digit-grouping misreads (e.g. "INR 14,40,000"
+# = 1,440,000 being restated by the model as "INR 14.4 million" = 14,400,000,
+# a 10x error from misreading the grouping convention).
+_CURRENCY_RE = re.compile(
+    r"(\$|INR|Rs\.?|USD)\s?([\d,]+(?:\.\d+)?)\s?(million|mn|thousand|lakh|crore|k|m)?",
+    re.IGNORECASE,
+)
+_UNIT_MULTIPLIERS = {
+    "million": 1_000_000, "mn": 1_000_000, "m": 1_000_000,
+    "thousand": 1_000, "k": 1_000,
+    "lakh": 100_000,
+    "crore": 10_000_000,
+}
+_GROUNDING_TOLERANCE = 0.02  # 2% relative tolerance for rounding in restated figures
+
+
+def _extract_amounts(text: str) -> list[float]:
+    amounts = []
+    for _symbol, number, unit in _CURRENCY_RE.findall(text):
+        try:
+            value = float(number.replace(",", ""))
+        except ValueError:
+            continue
+        if unit:
+            value *= _UNIT_MULTIPLIERS.get(unit.lower(), 1)
+        amounts.append(value)
+    return amounts
+
+
+def _numeric_grounding_check(answer: str, context_chunks: list[dict]) -> ValidationResult | None:
+    """Returns a failure ValidationResult if the answer states a currency amount
+    that doesn't match (within tolerance) any amount found in the retrieved
+    context. Returns None if all amounts are grounded or the answer has none."""
+    answer_amounts = _extract_amounts(answer)
+    if not answer_amounts:
+        return None
+
+    context_text = "\n".join(c.get("text", "") for c in context_chunks)
+    context_amounts = _extract_amounts(context_text)
+    if not context_amounts:
+        # Answer cites figures but context has none at all — definitely ungrounded.
+        return ValidationResult(
+            passed=False, answer="",
+            reason=f"answer cites currency amount(s) {answer_amounts} but context has none",
+            layer="rule",
+        )
+
+    for amt in answer_amounts:
+        matched = any(
+            abs(amt - ctx_amt) / max(amt, ctx_amt, 1.0) < _GROUNDING_TOLERANCE
+            for ctx_amt in context_amounts
+        )
+        if not matched:
+            return ValidationResult(
+                passed=False, answer="",
+                reason=f"unverifiable amount {amt} not found in retrieved context {context_amounts}",
+                layer="rule",
+            )
+    return None
+
 _REWRITE_PROMPT = """\
 You are a quality-control rewriter for NEXUS, an AI facilities-management assistant.
 
 ORIGINAL QUERY: {query}
 QUERY TYPE: {query_type}
-(vendor=contract/agreement details, factual=fact/procedure, comparison=multi-vendor table,
+(vendor_decision=renew/switch recommendation with current-vs-alternatives table,
+vendor=contract/agreement details, factual=fact/procedure, comparison=multi-vendor table,
 draft=email/memo/document, checklist=inspection/steps, general=best-practices/overview)
 
 RETRIEVED CONTEXT (what the assistant had access to):
@@ -76,6 +139,9 @@ STEP 2 — REWRITE (only if all checks passed):
     answer to fewer than 5 items, and do NOT produce fewer than 80 words for any
     procedural or factual query. The rewritten answer must be useful, not just short.
   - Correctly formatted for the query type:
+    * vendor_decision → Two-part structure: (1) Markdown table comparing current
+      terms vs. competitor/market alternatives (Term | Current | Alternative),
+      (2) a bolded one-line **Recommendation:** sentence at the end with reasoning.
     * vendor/contract → Header line (Vendor — Category — Agreement No.) + Markdown
       table of terms (Term | Detail). Missing values = "Not specified". ONE optional
       terse caveat line at the very end. No inline hedging whatsoever.
@@ -136,6 +202,15 @@ def _groq_rewrite(
     model: str,
     min_score: int,
 ) -> ValidationResult:
+    # Two failure categories, handled differently:
+    # 1. Groq unreachable (network/API error before any response) — we have NO
+    #    information either way, so fail-open (pass the original answer through)
+    #    is reasonable; a config/connectivity issue must not break the endpoint.
+    # 2. Groq responded but the judgment is unparseable/truncated — we know
+    #    *something* but can't read it. This correlates strongly with the
+    #    longest, messiest answers (exactly the most hallucination-prone ones),
+    #    so fail CLOSED here: show the safe fallback rather than risk surfacing
+    #    raw, unvalidated SLM output.
     try:
         from groq import Groq
 
@@ -157,37 +232,40 @@ def _groq_rewrite(
                     ),
                 }
             ],
-            max_tokens=1200,
+            max_tokens=2048,
             temperature=0.1,
         )
-
         raw = response.choices[0].message.content.strip()
-        # Strip markdown fences if present
+    except Exception as exc:
+        logger.warning("Groq API call failed (%s) — pass-through (no response received)", exc)
+        return ValidationResult(passed=True, answer=answer, reason=f"groq unreachable: {exc}", layer="groq")
+
+    try:
         raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
         json_match = re.search(r"\{[\s\S]+\}", raw)
         if not json_match:
-            logger.warning("rewriter returned no JSON: %s", raw[:120])
-            return ValidationResult(passed=True, answer=answer, reason="parse error — pass-through", layer="groq")
+            logger.warning("rewriter response unparseable (likely truncated): %s", raw[:120])
+            return ValidationResult(passed=False, answer="", reason="rewriter response truncated/unparseable", layer="groq")
 
-        # Strip control characters (U+0000–U+001F except \t \n \r) that Groq
-        # occasionally embeds in its output and that cause json.loads to fail.
+        # strict=False allows literal \n/\t inside JSON string values — Groq's
+        # multi-paragraph answers routinely contain raw newlines that strict
+        # JSON parsing would otherwise reject.
         clean_json = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", json_match.group())
-        data = json.loads(clean_json)
+        data = json.loads(clean_json, strict=False)
+    except (json.JSONDecodeError, ValueError) as exc:
+        logger.warning("rewriter JSON malformed (%s): %s", exc, raw[:160])
+        return ValidationResult(passed=False, answer="", reason=f"rewriter JSON malformed: {exc}", layer="groq")
 
-        if not data.get("valid", True):
-            return ValidationResult(passed=False, answer="", reason="failed Groq validation", layer="groq")
+    if not data.get("valid", True):
+        return ValidationResult(passed=False, answer="", reason="failed Groq validation", layer="groq")
 
-        rewritten = str(data.get("answer", "")).strip()
-        if not rewritten or len(rewritten) < _MIN_ANSWER_LENGTH:
-            logger.warning("rewriter returned empty answer — keeping original")
-            return ValidationResult(passed=True, answer=answer, reason="empty rewrite — kept original", layer="groq")
+    rewritten = str(data.get("answer", "")).strip()
+    if not rewritten or len(rewritten) < _MIN_ANSWER_LENGTH:
+        logger.warning("rewriter returned empty answer — keeping original")
+        return ValidationResult(passed=True, answer=answer, reason="empty rewrite — kept original", layer="groq")
 
-        logger.info("answer rewritten by Groq (%d→%d chars)", len(answer), len(rewritten))
-        return ValidationResult(passed=True, answer=rewritten, reason="ok", layer="groq")
-
-    except Exception as exc:
-        logger.warning("Groq rewriter failed (%s) — pass-through", exc)
-        return ValidationResult(passed=True, answer=answer, reason=f"groq error: {exc}", layer="groq")
+    logger.info("answer rewritten by Groq (%d→%d chars)", len(answer), len(rewritten))
+    return ValidationResult(passed=True, answer=rewritten, reason="ok", layer="groq")
 
 
 def validate_and_rewrite(
@@ -199,15 +277,30 @@ def validate_and_rewrite(
     model: str,
     min_score: int,
 ) -> ValidationResult:
-    """Run rule check then Groq rewrite+validate. Returns the final answer to cache/show."""
+    """Run rule check, then Groq rewrite+validate, then a deterministic numeric
+    grounding pass on the final text. Returns the answer to cache/show."""
     rule_failure = _rule_check(answer)
     if rule_failure is not None:
         return rule_failure
 
     if not api_key:
-        return ValidationResult(passed=True, answer=answer, reason="rewriter disabled (no API key)", layer="none")
+        result = ValidationResult(passed=True, answer=answer, reason="rewriter disabled (no API key)", layer="none")
+    else:
+        result = _groq_rewrite(query, query_type, context_chunks, answer, api_key, model, min_score)
 
-    return _groq_rewrite(query, query_type, context_chunks, answer, api_key, model, min_score)
+    if not result.passed:
+        return result
+
+    # Final deterministic check on the answer that will actually be shown: every
+    # currency figure must be traceable to the retrieved context. This catches
+    # numeric hallucinations the Groq judge's own reasoning has proven unreliable
+    # at noticing (e.g. Indian lakh-format misreads, wrong-document figures).
+    numeric_failure = _numeric_grounding_check(result.answer, context_chunks)
+    if numeric_failure is not None:
+        logger.warning("numeric grounding check failed: %s", numeric_failure.reason)
+        return numeric_failure
+
+    return result
 
 
 # Keep the old name importable for any code that still references it

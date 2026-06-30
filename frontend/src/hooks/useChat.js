@@ -25,6 +25,7 @@ export const STEP_LABELS = {
   cache_lookup: "Checking cache",
   query_analysis: "Analysing query",
   retrieval: "Searching documents",
+  agent_research: "Researching vendor & market data",
   generation: "Generating answer",
   refinement: "Refining answer",
 };

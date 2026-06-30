@@ -213,33 +213,60 @@ class ChatPipeline:
         retrieval_query = processed.rewritten
 
         # ── 3. Retrieval ─────────────────────────────────────────────────────
-        # Route vendor/comparison queries through the entity-aware retriever
-        # (anchors to the correct contract document before filling slots with
-        # BM25+dense matches). All other query types use conventional retrieval
-        # which is better for general domain / procedural queries.
-        yield {"type": "step", "name": "retrieval", "status": "start"}
-        active_retriever = (
-            get_entity_retriever()
-            if processed.query_type in _ENTITY_RETRIEVAL_TYPES
-            else self.retriever
-        )
-        candidates = active_retriever.retrieve(retrieval_query)
-        retrieved = [
-            c for c in candidates
-            if c["dense_score"] >= settings.retrieval_min_dense_score
-            or c["bm25_score"] >= settings.retrieval_min_bm25_score
-        ]
-        yield {
-            "type": "step",
-            "name": "retrieval",
-            "status": "done",
-            "detail": {
-                "sources": [
-                    {"source_doc": r["source_doc"], "section": r["section"], "score": round(r["score"], 3)}
-                    for r in retrieved
-                ]
-            },
-        }
+        if processed.query_type == "vendor_decision" and settings.groq_api_key:
+            # Agentic path: explicitly research BOTH the current contract and the
+            # competitor benchmark via separate, targeted tool calls — guaranteed
+            # coverage of both document types, not just whichever ranks higher in
+            # a combined similarity search.
+            yield {"type": "step", "name": "agent_research", "status": "start"}
+            from app.core.agents.vendor_comparison_agent import run_vendor_comparison_agent
+            from app.core.entity_registry import get_entity_registry
+
+            agent_result = run_vendor_comparison_agent(
+                query=retrieval_query,
+                retriever=self.retriever,
+                registry=get_entity_registry(),
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+            )
+            retrieved = agent_result.chunks
+            yield {
+                "type": "step",
+                "name": "agent_research",
+                "status": "done",
+                "detail": {
+                    "tool_calls": agent_result.tool_calls_made,
+                    "docs_found": sorted({c["source_doc"] for c in retrieved}),
+                },
+            }
+        else:
+            # Route vendor/comparison queries through the entity-aware retriever
+            # (anchors to the correct contract document before filling slots with
+            # BM25+dense matches). All other query types use conventional retrieval
+            # which is better for general domain / procedural queries.
+            yield {"type": "step", "name": "retrieval", "status": "start"}
+            active_retriever = (
+                get_entity_retriever()
+                if processed.query_type in _ENTITY_RETRIEVAL_TYPES
+                else self.retriever
+            )
+            candidates = active_retriever.retrieve(retrieval_query)
+            retrieved = [
+                c for c in candidates
+                if c["dense_score"] >= settings.retrieval_min_dense_score
+                or c["bm25_score"] >= settings.retrieval_min_bm25_score
+            ]
+            yield {
+                "type": "step",
+                "name": "retrieval",
+                "status": "done",
+                "detail": {
+                    "sources": [
+                        {"source_doc": r["source_doc"], "section": r["section"], "score": round(r["score"], 3)}
+                        for r in retrieved
+                    ]
+                },
+            }
 
         # ── 4. Generation ─────────────────────────────────────────────────────
         history_messages = _build_history_messages(history, settings.max_history_turns)
