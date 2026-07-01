@@ -60,7 +60,14 @@ class Settings(BaseSettings):
 
     # --- Retrieval (hybrid BM25 + embeddings over 02_extracted_text) ---
     retrieval_top_k: int = 3
-    retrieval_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # BGE-small outperforms MiniLM-L6 on MTEB retrieval benchmarks at the same 384-D
+    # and is a drop-in swap.  MiniLM-L6 is a symmetric similarity model; BGE is
+    # trained specifically for asymmetric query-to-passage retrieval.
+    retrieval_embedding_model: str = "BAAI/bge-small-en-v1.5"
+    # Instruction prefix prepended to queries (NOT to passage/chunk text) for BGE
+    # models.  Improves retrieval quality by moving query embeddings into passage
+    # space.  Set to "" to disable (e.g. when switching back to MiniLM).
+    retrieval_query_instruction: str = "Represent this sentence for searching relevant passages: "
     # Weight on the (min-max normalized) BM25 score vs. the dense cosine score when
     # combining the two rankings, in [0, 1].
     retrieval_bm25_weight: float = 0.5
@@ -75,6 +82,20 @@ class Settings(BaseSettings):
     # corpus (e.g. "write an email about my vacation") and no context is injected.
     retrieval_min_dense_score: float = 0.3
     retrieval_min_bm25_score: float = 20.0
+    # Cross-encoder re-ranking: after BM25+dense retrieves the top
+    # `retrieval_reranker_candidates` chunks, a cross-encoder scores each
+    # (query, chunk) pair jointly and re-orders them before returning top-k.
+    # Cross-encoders are far more accurate than bi-encoders for relevance ranking
+    # because they attend to both texts simultaneously rather than comparing
+    # independent embeddings.  MiniLM-L6 cross-encoder is fast on CPU (~50ms
+    # per query for 20 candidates) and adds negligible wall-clock latency.
+    retrieval_reranker_enabled: bool = True
+    retrieval_reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    retrieval_reranker_candidates: int = 20  # fetch this many, rerank, keep top_k
+    # Overlap from the tail of the previous section prepended to the next chunk.
+    # Ensures content at section boundaries appears in at least two chunks so a
+    # query matching the transition region is not missed.
+    retrieval_chunk_overlap_chars: int = 150
 
     # --- Groq (query pre-processor + answer rewriter/validator) ---
     groq_api_key: str | None = None

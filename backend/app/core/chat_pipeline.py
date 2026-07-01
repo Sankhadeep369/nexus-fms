@@ -148,6 +148,20 @@ _FALLBACK_MESSAGE = (
 # Query types that benefit from entity-anchored retrieval (vendor/contract queries)
 _ENTITY_RETRIEVAL_TYPES = {"vendor", "comparison"}
 
+# Per-query-type generation budget.  Tighter caps for factual/general queries
+# directly reduce the 2.5× length ratio without hurting quality — those answers
+# don't need 400 tokens.  Structured output types (tables, emails) keep more room.
+_MAX_TOKENS_BY_TYPE: dict[str, int] = {
+    "factual": 180,
+    "vendor": 260,
+    "comparison": 260,
+    "checklist": 280,
+    "general": 220,
+    "draft": 350,
+    "vendor_decision": 350,
+    "incident_triage": 300,
+}
+
 
 class ChatPipeline:
     def __init__(self, cache: ResponseCache, llm: ChatModel, retriever: Retriever):
@@ -399,7 +413,14 @@ class ChatPipeline:
                 "status": "done",
                 "detail": {
                     "sources": [
-                        {"source_doc": r["source_doc"], "section": r["section"], "score": round(r["score"], 3)}
+                        {
+                            "source_doc": r["source_doc"],
+                            "section": r["section"],
+                            "score": round(r["score"], 3),
+                            # First 400 chars of chunk text — used by the eval harness
+                            # for G-Eval faithfulness scoring without bloating the SSE payload.
+                            "text_preview": r["text"][:400],
+                        }
                         for r in retrieved
                     ]
                 },
@@ -426,9 +447,10 @@ class ChatPipeline:
 
         yield {"type": "step", "name": "generation", "status": "start"}
         t0 = time.time()
+        gen_max_tokens = _MAX_TOKENS_BY_TYPE.get(processed.query_type, settings.max_new_tokens)
         answer_parts: list[str] = []
         try:
-            for token in self.llm.stream_chat(messages, temperature=temperature):
+            for token in self.llm.stream_chat(messages, temperature=temperature, max_tokens=gen_max_tokens):
                 answer_parts.append(token)
                 yield {"type": "token", "text": token}
         except LLMBusyError:

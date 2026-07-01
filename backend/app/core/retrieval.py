@@ -92,6 +92,7 @@ def _split_sections(raw: str) -> list[tuple[int, str, str]]:
 def _load_chunks() -> list[Chunk]:
     chunks: list[Chunk] = []
     root = settings.corpus_dir
+    overlap_chars = settings.retrieval_chunk_overlap_chars
     for path in sorted(root.rglob("*.txt")):
         raw = path.read_text(encoding="utf-8")
         rel = path.relative_to(root).as_posix()
@@ -115,11 +116,24 @@ def _load_chunks() -> list[Chunk]:
 
         header = "\n\n".join(part for part in (preamble, title, identity) if part)
 
-        for level, heading, body in sections:
-            if heading == "Header" or not body:
-                continue
-            text = f"{header}\n\n# {heading}\n{body}" if header else f"# {heading}\n{body}"
+        # Build content sections list so we can reference the previous body for overlap.
+        content_sections = [
+            (level, heading, body)
+            for level, heading, body in sections
+            if heading != "Header" and body
+        ]
+        prev_body = ""
+        for level, heading, body in content_sections:
+            # Prepend the tail of the preceding section so queries matching content
+            # at a section boundary appear in both the preceding and the current chunk.
+            overlap = ""
+            if overlap_chars > 0 and prev_body:
+                tail = prev_body.strip()[-overlap_chars:]
+                if tail:
+                    overlap = f"[…continued from previous section]\n{tail}\n\n"
+            text = f"{header}\n\n# {heading}\n{overlap}{body}" if header else f"# {heading}\n{overlap}{body}"
             chunks.append(Chunk(source_doc=rel, section=heading, text=text[:_MAX_CHUNK_CHARS]))
+            prev_body = body
     return chunks
 
 
@@ -144,24 +158,64 @@ class Retriever:
         )
         self._embeddings = np.asarray(embeddings, dtype=np.float32)
 
+        # Cross-encoder re-ranker: loaded only when enabled so that disabling it
+        # via config avoids downloading the ~66 MB model.
+        self._reranker = None
+        if settings.retrieval_reranker_enabled:
+            from sentence_transformers import CrossEncoder
+            self._reranker = CrossEncoder(settings.retrieval_reranker_model)
+
+    def _encode_query(self, query: str) -> np.ndarray:
+        """Encode a query with the optional BGE instruction prefix.
+
+        BGE models are trained with an asymmetric instruction: queries get a short
+        prefix that moves their embeddings into "passage retrieval" space, while
+        passage/chunk texts are encoded without any prefix.  MiniLM and other
+        symmetric models leave the instruction blank and this is a no-op.
+        """
+        q_text = f"{settings.retrieval_query_instruction}{query}" if settings.retrieval_query_instruction else query
+        return self._embedder.encode([q_text], normalize_embeddings=True, show_progress_bar=False)[0]
+
+    def _rerank(self, query: str, candidates: list[dict], k: int) -> list[dict]:
+        """Re-order candidates using the cross-encoder and return top-k.
+
+        The cross-encoder attends to both the query and the passage simultaneously,
+        giving a much more accurate relevance signal than the bi-encoder cosine
+        score.  At 20 candidates and a MiniLM-L6 cross-encoder, this runs in
+        roughly 50–150 ms on CPU — negligible compared to generation time.
+        """
+        if self._reranker is None or len(candidates) <= k:
+            return candidates[:k]
+        pairs = [(query, c["text"]) for c in candidates]
+        scores = self._reranker.predict(pairs, show_progress_bar=False)
+        ranked = sorted(zip(scores, candidates), key=lambda x: -x[0])
+        return [c for _, c in ranked[:k]]
+
     def retrieve(self, query: str, k: int | None = None) -> list[dict]:
         """Return up to `k` chunks ranked by a hybrid BM25 + dense score, each with
         `source_doc`, `section`, `text`, `score` (combined, for ranking), `dense_score`
         (raw cosine similarity) and `bm25_score` (raw BM25 score) -- the latter two for
-        the relevance gate."""
+        the relevance gate.
+
+        When the cross-encoder is enabled, `retrieval_reranker_candidates` chunks
+        are fetched from the BM25+dense stage and then re-ranked to the final top-k.
+        """
         if not self.chunks:
             return []
         k = k or settings.retrieval_top_k
+        # Fetch more candidates than needed when re-ranking is on; the cross-encoder
+        # picks the best k from the wider set.
+        fetch_k = max(k, settings.retrieval_reranker_candidates) if self._reranker else k
 
         bm25_scores = np.asarray(self._bm25.get_scores(_tokenize(query)), dtype=np.float32)
-        query_emb = self._embedder.encode([query], normalize_embeddings=True, show_progress_bar=False)[0]
+        query_emb = self._encode_query(query)
         dense_scores = self._embeddings @ query_emb
 
         w = settings.retrieval_bm25_weight
         combined = w * _min_max(bm25_scores) + (1 - w) * _min_max(dense_scores)
 
-        top_idx = np.argsort(-combined)[:k]
-        return [
+        top_idx = np.argsort(-combined)[:fetch_k]
+        candidates = [
             {
                 "source_doc": self.chunks[i].source_doc,
                 "section": self.chunks[i].section,
@@ -172,6 +226,7 @@ class Retriever:
             }
             for i in top_idx
         ]
+        return self._rerank(query, candidates, k)
 
 
 @lru_cache(maxsize=1)
@@ -226,9 +281,7 @@ class EntityAwareRetriever(Retriever):
         bm25_scores = np.asarray(
             self._bm25.get_scores(_tokenize(query)), dtype=np.float32
         )
-        query_emb = self._embedder.encode(
-            [query], normalize_embeddings=True, show_progress_bar=False
-        )[0]
+        query_emb = self._encode_query(query)
         dense_scores = self._embeddings @ query_emb
         w = settings.retrieval_bm25_weight
         combined = w * _min_max(bm25_scores) + (1 - w) * _min_max(dense_scores)
@@ -245,8 +298,9 @@ class EntityAwareRetriever(Retriever):
         chosen_fill = [i for i in fill_sorted if i not in chosen_set][:fill_slots]
 
         final_indices = chosen_anchors + chosen_fill
+        anchor_set = set(chosen_anchors)
 
-        return [
+        candidates = [
             {
                 "source_doc": self.chunks[i].source_doc,
                 "section": self.chunks[i].section,
@@ -254,10 +308,14 @@ class EntityAwareRetriever(Retriever):
                 "score": float(combined[i]),
                 "dense_score": float(dense_scores[i]),
                 "bm25_score": float(bm25_scores[i]),
-                "entity_anchored": i in set(chosen_anchors),
+                "entity_anchored": i in anchor_set,
             }
             for i in final_indices
         ]
+        # Re-rank the final assembled set.  This reorders within the chosen pool
+        # without changing which documents are represented (the anchor allocation
+        # already guaranteed the right document coverage).
+        return self._rerank(query, candidates, k)
 
 
 @lru_cache(maxsize=1)

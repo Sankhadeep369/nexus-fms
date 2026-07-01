@@ -134,10 +134,16 @@ If ANY check fails → respond with ONLY: {{"valid": false, "answer": ""}}
 
 STEP 2 — REWRITE (only if all checks passed):
   Rewrite the answer to be:
-  - Complete but concise: remove repetition, padding, trailing disclaimers, and
-    meta-commentary, but KEEP all substantive points. Do NOT reduce a checklist
-    answer to fewer than 5 items, and do NOT produce fewer than 80 words for any
-    procedural or factual query. The rewritten answer must be useful, not just short.
+  - Complete but concise: remove repetition, padding, preamble ("Certainly! Here is…"),
+    trailing disclaimers, and meta-commentary, but KEEP all substantive points.
+    Target word counts by query type — stop when content is complete, do NOT pad:
+    * factual        → 80–150 words (direct answer, no scene-setting intro)
+    * vendor/contract→ 150–220 words (terms table + one caveat line at most)
+    * comparison     → 150–200 words (table only, no body paragraphs)
+    * checklist      → 150–250 words (5–10 items, all relevant steps retained)
+    * vendor_decision→ 200–280 words (comparison table + Recommendation sentence)
+    * draft/email    → 200–350 words (full document: subject/greeting/body/sign-off)
+    * general        → 120–200 words
   - Correctly formatted for the query type:
     * vendor_decision → Two-part structure: (1) Markdown table comparing current
       terms vs. competitor/market alternatives (Term | Current | Alternative),
