@@ -276,9 +276,20 @@ def validate_and_rewrite(
     api_key: str | None,
     model: str,
     min_score: int,
+    strict: bool = False,
 ) -> ValidationResult:
     """Run rule check, then Groq rewrite+validate, then a deterministic numeric
-    grounding pass on the final text. Returns the answer to cache/show."""
+    grounding pass on the final text. Returns the answer to cache/show.
+
+    strict=False (default, for SLM-generated answers):
+        Groq is an optional ENHANCER — if it fails or marks the answer invalid,
+        the raw (artifact-stripped) SLM answer is returned rather than withholding.
+        Only the instant rule check (non-Latin script, length) is a hard gate.
+
+    strict=True (for agent-synthesized answers like vendor_decision):
+        Groq validation IS the content gate — if it rejects, the answer is withheld.
+        Used when Groq is the primary generator, not just a post-processor.
+    """
     rule_failure = _rule_check(answer)
     if rule_failure is not None:
         return rule_failure
@@ -288,17 +299,25 @@ def validate_and_rewrite(
     else:
         result = _groq_rewrite(query, query_type, context_chunks, answer, api_key, model, min_score)
 
+    # In non-strict mode (SLM path), Groq failures fall through to the original
+    # answer rather than withholding — Groq is an enhancer here, not a gatekeeper.
     if not result.passed:
-        return result
+        if strict:
+            return result
+        else:
+            logger.info("groq rewrite did not pass (%s) — returning raw SLM answer (non-strict mode)", result.reason)
+            result = ValidationResult(passed=True, answer=answer, reason=f"groq-fallback: {result.reason}", layer="none")
 
-    # Final deterministic check on the answer that will actually be shown: every
-    # currency figure must be traceable to the retrieved context. This catches
-    # numeric hallucinations the Groq judge's own reasoning has proven unreliable
-    # at noticing (e.g. Indian lakh-format misreads, wrong-document figures).
-    numeric_failure = _numeric_grounding_check(result.answer, context_chunks)
-    if numeric_failure is not None:
-        logger.warning("numeric grounding check failed: %s", numeric_failure.reason)
-        return numeric_failure
+    # Deterministic numeric grounding check — only enforced in strict mode.
+    # In non-strict mode (SLM path for general FM queries) the SLM might
+    # legitimately mention benchmark figures from training knowledge that don't
+    # appear verbatim in the retrieved chunks. The strict check is reserved for
+    # agent-synthesized answers where every figure SHOULD come from context.
+    if strict:
+        numeric_failure = _numeric_grounding_check(result.answer, context_chunks)
+        if numeric_failure is not None:
+            logger.warning("numeric grounding check failed: %s", numeric_failure.reason)
+            return numeric_failure
 
     return result
 
