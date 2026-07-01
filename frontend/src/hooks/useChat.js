@@ -26,6 +26,7 @@ export const STEP_LABELS = {
   query_analysis: "Analysing query",
   retrieval: "Searching documents",
   agent_research: "Researching vendor & market data",
+  incident_triage: "Triaging incident — classifying, finding vendor, checking SLA",
   synthesis: "Synthesising comparison",
   generation: "Generating answer",
   refinement: "Refining answer",
@@ -44,6 +45,8 @@ function freshAssistant(id) {
     cacheHit: null,
     latencyMs: null,
     sources: [],
+    agentSynthesized: false,
+    agentToolCalls: [],
     isStreaming: true,
     error: null,
     stopped: false,
@@ -170,6 +173,8 @@ export function useChat() {
                 latencyMs: payload.latency_ms?.total ?? null,
                 cacheHit: payload.cache_hit ?? null,
                 sources: payload.retrieved_sources ?? [],
+                agentSynthesized: payload.agent_synthesized ?? false,
+                agentToolCalls: payload.agent_tool_calls ?? [],
                 isStreaming: false,
               }));
             }

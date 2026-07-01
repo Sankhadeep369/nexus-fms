@@ -42,7 +42,12 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "vendor_decision" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of "incident_triage" | "vendor_decision" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+  * incident_triage — reporting a facilities problem or breakdown that needs triage
+                 (e.g. "AC down floor 3 for 2 hours", "water leak in basement",
+                 "elevator stuck with people inside"). Requires classifying the
+                 incident, finding the responsible vendor, checking SLA, drafting
+                 escalation.
   * vendor_decision — asking whether to RENEW, SWITCH, or NEGOTIATE with a vendor,
                  or whether current terms are competitive (e.g. "should we renew with
                  X", "is this a good deal", "should we switch vendors"). Requires
@@ -102,7 +107,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         data = json.loads(clean_json, strict=False)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        valid_types = ("vendor_decision", "vendor", "factual", "comparison", "draft", "checklist", "general")
+        valid_types = ("incident_triage", "vendor_decision", "vendor", "factual", "comparison", "draft", "checklist", "general")
         if query_type not in valid_types:
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]

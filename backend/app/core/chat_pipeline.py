@@ -222,8 +222,78 @@ class ChatPipeline:
         retrieval_query = processed.rewritten
         t_query_analysis = time.time()
 
-        # ── 3. Retrieval ─────────────────────────────────────────────────────
-        if processed.query_type == "vendor_decision" and settings.groq_api_key:
+        # ── 3. Retrieval / Agent dispatch ────────────────────────────────────
+        if processed.query_type == "incident_triage" and settings.groq_api_key:
+            # Incident Triage: classify → find vendor → check SLA → draft escalation
+            yield {"type": "step", "name": "incident_triage", "status": "start"}
+            from app.core.agents.incident_triage_agent import run_incident_triage
+            from app.core.entity_registry import get_entity_registry
+
+            triage = run_incident_triage(
+                incident=retrieval_query,
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+                registry=get_entity_registry(),
+                retriever=self.retriever,
+            )
+            t_retrieval = time.time()
+            yield {
+                "type": "step",
+                "name": "incident_triage",
+                "status": "done",
+                "detail": {
+                    "domain": triage.domain,
+                    "severity": triage.severity,
+                    "vendor": triage.vendor,
+                    "sla_status": triage.sla_status,
+                },
+            }
+
+            if triage.succeeded and triage.escalation_email:
+                sla_label = {
+                    "BREACHED": "SLA breached",
+                    "AT_RISK": "SLA at risk",
+                    "WITHIN_SLA": "within SLA",
+                    "UNKNOWN": "SLA unknown",
+                }.get(triage.sla_status, "")
+                hours_label = (
+                    f"{triage.duration_hours:.0f}h reported, {sla_label}"
+                    if triage.duration_hours else sla_label
+                )
+                final_answer = (
+                    f"## Incident Summary\n\n"
+                    f"**Domain:** {triage.domain.replace('_', ' ').title()}  \n"
+                    f"**Severity:** {triage.severity.upper()}  \n"
+                    f"**Responsible vendor:** {triage.vendor} ({triage.site})  \n"
+                    f"**SLA:** {triage.sla_hours and f'{triage.sla_hours:.0f}h response' or 'Not specified'}  \n"
+                    f"**Status:** {hours_label}\n\n"
+                    f"---\n\n"
+                    f"## Escalation Email\n\n"
+                    f"{triage.escalation_email}"
+                )
+                source_docs = triage.sources
+                self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
+                yield {"type": "token", "text": final_answer}
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                    "cache_hit": None,
+                    "retrieved_sources": source_docs,
+                    "valid": True,
+                    "final_answer": final_answer,
+                    "agent_synthesized": True,
+                    "agent_tool_calls": [
+                        {"tool": "classify_incident", "args": {"incident": retrieval_query[:60]}, "results_found": 1},
+                        {"tool": "find_vendor_for_domain", "args": {"domain": triage.domain}, "results_found": len(source_docs)},
+                        {"tool": "check_sla_terms", "args": {"vendor": triage.vendor}, "results_found": 1},
+                        {"tool": "draft_escalation_email", "args": {"sla_status": triage.sla_status}, "results_found": 1},
+                    ],
+                }
+                return
+            # Fall through to SLM if triage failed
+            retrieved = []
+
+        elif processed.query_type == "vendor_decision" and settings.groq_api_key:
             # Agentic path: explicitly research BOTH the current contract and the
             # competitor benchmark via separate, targeted tool calls — guaranteed
             # coverage of both document types, not just whichever ranks higher in
@@ -299,6 +369,8 @@ class ChatPipeline:
                         "retrieved_sources": source_docs,
                         "valid": True,
                         "final_answer": groq_answer,
+                        "agent_synthesized": True,
+                        "agent_tool_calls": agent_result.tool_calls_made,
                     }
                     return
 

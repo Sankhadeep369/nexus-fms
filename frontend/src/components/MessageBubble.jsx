@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BookIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
+import { BookIcon, BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
 import ThinkingIndicator from "./ThinkingIndicator";
 import { WorkflowStepsDisclosure, WorkflowStepsLive } from "./WorkflowSteps";
 
@@ -193,19 +193,31 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
     >
       {!isUser && (
         <span
-          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg transition-shadow ${
-            message.isStreaming ? "shadow-glow-sm animate-pulse" : ""
-          }`}
+          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-nexus-bg transition-shadow ${
+            message.agentSynthesized
+              ? "bg-gradient-to-br from-nexus-violet to-nexus-accent"
+              : "bg-gradient-to-br from-nexus-accent to-nexus-accent2"
+          } ${message.isStreaming ? "shadow-glow-sm animate-pulse" : ""}`}
         >
-          <LogoIcon className="h-4 w-4" />
+          {message.agentSynthesized ? <BotIcon className="h-4 w-4" /> : <LogoIcon className="h-4 w-4" />}
         </span>
       )}
 
       <div className={`flex max-w-[80%] flex-col ${isUser ? "items-end" : "items-start"}`}>
+        {!isUser && message.agentSynthesized && !message.isStreaming && (
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-nexus-violet">
+            <BotIcon className="h-3 w-3" />
+            {message.steps?.some((s) => s.name === "incident_triage")
+              ? "Agent · Incident Triage"
+              : "Agent · Vendor Comparison"}
+          </div>
+        )}
         <div
           className={`w-full rounded-2xl px-4 py-3 ${
             isUser
               ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
+              : message.agentSynthesized && !message.isStreaming
+              ? "border border-nexus-violet/30 bg-nexus-panel text-nexus-text"
               : "border border-nexus-border bg-nexus-panel text-nexus-text"
           }`}
         >
@@ -291,7 +303,7 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
 
         {!isUser && !message.isStreaming && message.cacheHit !== "exact" && message.steps?.length > 0 && (
           <div className="mt-1 w-full">
-            <WorkflowStepsDisclosure steps={message.steps} />
+            <WorkflowStepsDisclosure steps={message.steps} agentToolCalls={message.agentToolCalls ?? []} />
           </div>
         )}
 

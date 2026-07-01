@@ -1,3 +1,4 @@
+import IncidentTriageCard from "./agents/IncidentTriageCard";
 import ReminderAgent from "./agents/ReminderAgent";
 import VendorComparisonCard from "./agents/VendorComparisonCard";
 
@@ -8,10 +9,12 @@ export default function AgentsPage({ onAskVendorQuestion }) {
         <div>
           <h1 className="font-display text-xl font-semibold text-nexus-text">Agents</h1>
           <p className="mt-1 text-sm text-nexus-muted">
-            Multi-step assistants that research and act, rather than just answer a single question.
+            Multi-step AI assistants that research, reason, and act — each completing a structured
+            workflow rather than answering a single question.
           </p>
         </div>
 
+        <IncidentTriageCard onAsk={onAskVendorQuestion} />
         <VendorComparisonCard onAsk={onAskVendorQuestion} />
         <ReminderAgent />
       </div>
