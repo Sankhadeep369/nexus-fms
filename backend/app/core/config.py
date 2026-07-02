@@ -49,6 +49,19 @@ class Settings(BaseSettings):
     # >1.0 penalizes tokens the model has already generated, which is what stops the
     # long repetition loops seen at the llama.cpp default of 1.0 (no-op).
     repeat_penalty: float = 1.15
+    # KV-cache prefix protection: if the context window ever fills up and llama.cpp
+    # needs to shift out old tokens, it keeps at least llm_n_keep tokens from the
+    # beginning of the context (i.e. the system prompt) so the static prefix is
+    # never evicted. 600 covers the system prompt (~500 tok) + chat template overhead.
+    llm_n_keep: int = 600
+    # Enable CPU Flash Attention (added to llama.cpp ≥ b3753).  Reduces attention
+    # memory from O(n²) to O(n), giving ~10-20% generation speedup on long contexts.
+    # Silently skipped if the installed llama-cpp-python wheel predates support.
+    llm_flash_attn: bool = True
+    # Contextual compression: after retrieval, a single Groq call extracts only the
+    # 2-3 sentences per chunk that are most relevant to the query.  Reduces context
+    # noise and prompt length → better SLM grounding with fewer distractor tokens.
+    context_compression_enabled: bool = True
 
     # --- LLM backend ---
     # "local"      -> run the GGUF on-device via llama.cpp (default, no extra setup)

@@ -1,3 +1,4 @@
+import logging
 import threading
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
@@ -5,6 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.core.config import settings
+
+logger = logging.getLogger("nexus.llm")
 
 DEFAULT_SYSTEM_PROMPT = (
     "You are NEXUS, a facilities-management assistant. Be concise and helpful, and say "
@@ -78,14 +81,45 @@ class LLM(ChatModel):
         from llama_cpp import Llama
 
         self._lock = threading.Lock()
-        self._llm = Llama(
+
+        llm_kwargs: dict = dict(
             model_path=str(model_path),
             n_ctx=settings.llm_n_ctx,
             n_threads=settings.llm_n_threads or None,
             n_gpu_layers=settings.llm_n_gpu_layers,
             n_batch=settings.llm_n_batch,
+            n_keep=settings.llm_n_keep,
             verbose=False,
         )
+        if settings.llm_flash_attn:
+            try:
+                self._llm = Llama(**llm_kwargs, flash_attn=True)
+                logger.info("llama.cpp: flash_attn=True")
+            except TypeError:
+                # Prebuilt wheel predates flash_attn support — fall back silently.
+                logger.warning("flash_attn not supported by this llama-cpp-python build — skipping")
+                self._llm = Llama(**llm_kwargs)
+        else:
+            self._llm = Llama(**llm_kwargs)
+
+        # Warm the KV cache with the static system prompt so subsequent requests
+        # skip re-encoding these ~500 tokens.  llama.cpp reuses KV entries for any
+        # prompt prefix that matches what is already in the cache, so a single dummy
+        # call at startup effectively pre-fills the system-prompt portion for all
+        # real requests that follow.
+        system_prompt = load_system_prompt()
+        try:
+            self._llm.create_chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": ""},
+                ],
+                max_tokens=1,
+                temperature=0.0,
+            )
+            logger.info("KV cache warmed — system prompt prefix (%d chars) ready", len(system_prompt))
+        except Exception as exc:
+            logger.warning("KV cache warm-up failed (%s) — first request will be slower", exc)
 
     def stream_chat(
         self,
