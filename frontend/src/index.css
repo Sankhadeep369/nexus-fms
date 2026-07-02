@@ -85,9 +85,14 @@ body {
 }
 
 .aurora::after {
-  bottom: -22vmax;
-  right: -18vmax;
+  /* Pushed far enough off-screen that even at the most inward point of the
+     animation the blob center stays outside the right viewport edge.
+     Was: right -18vmax (center reached +9vmax inside). Now: right -32vmax
+     (center starts -4.5vmax outside); auroraDrift2 drifts it further out. */
+  bottom: -30vmax;
+  right: -32vmax;
   background: rgb(var(--nexus-glow-2));
+  opacity: calc(var(--nexus-glow-opacity) * 0.75);
   animation: auroraDrift2 42s ease-in-out infinite alternate;
 }
 
@@ -97,8 +102,11 @@ body {
 }
 
 @keyframes auroraDrift2 {
+  /* Drift AWAY from the viewport (bottom-right), not toward center.
+     Previous -8vmax (leftward) brought the blob center into the visible
+     area; +6vmax (rightward) keeps it outside throughout the cycle. */
   0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-8vmax, -10vmax) scale(1.15); }
+  100% { transform: translate(6vmax, 8vmax) scale(1.1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
