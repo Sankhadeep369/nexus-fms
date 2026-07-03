@@ -1,4 +1,12 @@
-
+---
+title: NEXUS FMS
+emoji: 🏗️
+colorFrom: teal
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
 
 # NEXUS — Facilities Management AI Assistant
 
