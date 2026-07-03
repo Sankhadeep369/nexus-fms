@@ -1,8 +1,8 @@
 ---
 title: NEXUS FMS
 emoji: 🏗️
-colorFrom: teal
-colorTo: blue
+colorFrom: blue
+colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false
