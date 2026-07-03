@@ -227,7 +227,7 @@ _ENTITY_RETRIEVAL_TYPES = {"vendor", "comparison"}
 # best-k from a wider candidate pool — so these numbers are the final k passed to
 # retrieve(), not the candidate pool size (that is controlled by reranker_candidates).
 _RETRIEVAL_K_BY_TYPE: dict[str, int] = {
-    "factual": 2,           # one contract section is usually enough
+    "factual": 3,           # restored to 3 — k=2 dropped gold chunks at rank 3
     "vendor": 3,            # header + commercial terms + SLA sections
     "comparison": 5,        # chunks from multiple vendor docs
     "checklist": 3,         # procedural steps, typically one domain doc
@@ -236,6 +236,14 @@ _RETRIEVAL_K_BY_TYPE: dict[str, int] = {
     "vendor_decision": 4,   # current contract + 2-3 competitor benchmarks
     "incident_triage": 3,   # domain doc + vendor contract + SLA section
 }
+
+# Query types that must NOT have their context compressed.  These queries need
+# exact figures, dates, SLA hours, and financial values verbatim — contextual
+# compression (which extracts "2-3 relevant sentences") strips the surrounding
+# structure (tables, multi-part clauses) and causes the SLM to hallucinate the
+# missing numbers.  Compression stays on for general/draft/comparison queries
+# where breadth matters more than numeric precision.
+_COMPRESSION_SKIP_TYPES = {"factual", "vendor", "checklist"}
 
 # Per-query-type generation budget.  Tighter caps for factual/general queries
 # directly reduce the 2.5× length ratio without hurting quality — those answers
@@ -491,12 +499,30 @@ class ChatPipeline:
                 else self.retriever
             )
             retrieval_k = _RETRIEVAL_K_BY_TYPE.get(processed.query_type, settings.retrieval_top_k)
-            candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
-            retrieved = [
-                c for c in candidates
-                if c["dense_score"] >= settings.retrieval_min_dense_score
-                or c["bm25_score"] >= settings.retrieval_min_bm25_score
-            ]
+
+            if processed.query_type in _ENTITY_RETRIEVAL_TYPES:
+                # Entity-aware retriever: anchor:fill slot ratio is keyed to k, so
+                # call with retrieval_k directly.  Fix A (threshold 0.18) handles gate
+                # failures for entity-anchored chunks without breaking slot allocation.
+                raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
+                retrieved = [
+                    c for c in raw_candidates
+                    if c["dense_score"] >= settings.retrieval_min_dense_score
+                    or c["bm25_score"] >= settings.retrieval_min_bm25_score
+                ]
+            else:
+                # Standard retriever: fetch the full cross-encoder candidate pool
+                # (reranker_candidates=20) so the relevance gate can rescue high-BM25
+                # chunks that the cross-encoder moved below position k.
+                # Cross-encoder always evaluates max(k, 20) pairs anyway — no extra compute.
+                fetch_k = settings.retrieval_reranker_candidates
+                all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k)
+                gated = [
+                    c for c in all_candidates
+                    if c["dense_score"] >= settings.retrieval_min_dense_score
+                    or c["bm25_score"] >= settings.retrieval_min_bm25_score
+                ]
+                retrieved = gated[:retrieval_k]
             yield {
                 "type": "step",
                 "name": "retrieval",
@@ -524,10 +550,16 @@ class ChatPipeline:
         # length without changing which documents are cited.  Skipped for agent
         # paths (vendor_decision / incident_triage) which already gather curated,
         # targeted chunks via explicit tool calls.
+        #
+        # Compression is also skipped for query types that require exact numeric
+        # values, dates, and SLA figures verbatim — _COMPRESSION_SKIP_TYPES.
+        # Extracting "2-3 relevant sentences" from a contract clause strips tables
+        # and multi-part financial data, causing the SLM to hallucinate the figures.
         if (
             settings.context_compression_enabled
             and settings.groq_api_key
             and retrieved
+            and processed.query_type not in _COMPRESSION_SKIP_TYPES
         ):
             retrieved = _compress_context(
                 retrieval_query, retrieved, settings.groq_api_key, settings.groq_model

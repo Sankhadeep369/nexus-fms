@@ -93,7 +93,12 @@ class Settings(BaseSettings):
     #   chunk despite low semantic similarity).
     # If neither chunk meets either bar, the query is treated as unrelated to the
     # corpus (e.g. "write an email about my vacation") and no context is injected.
-    retrieval_min_dense_score: float = 0.3
+    #
+    # 0.18 (was 0.30): BGE-small uses a contrastive training objective that produces
+    # numerically lower cosine scores than MiniLM for equally relevant pairs.
+    # Threshold was recalibrated from BGE score distributions on the FM eval set —
+    # relevant chunks routinely scored 0.14-0.22, well below the MiniLM-calibrated 0.30.
+    retrieval_min_dense_score: float = 0.18
     retrieval_min_bm25_score: float = 20.0
     # Cross-encoder re-ranking: after BM25+dense retrieves the top
     # `retrieval_reranker_candidates` chunks, a cross-encoder scores each
@@ -108,7 +113,10 @@ class Settings(BaseSettings):
     # Overlap from the tail of the previous section prepended to the next chunk.
     # Ensures content at section boundaries appears in at least two chunks so a
     # query matching the transition region is not missed.
-    retrieval_chunk_overlap_chars: int = 150
+    # 75 (was 150): reduced to limit BM25 dilution — the extra 150 chars of
+    # off-topic section text lowered BM25 scores enough to fail the 20.0 gate for
+    # numeric/financial queries. 75 chars preserves boundary coverage at half the cost.
+    retrieval_chunk_overlap_chars: int = 75
 
     # --- Groq (query pre-processor + answer rewriter/validator) ---
     groq_api_key: str | None = None
