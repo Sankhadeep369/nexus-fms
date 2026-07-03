@@ -49,10 +49,11 @@ class Settings(BaseSettings):
     # >1.0 penalizes tokens the model has already generated, which is what stops the
     # long repetition loops seen at the llama.cpp default of 1.0 (no-op).
     repeat_penalty: float = 1.15
-    # KV-cache prefix protection: if the context window ever fills up and llama.cpp
-    # needs to shift out old tokens, it keeps at least llm_n_keep tokens from the
-    # beginning of the context (i.e. the system prompt) so the static prefix is
-    # never evicted. 600 covers the system prompt (~500 tok) + chat template overhead.
+    # KV-cache prefix protection intent: keep the first llm_n_keep tokens (system
+    # prompt) safe from context-shift eviction.  In llama-cpp-python 0.3.x this is
+    # handled internally by the C layer and is NOT exposed as a Python constructor or
+    # inference parameter — the field is retained for documentation and future-proofing
+    # but is not actively passed to the model.
     llm_n_keep: int = 600
     # Enable CPU Flash Attention (added to llama.cpp ≥ b3753).  Reduces attention
     # memory from O(n²) to O(n), giving ~10-20% generation speedup on long contexts.

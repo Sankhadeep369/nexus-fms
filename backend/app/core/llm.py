@@ -82,13 +82,16 @@ class LLM(ChatModel):
 
         self._lock = threading.Lock()
 
+        # n_keep is NOT a constructor parameter in llama-cpp-python 0.3.x — it is an
+        # inference-time parameter passed per create_chat_completion call.  Passing it
+        # here ends up in **kwargs, reaches the underlying C layer with no defined slot,
+        # and crashes the context allocation.  Pass it in stream_chat / warm-up instead.
         llm_kwargs: dict = dict(
             model_path=str(model_path),
             n_ctx=settings.llm_n_ctx,
             n_threads=settings.llm_n_threads or None,
             n_gpu_layers=settings.llm_n_gpu_layers,
             n_batch=settings.llm_n_batch,
-            n_keep=settings.llm_n_keep,
             verbose=False,
         )
         if settings.llm_flash_attn:
