@@ -21,6 +21,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import date
 
 logger = logging.getLogger("nexus.query_processor")
 
@@ -37,6 +38,7 @@ CapEx=Capital Expenditure | OpEx=Operational Expenditure"""
 
 _PREPROCESS_PROMPT = f"""\
 You are a facilities-management (FM) query pre-processor.
+Today's date: {{today}}.
 
 FM abbreviations for reference:
 {_ABBREV_REFERENCE}
@@ -60,8 +62,13 @@ Given the user's query, return ONLY a valid JSON object with these fields:
   * checklist  — requesting an inspection list, steps, or schedule
   * general    — best-practices, overview, or open-ended FM question
 - "rewritten": the query rewritten as a clear, complete English question with
-  all abbreviations expanded. Keep it concise (≤ 2 sentences). Do not add
-  information not implied by the original query.
+  all abbreviations expanded. IMPORTANT temporal rules for "rewritten":
+  * Replace "current year" / "this year" with the actual year from today's date.
+  * Replace "this month" with the current month and year (e.g. "July 2026").
+  * Replace "YTD" / "year to date" with "January to <current month> <year>".
+  * Replace "last year" with the previous calendar year.
+  Keep it concise (≤ 2 sentences). Do not add information not implied by the
+  original query beyond resolving temporal references.
 - "entities": list of key FM entities mentioned (vendor names, system types,
   document types, sites). Empty list if none.
 
@@ -86,12 +93,13 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         from groq import Groq
 
         client = Groq(api_key=api_key)
+        today_str = date.today().strftime("%d %B %Y")
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {
                     "role": "user",
-                    "content": _PREPROCESS_PROMPT.format(query=query[:800]),
+                    "content": _PREPROCESS_PROMPT.format(query=query[:800], today=today_str),
                 }
             ],
             max_tokens=200,
