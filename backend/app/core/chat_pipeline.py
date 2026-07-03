@@ -24,6 +24,7 @@ import logging
 import re
 import time
 from collections.abc import Iterator
+from datetime import date
 from functools import lru_cache
 from typing import Any
 
@@ -508,6 +509,61 @@ class ChatPipeline:
 
                 # Fall through to SLM if Groq synthesis failed entirely
                 logger.warning("groq synthesis unavailable — falling back to SLM")
+
+        elif processed.query_type == "budget_analysis" and settings.groq_api_key:
+            # Agentic path: retrieve financial sections from ALL vendor contracts,
+            # extract cost data via Groq (structured JSON), synthesise a per-system
+            # annual budget table with grand total — bypasses SLM entirely.
+            yield {"type": "step", "name": "agent_research", "status": "start"}
+            from app.core.agents.budget_analysis_agent import run_budget_analysis
+
+            budget_year = date.today().year
+            budget_result = run_budget_analysis(
+                query=retrieval_query,
+                year=budget_year,
+                retriever=self.retriever,
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+            )
+            t_retrieval = time.time()
+            source_docs = sorted({c["source_doc"] for c in budget_result.chunks_used})
+            yield {
+                "type": "step",
+                "name": "agent_research",
+                "status": "done",
+                "detail": {
+                    "docs_found": source_docs,
+                    "line_items": len(budget_result.line_items),
+                },
+            }
+
+            if budget_result.succeeded and budget_result.answer:
+                self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
+                yield {"type": "token", "text": budget_result.answer}
+                total_ms = int((time.time() - t_start) * 1000)
+                logger.info(
+                    "latency breakdown [budget_analysis/groq]: retrieve=%.1fs total=%.1fs items=%d",
+                    t_retrieval - t_start, total_ms / 1000, len(budget_result.line_items),
+                )
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": total_ms},
+                    "cache_hit": None,
+                    "retrieved_sources": source_docs,
+                    "valid": True,
+                    "final_answer": budget_result.answer,
+                    "agent_synthesized": True,
+                    "agent_tool_calls": [
+                        {"tool": "retrieve_financial_chunks", "args": {"k": settings.retrieval_reranker_candidates}, "results_found": len(budget_result.chunks_used)},
+                        {"tool": "extract_cost_data", "args": {"model": settings.groq_model}, "results_found": len(budget_result.line_items)},
+                        {"tool": "synthesise_budget_table", "args": {"year": budget_year}, "results_found": 1},
+                    ],
+                }
+                return
+            # Agent failed — fall through to SLM with whatever chunks were retrieved
+            logger.warning("budget_analysis agent failed — falling back to SLM")
+            retrieved = budget_result.chunks_used
+
         else:
             # Route vendor/comparison queries through the entity-aware retriever
             # (anchors to the correct contract document before filling slots with

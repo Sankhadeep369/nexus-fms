@@ -44,7 +44,7 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "incident_triage" | "vendor_decision" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of "incident_triage" | "vendor_decision" | "budget_analysis" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
   * incident_triage — reporting a facilities problem or breakdown that needs triage
                  (e.g. "AC down floor 3 for 2 hours", "water leak in basement",
                  "elevator stuck with people inside"). Requires classifying the
@@ -54,6 +54,13 @@ Given the user's query, return ONLY a valid JSON object with these fields:
                  or whether current terms are competitive (e.g. "should we renew with
                  X", "is this a good deal", "should we switch vendors"). Requires
                  researching BOTH the current contract AND competitor benchmarks.
+  * budget_analysis — requesting a cost breakdown, total spend, or budget summary
+                 ACROSS MULTIPLE systems or the entire portfolio (e.g. "total budget
+                 per system", "all AMC costs for 2026", "complete facilities spend
+                 breakdown", "how much are we spending on all contracts"). Requires
+                 retrieving financial data from ALL vendor contracts and computing
+                 annual totals. Use this — NOT factual — when the query asks for
+                 multi-system or portfolio-wide cost aggregation.
   * vendor     — asking about a specific vendor's contract terms, agreement details,
                  SLA, pricing, or performance (needs header + table + terse caveat)
   * factual    — asking for a specific fact, procedure, or explanation
@@ -133,7 +140,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         data = json.loads(clean_json, strict=False)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        valid_types = ("incident_triage", "vendor_decision", "vendor", "factual", "comparison", "draft", "checklist", "general")
+        valid_types = ("incident_triage", "vendor_decision", "budget_analysis", "vendor", "factual", "comparison", "draft", "checklist", "general")
         if query_type not in valid_types:
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
@@ -142,7 +149,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         clarification_question = str(data.get("clarification_question", "")).strip()
         clarification_options = [str(o) for o in data.get("clarification_options", []) if o]
         # Agent-routed types handle their own scope resolution — never gate them.
-        if query_type in ("incident_triage", "vendor_decision", "draft"):
+        if query_type in ("incident_triage", "vendor_decision", "budget_analysis", "draft"):
             needs_clarification = False
             clarification_question = ""
             clarification_options = []
