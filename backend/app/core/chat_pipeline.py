@@ -330,6 +330,27 @@ class ChatPipeline:
         else:
             processed = ProcessedQuery(original=query, rewritten=query)
 
+        # ── 2b. Clarification gate ────────────────────────────────────────────
+        # If the preprocessor flagged the query as needing scope clarification
+        # (e.g. "per system" without naming the systems), stop here and return a
+        # structured clarification response.  The UI renders quick-reply chips so
+        # the user can tap an option; the follow-up query then has clear scope
+        # and the full pipeline runs normally on the second pass.
+        if processed.needs_clarification and processed.clarification_question:
+            logger.info("clarification required: %s", processed.clarification_question)
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None,
+                "retrieved_sources": [],
+                "valid": True,
+                "final_answer": processed.clarification_question,
+                "needs_clarification": True,
+                "clarification_question": processed.clarification_question,
+                "clarification_options": processed.clarification_options,
+            }
+            return
+
         retrieval_query = processed.rewritten
         t_query_analysis = time.time()
 

@@ -50,6 +50,8 @@ function freshAssistant(id) {
     isStreaming: true,
     error: null,
     stopped: false,
+    clarificationOptions: [],
+    originalQuery: "",
   };
 }
 
@@ -151,7 +153,16 @@ export function useChat() {
               }
               applyUpdate((msg) => ({ ...msg, content: msg.content + pendingContent }));
             }
-            if (payload.valid === false) {
+            if (payload.needs_clarification) {
+              applyUpdate((msg) => ({
+                ...msg,
+                content: payload.clarification_question ?? payload.final_answer ?? "",
+                clarificationOptions: payload.clarification_options ?? [],
+                originalQuery: userMsg.content,
+                latencyMs: payload.latency_ms?.total ?? null,
+                isStreaming: false,
+              }));
+            } else if (payload.valid === false) {
               applyUpdate((msg) => ({
                 ...msg,
                 content: payload.fallback ?? "NEXUS couldn't produce a reliable answer. Please try rephrasing.",
@@ -232,5 +243,15 @@ export function useChat() {
     [isStreaming, messages, runStream]
   );
 
-  return { messages, isStreaming, sendMessage, regenerate, editAndResend, stopGeneration, mode, setMode };
+  // Called when the user taps a clarification chip.  Combines the original
+  // ambiguous query with the chosen scope so the full pipeline runs with
+  // clear intent on the second pass.
+  const clarify = useCallback(
+    (originalQuery, selectedOption) => {
+      sendMessage(`${originalQuery.trim()} — specifically: ${selectedOption}`);
+    },
+    [sendMessage]
+  );
+
+  return { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode };
 }

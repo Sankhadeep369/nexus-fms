@@ -71,6 +71,21 @@ Given the user's query, return ONLY a valid JSON object with these fields:
   original query beyond resolving temporal references.
 - "entities": list of key FM entities mentioned (vendor names, system types,
   document types, sites). Empty list if none.
+- "needs_clarification": true ONLY when the query asks for aggregated or comparative
+  data across multiple unspecified items (e.g. "per system", "all vendors", "total
+  budget", "each contract") without naming them, AND a single clarifying question
+  would yield a dramatically more accurate answer. false for:
+  * queries that name a specific vendor or system
+  * incident_triage or vendor_decision queries (they have their own handling)
+  * queries with one clear reasonable interpretation
+  * purely conversational or definitional questions
+- "clarification_question": if needs_clarification is true, one focused question
+  to ask (e.g. "Which systems should I include in the budget breakdown?").
+  Empty string if needs_clarification is false.
+- "clarification_options": if needs_clarification is true, 3–4 specific FM-relevant
+  options the user can tap to answer (e.g. ["All active AMC contracts",
+  "HVAC & MEP systems only", "Fire & Safety only", "Specify a system"]). These must
+  be actionable — not generic "yes/no/maybe". Empty array if needs_clarification is false.
 
 Respond with ONLY the JSON object. No other text.
 
@@ -84,6 +99,9 @@ class ProcessedQuery:
     query_type: str = "general"
     entities: list[str] = field(default_factory=list)
     preprocessed: bool = False
+    needs_clarification: bool = False
+    clarification_question: str = ""
+    clarification_options: list[str] = field(default_factory=list)
 
 
 def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
@@ -102,7 +120,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
                     "content": _PREPROCESS_PROMPT.format(query=query[:800], today=today_str),
                 }
             ],
-            max_tokens=200,
+            max_tokens=350,
             temperature=0.0,
         )
 
@@ -120,13 +138,31 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
 
-        logger.info("query preprocessed: type=%s entities=%s", query_type, entities)
+        needs_clarification = bool(data.get("needs_clarification", False))
+        clarification_question = str(data.get("clarification_question", "")).strip()
+        clarification_options = [str(o) for o in data.get("clarification_options", []) if o]
+        # Agent-routed types handle their own scope resolution — never gate them.
+        if query_type in ("incident_triage", "vendor_decision", "draft"):
+            needs_clarification = False
+            clarification_question = ""
+            clarification_options = []
+        # Require both question and options for clarification to be considered valid.
+        if not clarification_question or not clarification_options:
+            needs_clarification = False
+
+        logger.info(
+            "query preprocessed: type=%s entities=%s clarify=%s",
+            query_type, entities, needs_clarification,
+        )
         return ProcessedQuery(
             original=query,
             rewritten=rewritten,
             query_type=query_type,
             entities=entities,
             preprocessed=True,
+            needs_clarification=needs_clarification,
+            clarification_question=clarification_question,
+            clarification_options=clarification_options,
         )
 
     except Exception as exc:

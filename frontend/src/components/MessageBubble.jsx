@@ -157,7 +157,7 @@ function SourcesPanel({ sources }) {
 const toolbarBtn =
   "rounded-md p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function MessageBubble({ message, disabled, onRegenerate, onEditResend }) {
+export default function MessageBubble({ message, disabled, onRegenerate, onEditResend, onClarify }) {
   const isUser = message.role === "user";
   const showThinking = !isUser && message.isStreaming && message.content === "";
   const showCursor = !isUser && message.isStreaming && message.content !== "";
@@ -271,6 +271,26 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
               {showCursor && (
                 <span className="inline-block h-3.5 w-[3px] animate-pulse rounded-sm bg-nexus-accent align-text-bottom" />
               )}
+            </div>
+          )}
+
+          {/* Clarification quick-reply chips — shown when backend needs scope resolved */}
+          {!isUser && !message.isStreaming && message.clarificationOptions?.length > 0 && (
+            <div className="mt-3 border-t border-nexus-border/60 pt-3">
+              <p className="mb-2 text-[11px] font-medium text-nexus-muted">Choose an option or type your answer below:</p>
+              <div className="flex flex-wrap gap-2">
+                {message.clarificationOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onClarify?.(message.originalQuery, option)}
+                    className="rounded-lg border border-nexus-accent/40 bg-nexus-accent/8 px-3 py-1.5 text-xs font-medium text-nexus-accent transition-all hover:border-nexus-accent/70 hover:bg-nexus-accent/15 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

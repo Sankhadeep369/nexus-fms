@@ -10,7 +10,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { useChat } from "./hooks/useChat";
 
 function Chat({ prefill }) {
-  const { messages, isStreaming, sendMessage, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
+  const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
 
   useEffect(() => {
@@ -22,6 +22,7 @@ function Chat({ prefill }) {
       <ChatWindow
         messages={messages}
         onSend={sendMessage}
+        onClarify={clarify}
         onRegenerate={regenerate}
         onEditResend={editAndResend}
         disabled={isStreaming}

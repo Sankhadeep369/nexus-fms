@@ -21,7 +21,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-export default function ChatWindow({ messages, onSend, onRegenerate, onEditResend, disabled }) {
+export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, disabled }) {
   const endRef = useRef(null);
   const suggestions = useSuggestions();
   const chips = pickChips(suggestions);
@@ -77,6 +77,7 @@ export default function ChatWindow({ messages, onSend, onRegenerate, onEditResen
             disabled={disabled}
             onRegenerate={onRegenerate}
             onEditResend={onEditResend}
+            onClarify={onClarify}
           />
         ))}
         <div ref={endRef} />
