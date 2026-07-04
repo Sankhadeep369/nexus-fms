@@ -120,7 +120,9 @@ CAPABILITIES: list[QueryCapability] = [
         criteria=(
             "asking about the details of ONE specific named vendor's contract (terms, "
             "SLA, scope, fees, expiry). Use when the answer comes from reading that one "
-            "contract. NOT for comparisons or decisions."
+            "contract. NOT for comparisons or decisions. DO NOT use when the user is "
+            "asking to write, draft, compose, or prepare a document (email, memo, "
+            "letter, report) about the vendor — that is a draft request (use draft)."
         ),
     ),
     QueryCapability(
@@ -143,7 +145,14 @@ CAPABILITIES: list[QueryCapability] = [
         name="draft",
         retrieval_k=3,
         max_tokens=400,
-        criteria="requesting a document (email, memo, report, alert, template).",
+        criteria=(
+            "requesting a document (email, memo, report, alert, letter, template). This "
+            "takes PRECEDENCE whenever the query is an explicit instruction to WRITE, "
+            "DRAFT, COMPOSE, or PREPARE such a document — even if it names a specific "
+            "vendor, contract, or renewal (e.g. \"draft an email to Apex about the "
+            "renewal\", \"write a memo on the HVAC contract\"). The user wants the "
+            "document produced, not a lookup or comparison."
+        ),
     ),
     QueryCapability(
         name="checklist",
