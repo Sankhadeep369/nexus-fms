@@ -1,0 +1,17 @@
+{
+  "_comment": "Maps each top-level corpus folder to a display label and a role. Roles: 'current' (our active agreements), 'benchmark' (competitor/market references, not live contracts), 'reference' (SOPs/domain docs). Adding a new folder is optional — if it is not listed here, its role is inferred from the folder name and its label is title-cased. Edit this file, not the code, when the corpus structure changes.",
+  "doc_classes": {
+    "current_contracts": {
+      "label": "CURRENT CONTRACT",
+      "role": "current"
+    },
+    "competitor_contracts": {
+      "label": "MARKET REFERENCE (benchmark only — not a current agreement)",
+      "role": "benchmark"
+    },
+    "domain_docs": {
+      "label": "FM REFERENCE DOCUMENT",
+      "role": "reference"
+    }
+  }
+}

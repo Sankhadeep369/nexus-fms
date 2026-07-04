@@ -26,11 +26,32 @@ class LLMBusyError(Exception):
     """
 
 
+@lru_cache(maxsize=1)
 def load_system_prompt() -> str:
+    """Load the system prompt and render dynamic placeholders from the corpus.
+
+    `{{CORPUS_SYSTEMS}}` is replaced with the live list of FM systems actually
+    present in the corpus (derived from the self-describing corpus index), so the
+    persona's statement of what is "currently under contract" stays accurate when
+    the corpus changes — no hand-editing of a hardcoded domain list.
+
+    Cached so the rendered text is identical across the KV-cache warm-up and every
+    request (the warm-up prefix must match byte-for-byte to be reused).
+    """
     path = settings.system_prompt_path
-    if path.exists():
-        return path.read_text(encoding="utf-8").strip()
-    return DEFAULT_SYSTEM_PROMPT
+    text = path.read_text(encoding="utf-8").strip() if path.exists() else DEFAULT_SYSTEM_PROMPT
+
+    if "{{CORPUS_SYSTEMS}}" in text:
+        systems = ""
+        try:
+            from app.core.corpus_index import get_corpus_index
+
+            systems = ", ".join(get_corpus_index().contracted_systems)
+        except Exception as exc:  # pragma: no cover - defensive, keep prompt usable
+            logger.warning("system prompt: could not render CORPUS_SYSTEMS (%s)", exc)
+        text = text.replace("{{CORPUS_SYSTEMS}}", systems or "not yet indexed")
+
+    return text
 
 
 class ChatModel(ABC):

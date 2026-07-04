@@ -92,16 +92,14 @@ def _build_history_messages(history: list[dict], max_turns: int) -> list[dict]:
     return [msg for pair in recent for msg in pair]
 
 
-_DOC_TYPE_LABELS = {
-    "current_contracts": "CURRENT CONTRACT",
-    "competitor_contracts": "MARKET REFERENCE (benchmark only — not a current agreement)",
-    "domain_docs": "FM REFERENCE DOCUMENT",
-}
-
-
 def _doc_type_label(source_doc: str) -> str:
-    folder = source_doc.split("/")[0]
-    return _DOC_TYPE_LABELS.get(folder, "REFERENCE DOCUMENT")
+    """Human label for a chunk's document class (CURRENT CONTRACT / MARKET
+    REFERENCE / FM REFERENCE DOCUMENT). Derived from the self-describing corpus
+    index (manifest + inferred roles) rather than a hardcoded folder map, so a
+    new doc class is labelled correctly without a code change."""
+    from app.core.corpus_index import get_corpus_index
+
+    return get_corpus_index().label_of(source_doc)
 
 
 # Hard ceiling on combined context length regardless of how many chunks were

@@ -31,6 +31,14 @@ if sys.platform == "win32":
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Build the self-describing corpus index first: the system prompt's live
+    # "systems under contract" list and doc-class labels are derived from it, and
+    # it must exist before the LLM warm-up renders the prompt.
+    from app.core.corpus_index import get_corpus_index
+
+    corpus = get_corpus_index()
+    logger.info("Corpus index ready: %d docs, systems=%s", corpus.doc_count, corpus.categories)
+
     if settings.llm_backend == "hf_endpoint":
         logger.info("Using remote LLM backend: %s", settings.hf_endpoint_url)
     else:

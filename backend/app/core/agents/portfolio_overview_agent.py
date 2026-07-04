@@ -121,77 +121,101 @@ def _direct_contract_headers(retriever) -> list[dict]:
     return list(seen.values())
 
 
+def _contracts_from_index() -> tuple[list[dict], list[str]]:
+    """Build contract records directly from the self-describing corpus index.
+
+    The index already holds the vendor / system / category / agreement-no / term
+    for every document, extracted once at ingest. So the portfolio registry is
+    simply the metadata of every doc whose role is 'current' — no per-request
+    Groq extraction pass, no hardcoded system-type enum, no top-k retrieval, and
+    guaranteed 100% coverage of current contracts. Returns (records, source_docs).
+    """
+    from app.core.corpus_index import get_corpus_index
+
+    records: list[dict] = []
+    sources: list[str] = []
+    for m in get_corpus_index().current_docs:
+        records.append({
+            "system": m.system or m.category,
+            "vendor": m.vendor,
+            "category": m.category,
+            "agreement_no": m.agreement_no,
+            "term": m.term,
+            "source_doc": m.source_doc,
+        })
+        sources.append(m.source_doc)
+    return records, sources
+
+
 def run_portfolio_overview(
     query: str,
     retriever,
     api_key: str,
     model: str,
 ) -> PortfolioOverviewResult:
-    """Read contract headers from ALL current_contracts docs, extract, synthesise."""
+    """Build a registry of all current contracts, then synthesise a clean table.
 
-    # Direct enumeration — guaranteed 100% coverage of every current_contracts file.
-    # Falls back to BM25 retrieve() only if the chunk store isn't accessible.
+    Primary path is metadata-driven: contract records come straight from the
+    corpus index (role == current). The retriever is used only for provenance
+    (source chunks for G-Eval) and as a fallback when the index is empty.
+    """
+
+    # Provenance chunks (one header section per current-contract doc) for sources.
     chunks = _direct_contract_headers(retriever)
 
-    if not chunks:
-        logger.warning("portfolio_overview: chunk store unavailable, falling back to retrieve()")
-        raw = retriever.retrieve(_HEADER_BM25_QUERY, k=40)
-        chunks = [c for c in raw if "current_contracts" in c.get("source_doc", "")]
-        # One chunk per doc from the fallback set
-        seen: dict[str, dict] = {}
-        for c in chunks:
-            if c["source_doc"] not in seen:
-                seen[c["source_doc"]] = c
-        chunks = list(seen.values())
+    # Primary: records from the self-describing corpus index — dynamic + complete.
+    contracts, _ = _contracts_from_index()
 
-    if not chunks:
+    if not contracts:
+        # Fallback: index unavailable → extract from retrieved header chunks via Groq.
+        logger.warning("portfolio_overview: corpus index empty, falling back to Groq extraction")
+        if not chunks:
+            raw = retriever.retrieve(_HEADER_BM25_QUERY, k=40)
+            seen: dict[str, dict] = {}
+            for c in raw:
+                if c.get("source_doc") not in seen:
+                    seen[c["source_doc"]] = c
+            chunks = list(seen.values())
+        if not chunks:
+            return PortfolioOverviewResult(
+                answer="No contract data could be retrieved from the corpus.",
+                chunks_used=[], succeeded=False,
+            )
+        chunk_texts = "\n\n---CONTRACT SECTION---\n\n".join(
+            f"[Source: {c['source_doc']}]\n{c['text'][:900]}" for c in chunks
+        )
+        try:
+            from groq import Groq
+
+            client = Groq(api_key=api_key)
+            extract_resp = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": _EXTRACT_PROMPT.format(
+                    query=query[:400], chunks=chunk_texts,
+                )}],
+                max_tokens=1000,
+                temperature=0.0,
+            )
+            json_match = re.search(r"\[[\s\S]+\]", extract_resp.choices[0].message.content.strip())
+            if not json_match:
+                raise ValueError("No JSON array in extraction response")
+            contracts = json.loads(json_match.group())
+        except Exception as exc:
+            logger.warning("portfolio extraction fallback failed (%s) — deferring to SLM", exc)
+            return PortfolioOverviewResult(answer="", chunks_used=chunks, succeeded=False)
+
+    if not contracts:
         return PortfolioOverviewResult(
-            answer="No contract data could be retrieved from the corpus.",
-            chunks_used=[],
-            succeeded=False,
+            answer="No current contracts are present in the corpus.",
+            chunks_used=chunks, succeeded=False,
         )
 
-    logger.info("portfolio_overview: %d unique current_contracts docs found", len(chunks))
-
-    chunk_texts = "\n\n---CONTRACT SECTION---\n\n".join(
-        f"[Source: {c['source_doc']}]\n{c['text'][:900]}"
-        for c in chunks
-    )
+    logger.info("portfolio_overview: %d contract records (metadata-driven)", len(contracts))
 
     try:
         from groq import Groq
 
         client = Groq(api_key=api_key)
-        extract_resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": _EXTRACT_PROMPT.format(
-                query=query[:400],
-                chunks=chunk_texts,
-            )}],
-            max_tokens=1000,
-            temperature=0.0,
-        )
-        raw_extract = extract_resp.choices[0].message.content.strip()
-
-        json_match = re.search(r"\[[\s\S]+\]", raw_extract)
-        if not json_match:
-            raise ValueError(f"No JSON array in response: {raw_extract[:200]}")
-        contracts: list[dict] = json.loads(json_match.group())
-
-    except Exception as exc:
-        logger.warning("portfolio extraction Groq call failed (%s) — falling back to SLM", exc)
-        return PortfolioOverviewResult(answer="", chunks_used=chunks, succeeded=False)
-
-    if not contracts:
-        return PortfolioOverviewResult(
-            answer="No contract records could be extracted from the retrieved sections.",
-            chunks_used=chunks,
-            succeeded=False,
-        )
-
-    logger.info("portfolio_overview: extracted %d contract records", len(contracts))
-
-    try:
         synth_resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": _SYNTHESIS_PROMPT.format(
