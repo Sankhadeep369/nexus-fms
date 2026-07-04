@@ -229,11 +229,11 @@ _ENTITY_RETRIEVAL_TYPES = {"vendor", "comparison"}
 # retrieve(), not the candidate pool size (that is controlled by reranker_candidates).
 _RETRIEVAL_K_BY_TYPE: dict[str, int] = {
     "factual": 3,           # restored to 3 — k=2 dropped gold chunks at rank 3
-    "vendor": 3,            # header + commercial terms + SLA sections
-    "comparison": 5,        # chunks from multiple vendor docs
+    "vendor": 4,            # header + commercial terms + SLA + scope sections
+    "comparison": 6,        # scenario matrix + alternatives; competitor docs span multiple sections
     "checklist": 3,         # procedural steps, typically one domain doc
     "general": 3,
-    "draft": 2,             # needs context anchor, not breadth
+    "draft": 3,             # needs context anchor for contract details in memos/alerts
     "vendor_decision": 4,   # current contract + 2-3 competitor benchmarks
     "incident_triage": 3,   # domain doc + vendor contract + SLA section
 }
@@ -244,20 +244,20 @@ _RETRIEVAL_K_BY_TYPE: dict[str, int] = {
 # structure (tables, multi-part clauses) and causes the SLM to hallucinate the
 # missing numbers.  Compression stays on for general/draft/comparison queries
 # where breadth matters more than numeric precision.
-_COMPRESSION_SKIP_TYPES = {"factual", "vendor", "checklist"}
+_COMPRESSION_SKIP_TYPES = {"factual", "vendor", "checklist", "comparison", "general", "draft"}
 
 # Per-query-type generation budget.  Tighter caps for factual/general queries
 # directly reduce the 2.5× length ratio without hurting quality — those answers
 # don't need 400 tokens.  Structured output types (tables, emails) keep more room.
 _MAX_TOKENS_BY_TYPE: dict[str, int] = {
-    "factual": 180,
-    "vendor": 260,
-    "comparison": 260,
-    "checklist": 280,
-    "general": 220,
-    "draft": 350,
-    "vendor_decision": 350,
-    "incident_triage": 300,
+    "factual": 260,      # reference answers average 150-250 words; raised from 180
+    "vendor": 380,       # header + table + caveat; comparison reference answers 300+ words
+    "comparison": 400,   # scenario-matrix tables + recommendation; raised from 260
+    "checklist": 300,    # longer checklists; raised from 280
+    "general": 280,      # raised from 220
+    "draft": 400,        # memos and renewal alerts can be long; raised from 350
+    "vendor_decision": 400,
+    "incident_triage": 350,
 }
 
 
@@ -379,6 +379,7 @@ class ChatPipeline:
                     "severity": triage.severity,
                     "vendor": triage.vendor,
                     "sla_status": triage.sla_status,
+                    "sources": [{"source_doc": s, "section": "", "text_preview": ""} for s in (triage.sources or [])],
                 },
             }
 
@@ -450,6 +451,10 @@ class ChatPipeline:
                 "detail": {
                     "tool_calls": agent_result.tool_calls_made,
                     "docs_found": sorted({c["source_doc"] for c in retrieved}),
+                    "sources": [
+                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                        for c in retrieved
+                    ],
                 },
             }
 
@@ -534,6 +539,10 @@ class ChatPipeline:
                 "detail": {
                     "docs_found": source_docs,
                     "line_items": len(budget_result.line_items),
+                    "sources": [
+                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                        for c in budget_result.chunks_used
+                    ],
                 },
             }
 

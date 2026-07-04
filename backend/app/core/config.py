@@ -60,9 +60,10 @@ class Settings(BaseSettings):
     # Silently skipped if the installed llama-cpp-python wheel predates support.
     llm_flash_attn: bool = True
     # Contextual compression: after retrieval, a single Groq call extracts only the
-    # 2-3 sentences per chunk that are most relevant to the query.  Reduces context
-    # noise and prompt length → better SLM grounding with fewer distractor tokens.
-    context_compression_enabled: bool = True
+    # 2-3 sentences per chunk most relevant to the query.  Disabled: compression
+    # strips scenario-matrix rows, exact INR figures, and multi-clause SLA content
+    # that the SLM needs verbatim — faithfulness and ROUGE both drop when active.
+    context_compression_enabled: bool = False
 
     # --- LLM backend ---
     # "local"      -> run the GGUF on-device via llama.cpp (default, no extra setup)
@@ -100,7 +101,7 @@ class Settings(BaseSettings):
     # Threshold was recalibrated from BGE score distributions on the FM eval set —
     # relevant chunks routinely scored 0.14-0.22, well below the MiniLM-calibrated 0.30.
     retrieval_min_dense_score: float = 0.18
-    retrieval_min_bm25_score: float = 20.0
+    retrieval_min_bm25_score: float = 15.0
     # Cross-encoder re-ranking: after BM25+dense retrieves the top
     # `retrieval_reranker_candidates` chunks, a cross-encoder scores each
     # (query, chunk) pair jointly and re-orders them before returning top-k.

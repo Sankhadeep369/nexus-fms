@@ -45,29 +45,59 @@ FM abbreviations for reference:
 
 Given the user's query, return ONLY a valid JSON object with these fields:
 - "type": one of "incident_triage" | "vendor_decision" | "budget_analysis" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
-  * incident_triage — reporting a facilities problem or breakdown that needs triage
-                 (e.g. "AC down floor 3 for 2 hours", "water leak in basement",
-                 "elevator stuck with people inside"). Requires classifying the
-                 incident, finding the responsible vendor, checking SLA, drafting
-                 escalation.
-  * vendor_decision — asking whether to RENEW, SWITCH, or NEGOTIATE with a vendor,
-                 or whether current terms are competitive (e.g. "should we renew with
-                 X", "is this a good deal", "should we switch vendors"). Requires
-                 researching BOTH the current contract AND competitor benchmarks.
-  * budget_analysis — requesting a cost breakdown, total spend, or budget summary
-                 ACROSS MULTIPLE systems or the entire portfolio (e.g. "total budget
-                 per system", "all AMC costs for 2026", "complete facilities spend
-                 breakdown", "how much are we spending on all contracts"). Requires
-                 retrieving financial data from ALL vendor contracts and computing
-                 annual totals. Use this — NOT factual — when the query asks for
-                 multi-system or portfolio-wide cost aggregation.
-  * vendor     — asking about a specific vendor's contract terms, agreement details,
-                 SLA, pricing, or performance (needs header + table + terse caveat)
-  * factual    — asking for a specific fact, procedure, or explanation
-  * comparison — comparing multiple vendors, contracts, or options (needs a table)
-  * draft      — requesting a document (email, memo, report, template)
-  * checklist  — requesting an inspection list, steps, or schedule
-  * general    — best-practices, overview, or open-ended FM question
+
+  TYPE SELECTION — apply the FIRST type whose criteria match, in this order:
+
+  * incident_triage — user is REPORTING a live facilities problem right now
+                 (e.g. "AC down floor 3", "water leak in basement",
+                 "elevator stuck"). Use ONLY for in-progress incidents needing
+                 triage and escalation — NOT for historical queries.
+
+  * vendor_decision — user is asking whether THEY should RENEW, SWITCH, or
+                 NEGOTIATE their OWN ACTIVE contract with a named vendor.
+                 MUST contain first-person language: "should we renew", "should
+                 I switch us from", "is our current deal competitive", "do we
+                 want to continue with". The vendor referenced must be one we
+                 currently have an active contract with.
+                 DO NOT use for: market-benchmark comparisons, analysing
+                 competitor alternatives, evaluating third-party options that
+                 are not our live contracts, or any query that lacks an explicit
+                 first-person renewal/switch/negotiate decision framing.
+
+  * budget_analysis — user wants an AGGREGATED spend summary across the ENTIRE
+                 PORTFOLIO of contracts (e.g. "total AMC spend across all vendors",
+                 "complete 2026 facilities budget breakdown", "how much are we
+                 spending on all systems combined"). The query MUST ask for totals
+                 or breakdowns that span multiple separate vendor contracts.
+                 DO NOT use for: single-vendor cost queries, individual contract
+                 arithmetic, budget variance on one contract, or any query where
+                 the key figures are already provided in the user's message.
+
+  * vendor     — asking about the details of ONE specific named vendor's contract
+                 (terms, SLA, scope, fees, expiry). Use when the answer comes from
+                 reading that one contract. NOT for comparisons or decisions.
+
+  * comparison — comparing two or more vendors, contract options, or market
+                 alternatives side by side (e.g. "compare ArcticAir vs Climate
+                 Prime Care", "how do these three options stack up", "which
+                 alternative is best value", "evaluate these competitor options").
+                 Use this for ALL multi-vendor analysis that does NOT have an
+                 explicit first-person renewal/switch/negotiate decision framing.
+                 Also use for single-vendor budget-variance arithmetic (e.g.
+                 "if we switched to X, how much more would we pay").
+
+  * draft      — requesting a document (email, memo, report, alert, template).
+
+  * checklist  — requesting an inspection checklist, step-by-step procedure,
+                 maintenance schedule, or ordered task list.
+
+  * factual    — asking for a specific fact, SOP, procedure, explanation, or
+                 lookup. Default for single-vendor questions that don't fit the
+                 vendor type format.
+
+  * general    — broad best-practices, FM standards, or open-ended knowledge
+                 question without a specific document or vendor to look up.
+
 - "rewritten": the query rewritten as a clear, complete English question with
   all abbreviations expanded. IMPORTANT temporal rules for "rewritten":
   * Replace "current year" / "this year" with the actual year from today's date.
@@ -78,21 +108,21 @@ Given the user's query, return ONLY a valid JSON object with these fields:
   original query beyond resolving temporal references.
 - "entities": list of key FM entities mentioned (vendor names, system types,
   document types, sites). Empty list if none.
-- "needs_clarification": true ONLY when the query asks for aggregated or comparative
-  data across multiple unspecified items (e.g. "per system", "all vendors", "total
-  budget", "each contract") without naming them, AND a single clarifying question
-  would yield a dramatically more accurate answer. false for:
-  * queries that name a specific vendor or system
-  * incident_triage or vendor_decision queries (they have their own handling)
-  * queries with one clear reasonable interpretation
-  * purely conversational or definitional questions
-- "clarification_question": if needs_clarification is true, one focused question
-  to ask (e.g. "Which systems should I include in the budget breakdown?").
+- "needs_clarification": true ONLY when the query is SO underspecified that any
+  retrieval attempt would return documents completely unrelated to the user's
+  intent — e.g. "compare the two" (which two?), "what about this one?" (what?).
+  Set false for ALL of the following (this covers almost all FM queries):
+  * Any query that names a specific vendor, system, site, or document
+  * Any query asking for "all", "every", "total", "each" — the corpus is bounded
+  * Budget, cost, or financial queries — budget_analysis agent handles these
+  * Comparison queries — retrieve and compare even if scope is broad
+  * Checklists, SOPs, procedures, memos — generate from domain knowledge
+  * Any query with a clear FM domain (HVAC, electrical, fire, plumbing, etc.)
+  In practice, needs_clarification should be true for FEWER THAN 2% of FM queries.
+- "clarification_question": if needs_clarification is true, one focused question.
   Empty string if needs_clarification is false.
-- "clarification_options": if needs_clarification is true, 3–4 specific FM-relevant
-  options the user can tap to answer (e.g. ["All active AMC contracts",
-  "HVAC & MEP systems only", "Fire & Safety only", "Specify a system"]). These must
-  be actionable — not generic "yes/no/maybe". Empty array if needs_clarification is false.
+- "clarification_options": if needs_clarification is true, 3–4 specific options.
+  Empty array if needs_clarification is false.
 
 Respond with ONLY the JSON object. No other text.
 
@@ -148,8 +178,9 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         needs_clarification = bool(data.get("needs_clarification", False))
         clarification_question = str(data.get("clarification_question", "")).strip()
         clarification_options = [str(o) for o in data.get("clarification_options", []) if o]
-        # Agent-routed types handle their own scope resolution — never gate them.
-        if query_type in ("incident_triage", "vendor_decision", "budget_analysis", "draft"):
+        # Never gate these types — either an agent handles them, or standard
+        # retrieval can answer them without narrowing scope first.
+        if query_type in ("incident_triage", "vendor_decision", "budget_analysis", "draft", "comparison", "vendor", "checklist"):
             needs_clarification = False
             clarification_question = ""
             clarification_options = []
