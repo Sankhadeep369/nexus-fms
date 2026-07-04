@@ -88,45 +88,70 @@ class PortfolioOverviewResult:
     succeeded: bool = True
 
 
+def _direct_contract_headers(retriever) -> list[dict]:
+    """Walk retriever.chunks directly and take the FIRST section chunk from each
+    current_contracts document.
+
+    This bypasses top-k retrieval entirely — for a portfolio listing we want ALL
+    documents, not just the best-matching ones, and the first section of each
+    contract (typically "Parties and Site Details") already contains the vendor
+    name, category, agreement number, and term that Groq needs to extract.
+
+    Every chunk has the document header block prepended (see retrieval.py), so
+    even non-header sections carry the identity info, but the first section is the
+    cleanest and shortest input to the extraction prompt.
+    """
+    if not hasattr(retriever, "chunks") or not retriever.chunks:
+        return []
+
+    # Chunks are loaded in sorted(path) order, sections in document order —
+    # so the first chunk seen for each source_doc is the first section.
+    seen: dict[str, dict] = {}
+    for chunk in retriever.chunks:
+        if "current_contracts" not in chunk.source_doc:
+            continue
+        if chunk.source_doc not in seen:
+            seen[chunk.source_doc] = {
+                "source_doc": chunk.source_doc,
+                "section": chunk.section,
+                "text": chunk.text,
+                "score": 0.0,
+            }
+
+    return list(seen.values())
+
+
 def run_portfolio_overview(
     query: str,
     retriever,
     api_key: str,
     model: str,
 ) -> PortfolioOverviewResult:
-    """Retrieve all current contract headers, extract records, synthesise table."""
+    """Read contract headers from ALL current_contracts docs, extract, synthesise."""
 
-    # Fetch a wide candidate pool (>20) so all 13 current contracts are represented.
-    # The corpus has ~57 docs; we need the 13 current_contracts headers to all make
-    # it into the retrieved set before filtering.
-    raw_chunks = retriever.retrieve(_HEADER_BM25_QUERY, k=30)
+    # Direct enumeration — guaranteed 100% coverage of every current_contracts file.
+    # Falls back to BM25 retrieve() only if the chunk store isn't accessible.
+    chunks = _direct_contract_headers(retriever)
 
-    if not raw_chunks:
+    if not chunks:
+        logger.warning("portfolio_overview: chunk store unavailable, falling back to retrieve()")
+        raw = retriever.retrieve(_HEADER_BM25_QUERY, k=40)
+        chunks = [c for c in raw if "current_contracts" in c.get("source_doc", "")]
+        # One chunk per doc from the fallback set
+        seen: dict[str, dict] = {}
+        for c in chunks:
+            if c["source_doc"] not in seen:
+                seen[c["source_doc"]] = c
+        chunks = list(seen.values())
+
+    if not chunks:
         return PortfolioOverviewResult(
             answer="No contract data could be retrieved from the corpus.",
             chunks_used=[],
             succeeded=False,
         )
 
-    # Keep only current_contracts — competitor/benchmark docs don't belong here.
-    current_chunks = [c for c in raw_chunks if "current_contracts" in c.get("source_doc", "")]
-    # Fallback: if filter removed everything (shouldn't happen), use all chunks.
-    if not current_chunks:
-        logger.warning("portfolio_overview: no current_contracts chunks in top-30, using all")
-        current_chunks = raw_chunks
-
-    # Deduplicate: best-scoring chunk per source document → one record per contract.
-    best_per_doc: dict[str, dict] = {}
-    for chunk in current_chunks:
-        doc = chunk["source_doc"]
-        if doc not in best_per_doc or chunk["score"] > best_per_doc[doc]["score"]:
-            best_per_doc[doc] = chunk
-    chunks = list(best_per_doc.values())
-
-    logger.info(
-        "portfolio_overview: %d raw → %d current_contracts → %d unique docs",
-        len(raw_chunks), len(current_chunks), len(chunks),
-    )
+    logger.info("portfolio_overview: %d unique current_contracts docs found", len(chunks))
 
     chunk_texts = "\n\n---CONTRACT SECTION---\n\n".join(
         f"[Source: {c['source_doc']}]\n{c['text'][:900]}"

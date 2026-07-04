@@ -619,7 +619,7 @@ class ChatPipeline:
                     "final_answer": overview_result.answer,
                     "agent_synthesized": True,
                     "agent_tool_calls": [
-                        {"tool": "retrieve_contract_headers", "args": {"k": 30}, "results_found": len(overview_result.chunks_used)},
+                        {"tool": "retrieve_contract_headers", "args": {"method": "direct_enumeration"}, "results_found": len(overview_result.chunks_used)},
                         {"tool": "extract_contract_records", "args": {"model": settings.groq_model}, "results_found": len(overview_result.contracts)},
                         {"tool": "synthesise_vendor_table", "args": {}, "results_found": 1},
                     ],
