@@ -789,7 +789,7 @@ class ChatPipeline:
             raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
             retrieved = [
                 c for c in raw_candidates
-                if c["dense_score"] >= settings.retrieval_min_dense_score
+                if c["dense_score"] >= active_retriever.min_dense_score
                 or c["bm25_score"] >= settings.retrieval_min_bm25_score
             ]
         else:
@@ -801,7 +801,7 @@ class ChatPipeline:
             all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k)
             gated = [
                 c for c in all_candidates
-                if c["dense_score"] >= settings.retrieval_min_dense_score
+                if c["dense_score"] >= active_retriever.min_dense_score
                 or c["bm25_score"] >= settings.retrieval_min_bm25_score
             ]
             retrieved = gated[:retrieval_k]

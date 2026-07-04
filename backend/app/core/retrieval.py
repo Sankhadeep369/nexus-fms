@@ -21,6 +21,7 @@ context block is injected and the model answers from the system prompt alone.
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -29,6 +30,23 @@ import numpy as np
 from rank_bm25 import BM25Okapi
 
 from app.core.config import settings
+
+logger = logging.getLogger("nexus.retrieval")
+
+# Deliberately off-domain sentences used to auto-calibrate the dense relevance
+# gate.  At startup we measure how similar the corpus is to these (with whatever
+# embedding model is loaded); the gate is set just above that background level so
+# it self-calibrates on a model swap instead of relying on a hardcoded threshold.
+# These are intentionally generic non-FM text and never need to change with the
+# corpus or model.
+_OFF_DOMAIN_PROBES = [
+    "what is the capital of France",
+    "recipe for chocolate chip cookies",
+    "best football team of all time",
+    "how do I change a car tyre",
+    "history of the Roman empire",
+    "lyrics to a popular song",
+]
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 _HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)$", re.MULTILINE)
@@ -164,6 +182,27 @@ class Retriever:
         if settings.retrieval_reranker_enabled:
             from sentence_transformers import CrossEncoder
             self._reranker = CrossEncoder(settings.retrieval_reranker_model)
+
+        # Dense relevance-gate threshold, auto-calibrated to this model + corpus.
+        self.min_dense_score = self._calibrate_dense_gate()
+
+    def _calibrate_dense_gate(self) -> float:
+        """Set the dense gate just above the corpus's similarity to off-domain
+        text, so an off-topic query (which scores near that background) is gated
+        out while in-domain queries (which score well above it) pass.  Returns the
+        fixed configured value when auto-calibration is disabled."""
+        if not settings.retrieval_dense_gate_auto or self._embeddings.shape[0] == 0:
+            return settings.retrieval_min_dense_score
+        background = 0.0
+        for probe in _OFF_DOMAIN_PROBES:
+            sim = float((self._embeddings @ self._encode_query(probe)).max())
+            background = max(background, sim)
+        threshold = round(background * settings.retrieval_dense_gate_factor, 4)
+        logger.info(
+            "dense gate auto-calibrated: off-domain background=%.3f -> min_dense_score=%.3f",
+            background, threshold,
+        )
+        return threshold
 
     def _encode_query(self, query: str) -> np.ndarray:
         """Encode a query with the optional BGE instruction prefix.

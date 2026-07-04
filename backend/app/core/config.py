@@ -100,7 +100,17 @@ class Settings(BaseSettings):
     # numerically lower cosine scores than MiniLM for equally relevant pairs.
     # Threshold was recalibrated from BGE score distributions on the FM eval set —
     # relevant chunks routinely scored 0.14-0.22, well below the MiniLM-calibrated 0.30.
-    retrieval_min_dense_score: float = 0.18
+    # Dense relevance gate. Rather than a hardcoded absolute cosine threshold —
+    # which is specific to the embedding model's score distribution and must be
+    # re-tuned by hand on every model swap — the gate is auto-calibrated at
+    # startup: it measures how similar deliberately off-domain probe sentences are
+    # to the corpus with the CURRENT model and gates just above that background
+    # level (background * factor).  Swapping the embedding model recalibrates
+    # automatically.  Set retrieval_dense_gate_auto=False to use the fixed
+    # retrieval_min_dense_score below instead.
+    retrieval_dense_gate_auto: bool = True
+    retrieval_dense_gate_factor: float = 1.10
+    retrieval_min_dense_score: float = 0.18  # manual fallback when auto is off
     retrieval_min_bm25_score: float = 15.0
     # Cross-encoder re-ranking: after BM25+dense retrieves the top
     # `retrieval_reranker_candidates` chunks, a cross-encoder scores each
