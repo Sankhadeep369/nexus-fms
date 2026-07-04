@@ -23,6 +23,13 @@ import re
 from dataclasses import dataclass, field
 from datetime import date
 
+from app.core.capabilities import (
+    capability_names,
+    classifier_type_block,
+    classifier_type_enum,
+    never_clarify_names,
+)
+
 logger = logging.getLogger("nexus.query_processor")
 
 _ABBREV_REFERENCE = """\
@@ -44,68 +51,11 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "incident_triage" | "vendor_decision" | "portfolio_overview" | "budget_analysis" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of {classifier_type_enum()}
 
   TYPE SELECTION — apply the FIRST type whose criteria match, in this order:
 
-  * incident_triage — user is REPORTING a live facilities problem right now
-                 (e.g. "AC down floor 3", "water leak in basement",
-                 "elevator stuck"). Use ONLY for in-progress incidents needing
-                 triage and escalation — NOT for historical queries.
-
-  * vendor_decision — user is asking whether THEY should RENEW, SWITCH, or
-                 NEGOTIATE their OWN ACTIVE contract with a named vendor.
-                 MUST contain first-person language: "should we renew", "should
-                 I switch us from", "is our current deal competitive", "do we
-                 want to continue with". The vendor referenced must be one we
-                 currently have an active contract with.
-                 DO NOT use for: market-benchmark comparisons, analysing
-                 competitor alternatives, evaluating third-party options that
-                 are not our live contracts, or any query that lacks an explicit
-                 first-person renewal/switch/negotiate decision framing.
-
-  * portfolio_overview — user wants a LIST or REGISTRY of all current vendors,
-                 modules, or active contracts without asking for costs or a spend
-                 summary (e.g. "what vendors do we have", "list all modules under
-                 contract", "show all active AMC agreements", "who are our FM
-                 vendors", "what systems are covered by contracts", "give me an
-                 overview of all our agreements"). Covers the entire portfolio.
-                 DO NOT use for: cost/budget questions (use budget_analysis),
-                 single-vendor lookups (use vendor), comparisons (use comparison).
-
-  * budget_analysis — user wants an AGGREGATED spend summary across the ENTIRE
-                 PORTFOLIO of contracts (e.g. "total AMC spend across all vendors",
-                 "complete 2026 facilities budget breakdown", "how much are we
-                 spending on all systems combined"). The query MUST ask for totals
-                 or breakdowns that span multiple separate vendor contracts.
-                 DO NOT use for: single-vendor cost queries, individual contract
-                 arithmetic, budget variance on one contract, or any query where
-                 the key figures are already provided in the user's message.
-
-  * vendor     — asking about the details of ONE specific named vendor's contract
-                 (terms, SLA, scope, fees, expiry). Use when the answer comes from
-                 reading that one contract. NOT for comparisons or decisions.
-
-  * comparison — comparing two or more vendors, contract options, or market
-                 alternatives side by side (e.g. "compare ArcticAir vs Climate
-                 Prime Care", "how do these three options stack up", "which
-                 alternative is best value", "evaluate these competitor options").
-                 Use this for ALL multi-vendor analysis that does NOT have an
-                 explicit first-person renewal/switch/negotiate decision framing.
-                 Also use for single-vendor budget-variance arithmetic (e.g.
-                 "if we switched to X, how much more would we pay").
-
-  * draft      — requesting a document (email, memo, report, alert, template).
-
-  * checklist  — requesting an inspection checklist, step-by-step procedure,
-                 maintenance schedule, or ordered task list.
-
-  * factual    — asking for a specific fact, SOP, procedure, explanation, or
-                 lookup. Default for single-vendor questions that don't fit the
-                 vendor type format.
-
-  * general    — broad best-practices, FM standards, or open-ended knowledge
-                 question without a specific document or vendor to look up.
+{classifier_type_block()}
 
 - "rewritten": the query rewritten as a clear, complete English question with
   all abbreviations expanded. IMPORTANT temporal rules for "rewritten":
@@ -179,8 +129,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         data = json.loads(clean_json, strict=False)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        valid_types = ("incident_triage", "vendor_decision", "portfolio_overview", "budget_analysis", "vendor", "factual", "comparison", "draft", "checklist", "general")
-        if query_type not in valid_types:
+        if query_type not in capability_names():
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
 
@@ -188,8 +137,9 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         clarification_question = str(data.get("clarification_question", "")).strip()
         clarification_options = [str(o) for o in data.get("clarification_options", []) if o]
         # Never gate these types — either an agent handles them, or standard
-        # retrieval can answer them without narrowing scope first.
-        if query_type in ("incident_triage", "vendor_decision", "portfolio_overview", "budget_analysis", "draft", "comparison", "vendor", "checklist"):
+        # retrieval can answer them without narrowing scope first. Driven by the
+        # capability registry (never_clarify flag), not a hardcoded list.
+        if query_type in never_clarify_names():
             needs_clarification = False
             clarification_question = ""
             clarification_options = []

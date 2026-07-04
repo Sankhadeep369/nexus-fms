@@ -24,11 +24,13 @@ import logging
 import re
 import time
 from collections.abc import Iterator
+from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
 from typing import Any
 
 from app.core.cache import ResponseCache, get_response_cache
+from app.core.capabilities import RETRIEVAL_ENTITY, get_capability
 from app.core.config import settings
 from app.core.llm import ChatModel, LLMBusyError, get_llm, load_system_prompt
 from app.core.query_processor import ProcessedQuery, preprocess
@@ -217,46 +219,30 @@ _FALLBACK_MESSAGE = (
 )
 
 
-# Query types that benefit from entity-anchored retrieval (vendor/contract queries)
-_ENTITY_RETRIEVAL_TYPES = {"vendor", "comparison"}
+# Per-intent behaviour (retrieval strategy, k, compression, generation budget,
+# history, agent dispatch) now lives in the capability registry — see
+# app/core/capabilities.py.  A capability is looked up once per request via
+# get_capability(query_type) and its fields drive the whole pipeline, replacing
+# the four hand-tuned per-type tables that used to live here.
 
-# Per-query-type retrieval depth.  Factual queries typically need 1-2 chunks from
-# the right section; comparison/vendor_decision queries need breadth across multiple
-# documents.  The cross-encoder re-ranker makes over-fetching safe — it picks the
-# best-k from a wider candidate pool — so these numbers are the final k passed to
-# retrieve(), not the candidate pool size (that is controlled by reranker_candidates).
-_RETRIEVAL_K_BY_TYPE: dict[str, int] = {
-    "factual": 3,           # restored to 3 — k=2 dropped gold chunks at rank 3
-    "vendor": 4,            # header + commercial terms + SLA + scope sections
-    "comparison": 6,        # scenario matrix + alternatives; competitor docs span multiple sections
-    "checklist": 3,         # procedural steps, typically one domain doc
-    "general": 3,
-    "draft": 3,             # needs context anchor for contract details in memos/alerts
-    "vendor_decision": 4,   # current contract + 2-3 competitor benchmarks
-    "incident_triage": 3,   # domain doc + vendor contract + SLA section
+# Maps a capability's `agent` id to the ChatPipeline method that handles it.
+# Registering a new agent = add the method + one entry here (no elif chain).
+_AGENT_METHODS: dict[str, str] = {
+    "incident_triage": "_agent_incident_triage",
+    "vendor_comparison": "_agent_vendor_decision",
+    "budget_analysis": "_agent_budget_analysis",
+    "portfolio_overview": "_agent_portfolio_overview",
 }
 
-# Query types that must NOT have their context compressed.  These queries need
-# exact figures, dates, SLA hours, and financial values verbatim — contextual
-# compression (which extracts "2-3 relevant sentences") strips the surrounding
-# structure (tables, multi-part clauses) and causes the SLM to hallucinate the
-# missing numbers.  Compression stays on for general/draft/comparison queries
-# where breadth matters more than numeric precision.
-_COMPRESSION_SKIP_TYPES = {"factual", "vendor", "checklist", "comparison", "general", "draft"}
 
-# Per-query-type generation budget.  Tighter caps for factual/general queries
-# directly reduce the 2.5× length ratio without hurting quality — those answers
-# don't need 400 tokens.  Structured output types (tables, emails) keep more room.
-_MAX_TOKENS_BY_TYPE: dict[str, int] = {
-    "factual": 260,      # reference answers average 150-250 words; raised from 180
-    "vendor": 380,       # header + table + caveat; comparison reference answers 300+ words
-    "comparison": 400,   # scenario-matrix tables + recommendation; raised from 260
-    "checklist": 300,    # longer checklists; raised from 280
-    "general": 280,      # raised from 220
-    "draft": 400,        # memos and renewal alerts can be long; raised from 350
-    "vendor_decision": 400,
-    "incident_triage": 350,
-}
+@dataclass
+class _AgentOutcome:
+    """Result of an agent handler. `handled=True` means it already emitted the
+    final `done` event and the pipeline should return; `handled=False` means fall
+    through to SLM generation using `retrieved` as context."""
+
+    handled: bool
+    retrieved: list[dict] = field(default_factory=list)
 
 
 class ChatPipeline:
@@ -354,332 +340,20 @@ class ChatPipeline:
         t_query_analysis = time.time()
 
         # ── 3. Retrieval / Agent dispatch ────────────────────────────────────
-        if processed.query_type == "incident_triage" and settings.groq_api_key:
-            # Incident Triage: classify → find vendor → check SLA → draft escalation
-            yield {"type": "step", "name": "incident_triage", "status": "start"}
-            from app.core.agents.incident_triage_agent import run_incident_triage
-            from app.core.entity_registry import get_entity_registry
-
-            triage = run_incident_triage(
-                incident=retrieval_query,
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-                registry=get_entity_registry(),
-                retriever=self.retriever,
-            )
-            t_retrieval = time.time()
-            yield {
-                "type": "step",
-                "name": "incident_triage",
-                "status": "done",
-                "detail": {
-                    "domain": triage.domain,
-                    "severity": triage.severity,
-                    "vendor": triage.vendor,
-                    "sla_status": triage.sla_status,
-                    "sources": [{"source_doc": s, "section": "", "text_preview": ""} for s in (triage.sources or [])],
-                },
-            }
-
-            if triage.succeeded and triage.escalation_email:
-                sla_label = {
-                    "BREACHED": "SLA breached",
-                    "AT_RISK": "SLA at risk",
-                    "WITHIN_SLA": "within SLA",
-                    "UNKNOWN": "SLA unknown",
-                }.get(triage.sla_status, "")
-                hours_label = (
-                    f"{triage.duration_hours:.0f}h reported, {sla_label}"
-                    if triage.duration_hours else sla_label
-                )
-                final_answer = (
-                    f"## Incident Summary\n\n"
-                    f"**Domain:** {triage.domain.replace('_', ' ').title()}  \n"
-                    f"**Severity:** {triage.severity.upper()}  \n"
-                    f"**Responsible vendor:** {triage.vendor} ({triage.site})  \n"
-                    f"**SLA:** {triage.sla_hours and f'{triage.sla_hours:.0f}h response' or 'Not specified'}  \n"
-                    f"**Status:** {hours_label}\n\n"
-                    f"---\n\n"
-                    f"## Escalation Email\n\n"
-                    f"{triage.escalation_email}"
-                )
-                source_docs = triage.sources
-                self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
-                yield {"type": "token", "text": final_answer}
-                yield {
-                    "type": "done",
-                    "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-                    "cache_hit": None,
-                    "retrieved_sources": source_docs,
-                    "valid": True,
-                    "final_answer": final_answer,
-                    "agent_synthesized": True,
-                    "agent_tool_calls": [
-                        {"tool": "classify_incident", "args": {"incident": retrieval_query[:60]}, "results_found": 1},
-                        {"tool": "find_vendor_for_domain", "args": {"domain": triage.domain}, "results_found": len(source_docs)},
-                        {"tool": "check_sla_terms", "args": {"vendor": triage.vendor}, "results_found": 1},
-                        {"tool": "draft_escalation_email", "args": {"sla_status": triage.sla_status}, "results_found": 1},
-                    ],
-                }
+        # The capability decides the path: an agent handler (cap.agent) owns
+        # execution and may emit the final answer itself; otherwise standard /
+        # entity retrieval runs and we fall through to SLM generation.  All
+        # tuning (retrieval strategy, k, generation budget) lives on `cap`.
+        cap = get_capability(processed.query_type)
+        retrieved: list[dict] = []
+        if cap.agent and cap.agent in _AGENT_METHODS and settings.groq_api_key:
+            handler = getattr(self, _AGENT_METHODS[cap.agent])
+            outcome = yield from handler(query, mode, retrieval_query, t_start)
+            if outcome.handled:
                 return
-            # Fall through to SLM if triage failed
-            retrieved = []
-
-        elif processed.query_type == "vendor_decision" and settings.groq_api_key:
-            # Agentic path: explicitly research BOTH the current contract and the
-            # competitor benchmark via separate, targeted tool calls — guaranteed
-            # coverage of both document types, not just whichever ranks higher in
-            # a combined similarity search.
-            yield {"type": "step", "name": "agent_research", "status": "start"}
-            from app.core.agents.vendor_comparison_agent import run_vendor_comparison_agent
-            from app.core.entity_registry import get_entity_registry
-
-            agent_result = run_vendor_comparison_agent(
-                query=retrieval_query,
-                retriever=self.retriever,
-                registry=get_entity_registry(),
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-            )
-            retrieved = agent_result.chunks
-            yield {
-                "type": "step",
-                "name": "agent_research",
-                "status": "done",
-                "detail": {
-                    "tool_calls": agent_result.tool_calls_made,
-                    "docs_found": sorted({c["source_doc"] for c in retrieved}),
-                    "sources": [
-                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
-                        for c in retrieved
-                    ],
-                },
-            }
-
-            t_retrieval = time.time()  # capture timestamp so log statement works in both paths
-
-            # For vendor_decision queries, skip the 5-12 min fine-tuned SLM
-            # generation entirely and use Groq to synthesize the comparison
-            # directly from the gathered context. Groq is 2-3s vs 5-12 min and
-            # produces more reliable, grounded, table-formatted output for this
-            # structured comparison task than the small quantized SLM.
-            if retrieved and settings.groq_api_key:
-                yield {"type": "step", "name": "synthesis", "status": "start"}
-                from app.core.agents.vendor_comparison_agent import synthesize_comparison
-                from app.core.validator import _rule_check, _numeric_grounding_check
-
-                t_synth = time.time()
-                groq_answer = synthesize_comparison(
-                    query=retrieval_query,
-                    chunks=retrieved,
-                    api_key=settings.groq_api_key,
-                    model=settings.groq_model,
-                )
-                synth_ms = int((time.time() - t_synth) * 1000)
-                yield {"type": "step", "name": "synthesis", "status": "done",
-                       "detail": {"ms": synth_ms}}
-
-                if groq_answer:
-                    groq_answer = _strip_artifacts(groq_answer)
-                    rule_fail = _rule_check(groq_answer)
-                    numeric_fail = None if rule_fail else _numeric_grounding_check(groq_answer, retrieved)
-
-                    if rule_fail or numeric_fail:
-                        failure_reason = (rule_fail or numeric_fail).reason
-                        logger.warning("groq synthesis failed safety check: %s", failure_reason)
-                        groq_answer = None
-
-                if groq_answer:
-                    source_docs = sorted({r["source_doc"] for r in retrieved})
-                    self.cache.set(query, mode, {"answer": groq_answer, "retrieved_sources": source_docs})
-                    yield {"type": "token", "text": groq_answer}
-                    total_ms = int((time.time() - t_start) * 1000)
-                    logger.info(
-                        "latency breakdown [vendor_decision/groq]: agent=%.1fs synthesis=%.1fs total=%.1fs",
-                        t_retrieval - t_start, synth_ms / 1000, total_ms / 1000,
-                    )
-                    yield {
-                        "type": "done",
-                        "latency_ms": {"total": total_ms},
-                        "cache_hit": None,
-                        "retrieved_sources": source_docs,
-                        "valid": True,
-                        "final_answer": groq_answer,
-                        "agent_synthesized": True,
-                        "agent_tool_calls": agent_result.tool_calls_made,
-                    }
-                    return
-
-                # Fall through to SLM if Groq synthesis failed entirely
-                logger.warning("groq synthesis unavailable — falling back to SLM")
-
-        elif processed.query_type == "budget_analysis" and settings.groq_api_key:
-            # Agentic path: retrieve financial sections from ALL vendor contracts,
-            # extract cost data via Groq (structured JSON), synthesise a per-system
-            # annual budget table with grand total — bypasses SLM entirely.
-            yield {"type": "step", "name": "agent_research", "status": "start"}
-            from app.core.agents.budget_analysis_agent import run_budget_analysis
-
-            budget_year = date.today().year
-            budget_result = run_budget_analysis(
-                query=retrieval_query,
-                year=budget_year,
-                retriever=self.retriever,
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-            )
-            t_retrieval = time.time()
-            source_docs = sorted({c["source_doc"] for c in budget_result.chunks_used})
-            yield {
-                "type": "step",
-                "name": "agent_research",
-                "status": "done",
-                "detail": {
-                    "docs_found": source_docs,
-                    "line_items": len(budget_result.line_items),
-                    "sources": [
-                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
-                        for c in budget_result.chunks_used
-                    ],
-                },
-            }
-
-            if budget_result.succeeded and budget_result.answer:
-                self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
-                yield {"type": "token", "text": budget_result.answer}
-                total_ms = int((time.time() - t_start) * 1000)
-                logger.info(
-                    "latency breakdown [budget_analysis/groq]: retrieve=%.1fs total=%.1fs items=%d",
-                    t_retrieval - t_start, total_ms / 1000, len(budget_result.line_items),
-                )
-                yield {
-                    "type": "done",
-                    "latency_ms": {"total": total_ms},
-                    "cache_hit": None,
-                    "retrieved_sources": source_docs,
-                    "valid": True,
-                    "final_answer": budget_result.answer,
-                    "agent_synthesized": True,
-                    "agent_tool_calls": [
-                        {"tool": "retrieve_financial_chunks", "args": {"k": settings.retrieval_reranker_candidates}, "results_found": len(budget_result.chunks_used)},
-                        {"tool": "extract_cost_data", "args": {"model": settings.groq_model}, "results_found": len(budget_result.line_items)},
-                        {"tool": "synthesise_budget_table", "args": {"year": budget_year}, "results_found": 1},
-                    ],
-                }
-                return
-            # Agent failed — fall through to SLM with whatever chunks were retrieved
-            logger.warning("budget_analysis agent failed — falling back to SLM")
-            retrieved = budget_result.chunks_used
-
-        elif processed.query_type == "portfolio_overview" and settings.groq_api_key:
-            # Agentic path: retrieve contract headers from ALL current vendor agreements,
-            # extract {system, vendor, category, agreement_no, term} via Groq, synthesise
-            # a complete Markdown registry table — bypasses SLM to avoid format noise.
-            yield {"type": "step", "name": "agent_research", "status": "start"}
-            from app.core.agents.portfolio_overview_agent import run_portfolio_overview
-
-            overview_result = run_portfolio_overview(
-                query=retrieval_query,
-                retriever=self.retriever,
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-            )
-            t_retrieval = time.time()
-            source_docs = sorted({c["source_doc"] for c in overview_result.chunks_used})
-            yield {
-                "type": "step",
-                "name": "agent_research",
-                "status": "done",
-                "detail": {
-                    "docs_found": source_docs,
-                    "contracts_found": len(overview_result.contracts),
-                    "sources": [
-                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
-                        for c in overview_result.chunks_used
-                    ],
-                },
-            }
-
-            if overview_result.succeeded and overview_result.answer:
-                self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
-                yield {"type": "token", "text": overview_result.answer}
-                total_ms = int((time.time() - t_start) * 1000)
-                logger.info(
-                    "latency breakdown [portfolio_overview/groq]: retrieve=%.1fs total=%.1fs contracts=%d",
-                    t_retrieval - t_start, total_ms / 1000, len(overview_result.contracts),
-                )
-                yield {
-                    "type": "done",
-                    "latency_ms": {"total": total_ms},
-                    "cache_hit": None,
-                    "retrieved_sources": source_docs,
-                    "valid": True,
-                    "final_answer": overview_result.answer,
-                    "agent_synthesized": True,
-                    "agent_tool_calls": [
-                        {"tool": "retrieve_contract_headers", "args": {"method": "direct_enumeration"}, "results_found": len(overview_result.chunks_used)},
-                        {"tool": "extract_contract_records", "args": {"model": settings.groq_model}, "results_found": len(overview_result.contracts)},
-                        {"tool": "synthesise_vendor_table", "args": {}, "results_found": 1},
-                    ],
-                }
-                return
-            logger.warning("portfolio_overview agent failed — falling back to SLM")
-            retrieved = overview_result.chunks_used
-
+            retrieved = outcome.retrieved
         else:
-            # Route vendor/comparison queries through the entity-aware retriever
-            # (anchors to the correct contract document before filling slots with
-            # BM25+dense matches). All other query types use conventional retrieval
-            # which is better for general domain / procedural queries.
-            yield {"type": "step", "name": "retrieval", "status": "start"}
-            active_retriever = (
-                get_entity_retriever()
-                if processed.query_type in _ENTITY_RETRIEVAL_TYPES
-                else self.retriever
-            )
-            retrieval_k = _RETRIEVAL_K_BY_TYPE.get(processed.query_type, settings.retrieval_top_k)
-
-            if processed.query_type in _ENTITY_RETRIEVAL_TYPES:
-                # Entity-aware retriever: anchor:fill slot ratio is keyed to k, so
-                # call with retrieval_k directly.  Fix A (threshold 0.18) handles gate
-                # failures for entity-anchored chunks without breaking slot allocation.
-                raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
-                retrieved = [
-                    c for c in raw_candidates
-                    if c["dense_score"] >= settings.retrieval_min_dense_score
-                    or c["bm25_score"] >= settings.retrieval_min_bm25_score
-                ]
-            else:
-                # Standard retriever: fetch the full cross-encoder candidate pool
-                # (reranker_candidates=20) so the relevance gate can rescue high-BM25
-                # chunks that the cross-encoder moved below position k.
-                # Cross-encoder always evaluates max(k, 20) pairs anyway — no extra compute.
-                fetch_k = settings.retrieval_reranker_candidates
-                all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k)
-                gated = [
-                    c for c in all_candidates
-                    if c["dense_score"] >= settings.retrieval_min_dense_score
-                    or c["bm25_score"] >= settings.retrieval_min_bm25_score
-                ]
-                retrieved = gated[:retrieval_k]
-            yield {
-                "type": "step",
-                "name": "retrieval",
-                "status": "done",
-                "detail": {
-                    "sources": [
-                        {
-                            "source_doc": r["source_doc"],
-                            "section": r["section"],
-                            "score": round(r["score"], 3),
-                            # First 400 chars of chunk text — used by the eval harness
-                            # for G-Eval faithfulness scoring without bloating the SSE payload.
-                            "text_preview": r["text"][:400],
-                        }
-                        for r in retrieved
-                    ]
-                },
-            }
+            retrieved = yield from self._standard_retrieval(cap, retrieval_query)
 
         t_retrieval = time.time()
 
@@ -690,15 +364,15 @@ class ChatPipeline:
         # paths (vendor_decision / incident_triage) which already gather curated,
         # targeted chunks via explicit tool calls.
         #
-        # Compression is also skipped for query types that require exact numeric
-        # values, dates, and SLA figures verbatim — _COMPRESSION_SKIP_TYPES.
+        # Compression is also skipped for capabilities that require exact numeric
+        # values, dates, and SLA figures verbatim (cap.compress is False).
         # Extracting "2-3 relevant sentences" from a contract clause strips tables
         # and multi-part financial data, causing the SLM to hallucinate the figures.
         if (
             settings.context_compression_enabled
             and settings.groq_api_key
             and retrieved
-            and processed.query_type not in _COMPRESSION_SKIP_TYPES
+            and cap.compress
         ):
             retrieved = _compress_context(
                 retrieval_query, retrieved, settings.groq_api_key, settings.groq_model
@@ -710,9 +384,9 @@ class ChatPipeline:
         # would only add token overhead without much relevance, so it's skipped
         # to keep the prompt -- and CPU prefill time -- as small as possible.
         history_messages = (
-            []
-            if processed.query_type == "vendor_decision"
-            else _build_history_messages(history, settings.max_history_turns)
+            _build_history_messages(history, settings.max_history_turns)
+            if cap.use_history
+            else []
         )
         messages = [
             {"role": "system", "content": self.system_prompt},
@@ -723,7 +397,7 @@ class ChatPipeline:
 
         yield {"type": "step", "name": "generation", "status": "start"}
         t0 = time.time()
-        gen_max_tokens = _MAX_TOKENS_BY_TYPE.get(processed.query_type, settings.max_new_tokens)
+        gen_max_tokens = cap.max_tokens
         answer_parts: list[str] = []
         try:
             for token in self.llm.stream_chat(messages, temperature=temperature, max_tokens=gen_max_tokens):
@@ -807,6 +481,349 @@ class ChatPipeline:
                 "fallback": _FALLBACK_MESSAGE,
                 "validation_reason": result.reason,
             }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Agent handlers.  Each owns a self-contained agentic path: it emits its own
+    # SSE step/token/done events and returns an _AgentOutcome telling run()
+    # whether it produced the final answer (handled=True → return) or fell back
+    # (handled=False → run() continues to SLM generation with .retrieved).
+    # Registered in _AGENT_METHODS by capability agent id.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _agent_incident_triage(
+        self, query: str, mode: str, retrieval_query: str, t_start: float
+    ) -> Iterator[dict[str, Any]]:
+        # Incident Triage: classify → find vendor → check SLA → draft escalation
+        yield {"type": "step", "name": "incident_triage", "status": "start"}
+        from app.core.agents.incident_triage_agent import run_incident_triage
+        from app.core.entity_registry import get_entity_registry
+
+        triage = run_incident_triage(
+            incident=retrieval_query,
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+            registry=get_entity_registry(),
+            retriever=self.retriever,
+        )
+        yield {
+            "type": "step",
+            "name": "incident_triage",
+            "status": "done",
+            "detail": {
+                "domain": triage.domain,
+                "severity": triage.severity,
+                "vendor": triage.vendor,
+                "sla_status": triage.sla_status,
+                "sources": [{"source_doc": s, "section": "", "text_preview": ""} for s in (triage.sources or [])],
+            },
+        }
+
+        if triage.succeeded and triage.escalation_email:
+            sla_label = {
+                "BREACHED": "SLA breached",
+                "AT_RISK": "SLA at risk",
+                "WITHIN_SLA": "within SLA",
+                "UNKNOWN": "SLA unknown",
+            }.get(triage.sla_status, "")
+            hours_label = (
+                f"{triage.duration_hours:.0f}h reported, {sla_label}"
+                if triage.duration_hours else sla_label
+            )
+            final_answer = (
+                f"## Incident Summary\n\n"
+                f"**Domain:** {triage.domain.replace('_', ' ').title()}  \n"
+                f"**Severity:** {triage.severity.upper()}  \n"
+                f"**Responsible vendor:** {triage.vendor} ({triage.site})  \n"
+                f"**SLA:** {triage.sla_hours and f'{triage.sla_hours:.0f}h response' or 'Not specified'}  \n"
+                f"**Status:** {hours_label}\n\n"
+                f"---\n\n"
+                f"## Escalation Email\n\n"
+                f"{triage.escalation_email}"
+            )
+            source_docs = triage.sources
+            self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
+            yield {"type": "token", "text": final_answer}
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None,
+                "retrieved_sources": source_docs,
+                "valid": True,
+                "final_answer": final_answer,
+                "agent_synthesized": True,
+                "agent_tool_calls": [
+                    {"tool": "classify_incident", "args": {"incident": retrieval_query[:60]}, "results_found": 1},
+                    {"tool": "find_vendor_for_domain", "args": {"domain": triage.domain}, "results_found": len(source_docs)},
+                    {"tool": "check_sla_terms", "args": {"vendor": triage.vendor}, "results_found": 1},
+                    {"tool": "draft_escalation_email", "args": {"sla_status": triage.sla_status}, "results_found": 1},
+                ],
+            }
+            return _AgentOutcome(handled=True)
+        # Triage failed — fall through to SLM with no context
+        return _AgentOutcome(handled=False, retrieved=[])
+
+    def _agent_vendor_decision(
+        self, query: str, mode: str, retrieval_query: str, t_start: float
+    ) -> Iterator[dict[str, Any]]:
+        # Agentic path: explicitly research BOTH the current contract and the
+        # competitor benchmark via separate, targeted tool calls — guaranteed
+        # coverage of both document types, not just whichever ranks higher in
+        # a combined similarity search.
+        yield {"type": "step", "name": "agent_research", "status": "start"}
+        from app.core.agents.vendor_comparison_agent import run_vendor_comparison_agent
+        from app.core.entity_registry import get_entity_registry
+
+        agent_result = run_vendor_comparison_agent(
+            query=retrieval_query,
+            retriever=self.retriever,
+            registry=get_entity_registry(),
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+        )
+        retrieved = agent_result.chunks
+        yield {
+            "type": "step",
+            "name": "agent_research",
+            "status": "done",
+            "detail": {
+                "tool_calls": agent_result.tool_calls_made,
+                "docs_found": sorted({c["source_doc"] for c in retrieved}),
+                "sources": [
+                    {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                    for c in retrieved
+                ],
+            },
+        }
+
+        t_retrieval = time.time()  # capture timestamp so log statement works in both paths
+
+        # For vendor_decision queries, skip the 5-12 min fine-tuned SLM
+        # generation entirely and use Groq to synthesize the comparison
+        # directly from the gathered context. Groq is 2-3s vs 5-12 min and
+        # produces more reliable, grounded, table-formatted output for this
+        # structured comparison task than the small quantized SLM.
+        if retrieved and settings.groq_api_key:
+            yield {"type": "step", "name": "synthesis", "status": "start"}
+            from app.core.agents.vendor_comparison_agent import synthesize_comparison
+            from app.core.validator import _rule_check, _numeric_grounding_check
+
+            t_synth = time.time()
+            groq_answer = synthesize_comparison(
+                query=retrieval_query,
+                chunks=retrieved,
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+            )
+            synth_ms = int((time.time() - t_synth) * 1000)
+            yield {"type": "step", "name": "synthesis", "status": "done",
+                   "detail": {"ms": synth_ms}}
+
+            if groq_answer:
+                groq_answer = _strip_artifacts(groq_answer)
+                rule_fail = _rule_check(groq_answer)
+                numeric_fail = None if rule_fail else _numeric_grounding_check(groq_answer, retrieved)
+
+                if rule_fail or numeric_fail:
+                    failure_reason = (rule_fail or numeric_fail).reason
+                    logger.warning("groq synthesis failed safety check: %s", failure_reason)
+                    groq_answer = None
+
+            if groq_answer:
+                source_docs = sorted({r["source_doc"] for r in retrieved})
+                self.cache.set(query, mode, {"answer": groq_answer, "retrieved_sources": source_docs})
+                yield {"type": "token", "text": groq_answer}
+                total_ms = int((time.time() - t_start) * 1000)
+                logger.info(
+                    "latency breakdown [vendor_decision/groq]: agent=%.1fs synthesis=%.1fs total=%.1fs",
+                    t_retrieval - t_start, synth_ms / 1000, total_ms / 1000,
+                )
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": total_ms},
+                    "cache_hit": None,
+                    "retrieved_sources": source_docs,
+                    "valid": True,
+                    "final_answer": groq_answer,
+                    "agent_synthesized": True,
+                    "agent_tool_calls": agent_result.tool_calls_made,
+                }
+                return _AgentOutcome(handled=True)
+
+            # Fall through to SLM if Groq synthesis failed entirely
+            logger.warning("groq synthesis unavailable — falling back to SLM")
+
+        return _AgentOutcome(handled=False, retrieved=retrieved)
+
+    def _agent_budget_analysis(
+        self, query: str, mode: str, retrieval_query: str, t_start: float
+    ) -> Iterator[dict[str, Any]]:
+        # Agentic path: retrieve financial sections from ALL vendor contracts,
+        # extract cost data via Groq (structured JSON), synthesise a per-system
+        # annual budget table with grand total — bypasses SLM entirely.
+        yield {"type": "step", "name": "agent_research", "status": "start"}
+        from app.core.agents.budget_analysis_agent import run_budget_analysis
+
+        budget_year = date.today().year
+        budget_result = run_budget_analysis(
+            query=retrieval_query,
+            year=budget_year,
+            retriever=self.retriever,
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+        )
+        t_retrieval = time.time()
+        source_docs = sorted({c["source_doc"] for c in budget_result.chunks_used})
+        yield {
+            "type": "step",
+            "name": "agent_research",
+            "status": "done",
+            "detail": {
+                "docs_found": source_docs,
+                "line_items": len(budget_result.line_items),
+                "sources": [
+                    {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                    for c in budget_result.chunks_used
+                ],
+            },
+        }
+
+        if budget_result.succeeded and budget_result.answer:
+            self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
+            yield {"type": "token", "text": budget_result.answer}
+            total_ms = int((time.time() - t_start) * 1000)
+            logger.info(
+                "latency breakdown [budget_analysis/groq]: retrieve=%.1fs total=%.1fs items=%d",
+                t_retrieval - t_start, total_ms / 1000, len(budget_result.line_items),
+            )
+            yield {
+                "type": "done",
+                "latency_ms": {"total": total_ms},
+                "cache_hit": None,
+                "retrieved_sources": source_docs,
+                "valid": True,
+                "final_answer": budget_result.answer,
+                "agent_synthesized": True,
+                "agent_tool_calls": [
+                    {"tool": "retrieve_financial_chunks", "args": {"k": settings.retrieval_reranker_candidates}, "results_found": len(budget_result.chunks_used)},
+                    {"tool": "extract_cost_data", "args": {"model": settings.groq_model}, "results_found": len(budget_result.line_items)},
+                    {"tool": "synthesise_budget_table", "args": {"year": budget_year}, "results_found": 1},
+                ],
+            }
+            return _AgentOutcome(handled=True)
+        # Agent failed — fall through to SLM with whatever chunks were retrieved
+        logger.warning("budget_analysis agent failed — falling back to SLM")
+        return _AgentOutcome(handled=False, retrieved=budget_result.chunks_used)
+
+    def _agent_portfolio_overview(
+        self, query: str, mode: str, retrieval_query: str, t_start: float
+    ) -> Iterator[dict[str, Any]]:
+        # Agentic path: retrieve contract headers from ALL current vendor agreements,
+        # extract {system, vendor, category, agreement_no, term} via Groq, synthesise
+        # a complete Markdown registry table — bypasses SLM to avoid format noise.
+        yield {"type": "step", "name": "agent_research", "status": "start"}
+        from app.core.agents.portfolio_overview_agent import run_portfolio_overview
+
+        overview_result = run_portfolio_overview(
+            query=retrieval_query,
+            retriever=self.retriever,
+            api_key=settings.groq_api_key,
+            model=settings.groq_model,
+        )
+        t_retrieval = time.time()
+        source_docs = sorted({c["source_doc"] for c in overview_result.chunks_used})
+        yield {
+            "type": "step",
+            "name": "agent_research",
+            "status": "done",
+            "detail": {
+                "docs_found": source_docs,
+                "contracts_found": len(overview_result.contracts),
+                "sources": [
+                    {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                    for c in overview_result.chunks_used
+                ],
+            },
+        }
+
+        if overview_result.succeeded and overview_result.answer:
+            self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
+            yield {"type": "token", "text": overview_result.answer}
+            total_ms = int((time.time() - t_start) * 1000)
+            logger.info(
+                "latency breakdown [portfolio_overview/groq]: retrieve=%.1fs total=%.1fs contracts=%d",
+                t_retrieval - t_start, total_ms / 1000, len(overview_result.contracts),
+            )
+            yield {
+                "type": "done",
+                "latency_ms": {"total": total_ms},
+                "cache_hit": None,
+                "retrieved_sources": source_docs,
+                "valid": True,
+                "final_answer": overview_result.answer,
+                "agent_synthesized": True,
+                "agent_tool_calls": [
+                    {"tool": "retrieve_contract_headers", "args": {"method": "direct_enumeration"}, "results_found": len(overview_result.chunks_used)},
+                    {"tool": "extract_contract_records", "args": {"model": settings.groq_model}, "results_found": len(overview_result.contracts)},
+                    {"tool": "synthesise_vendor_table", "args": {}, "results_found": 1},
+                ],
+            }
+            return _AgentOutcome(handled=True)
+        logger.warning("portfolio_overview agent failed — falling back to SLM")
+        return _AgentOutcome(handled=False, retrieved=overview_result.chunks_used)
+
+    def _standard_retrieval(
+        self, cap, retrieval_query: str
+    ) -> Iterator[dict[str, Any]]:
+        # Entity capabilities (vendor/comparison) anchor to the correct contract
+        # document before filling slots with BM25+dense matches; everything else
+        # uses conventional retrieval, better for general/procedural queries.
+        yield {"type": "step", "name": "retrieval", "status": "start"}
+        use_entity = cap.retrieval == RETRIEVAL_ENTITY
+        active_retriever = get_entity_retriever() if use_entity else self.retriever
+        retrieval_k = cap.retrieval_k
+
+        if use_entity:
+            # Entity-aware retriever: anchor:fill slot ratio is keyed to k, so
+            # call with retrieval_k directly.  The 0.18 dense gate handles gate
+            # failures for entity-anchored chunks without breaking slot allocation.
+            raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
+            retrieved = [
+                c for c in raw_candidates
+                if c["dense_score"] >= settings.retrieval_min_dense_score
+                or c["bm25_score"] >= settings.retrieval_min_bm25_score
+            ]
+        else:
+            # Standard retriever: fetch the full cross-encoder candidate pool
+            # (reranker_candidates=20) so the relevance gate can rescue high-BM25
+            # chunks that the cross-encoder moved below position k.
+            # Cross-encoder always evaluates max(k, 20) pairs anyway — no extra compute.
+            fetch_k = settings.retrieval_reranker_candidates
+            all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k)
+            gated = [
+                c for c in all_candidates
+                if c["dense_score"] >= settings.retrieval_min_dense_score
+                or c["bm25_score"] >= settings.retrieval_min_bm25_score
+            ]
+            retrieved = gated[:retrieval_k]
+        yield {
+            "type": "step",
+            "name": "retrieval",
+            "status": "done",
+            "detail": {
+                "sources": [
+                    {
+                        "source_doc": r["source_doc"],
+                        "section": r["section"],
+                        "score": round(r["score"], 3),
+                        # First 400 chars of chunk text — used by the eval harness
+                        # for G-Eval faithfulness scoring without bloating the SSE payload.
+                        "text_preview": r["text"][:400],
+                    }
+                    for r in retrieved
+                ]
+            },
+        }
+        return retrieved
 
 
 @lru_cache(maxsize=1)
