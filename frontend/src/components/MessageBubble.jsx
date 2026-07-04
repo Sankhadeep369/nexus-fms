@@ -209,8 +209,10 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
             <BotIcon className="h-3 w-3" />
             {message.steps?.some((s) => s.name === "incident_triage")
               ? "Agent · Incident Triage"
-              : message.steps?.some((s) => s.name === "budget_analysis") || (message.agentToolCalls ?? []).some((t) => t.tool === "retrieve_financial_chunks")
+              : (message.agentToolCalls ?? []).some((t) => t.tool === "retrieve_financial_chunks")
               ? "Agent · Budget Analysis"
+              : (message.agentToolCalls ?? []).some((t) => t.tool === "retrieve_contract_headers")
+              ? "Agent · Portfolio Overview"
               : "Agent · Vendor Comparison"}
           </div>
         )}

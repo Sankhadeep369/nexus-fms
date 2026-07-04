@@ -44,7 +44,7 @@ FM abbreviations for reference:
 {_ABBREV_REFERENCE}
 
 Given the user's query, return ONLY a valid JSON object with these fields:
-- "type": one of "incident_triage" | "vendor_decision" | "budget_analysis" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
+- "type": one of "incident_triage" | "vendor_decision" | "portfolio_overview" | "budget_analysis" | "vendor" | "factual" | "comparison" | "draft" | "checklist" | "general"
 
   TYPE SELECTION — apply the FIRST type whose criteria match, in this order:
 
@@ -63,6 +63,15 @@ Given the user's query, return ONLY a valid JSON object with these fields:
                  competitor alternatives, evaluating third-party options that
                  are not our live contracts, or any query that lacks an explicit
                  first-person renewal/switch/negotiate decision framing.
+
+  * portfolio_overview — user wants a LIST or REGISTRY of all current vendors,
+                 modules, or active contracts without asking for costs or a spend
+                 summary (e.g. "what vendors do we have", "list all modules under
+                 contract", "show all active AMC agreements", "who are our FM
+                 vendors", "what systems are covered by contracts", "give me an
+                 overview of all our agreements"). Covers the entire portfolio.
+                 DO NOT use for: cost/budget questions (use budget_analysis),
+                 single-vendor lookups (use vendor), comparisons (use comparison).
 
   * budget_analysis — user wants an AGGREGATED spend summary across the ENTIRE
                  PORTFOLIO of contracts (e.g. "total AMC spend across all vendors",
@@ -170,7 +179,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         data = json.loads(clean_json, strict=False)
         rewritten = str(data.get("rewritten", query)).strip() or query
         query_type = str(data.get("type", "general"))
-        valid_types = ("incident_triage", "vendor_decision", "budget_analysis", "vendor", "factual", "comparison", "draft", "checklist", "general")
+        valid_types = ("incident_triage", "vendor_decision", "portfolio_overview", "budget_analysis", "vendor", "factual", "comparison", "draft", "checklist", "general")
         if query_type not in valid_types:
             query_type = "general"
         entities = [str(e) for e in data.get("entities", []) if e]
@@ -180,7 +189,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         clarification_options = [str(o) for o in data.get("clarification_options", []) if o]
         # Never gate these types — either an agent handles them, or standard
         # retrieval can answer them without narrowing scope first.
-        if query_type in ("incident_triage", "vendor_decision", "budget_analysis", "draft", "comparison", "vendor", "checklist"):
+        if query_type in ("incident_triage", "vendor_decision", "portfolio_overview", "budget_analysis", "draft", "comparison", "vendor", "checklist"):
             needs_clarification = False
             clarification_question = ""
             clarification_options = []

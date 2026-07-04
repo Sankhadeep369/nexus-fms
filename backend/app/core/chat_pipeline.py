@@ -573,6 +573,61 @@ class ChatPipeline:
             logger.warning("budget_analysis agent failed — falling back to SLM")
             retrieved = budget_result.chunks_used
 
+        elif processed.query_type == "portfolio_overview" and settings.groq_api_key:
+            # Agentic path: retrieve contract headers from ALL current vendor agreements,
+            # extract {system, vendor, category, agreement_no, term} via Groq, synthesise
+            # a complete Markdown registry table — bypasses SLM to avoid format noise.
+            yield {"type": "step", "name": "agent_research", "status": "start"}
+            from app.core.agents.portfolio_overview_agent import run_portfolio_overview
+
+            overview_result = run_portfolio_overview(
+                query=retrieval_query,
+                retriever=self.retriever,
+                api_key=settings.groq_api_key,
+                model=settings.groq_model,
+            )
+            t_retrieval = time.time()
+            source_docs = sorted({c["source_doc"] for c in overview_result.chunks_used})
+            yield {
+                "type": "step",
+                "name": "agent_research",
+                "status": "done",
+                "detail": {
+                    "docs_found": source_docs,
+                    "contracts_found": len(overview_result.contracts),
+                    "sources": [
+                        {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                        for c in overview_result.chunks_used
+                    ],
+                },
+            }
+
+            if overview_result.succeeded and overview_result.answer:
+                self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
+                yield {"type": "token", "text": overview_result.answer}
+                total_ms = int((time.time() - t_start) * 1000)
+                logger.info(
+                    "latency breakdown [portfolio_overview/groq]: retrieve=%.1fs total=%.1fs contracts=%d",
+                    t_retrieval - t_start, total_ms / 1000, len(overview_result.contracts),
+                )
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": total_ms},
+                    "cache_hit": None,
+                    "retrieved_sources": source_docs,
+                    "valid": True,
+                    "final_answer": overview_result.answer,
+                    "agent_synthesized": True,
+                    "agent_tool_calls": [
+                        {"tool": "retrieve_contract_headers", "args": {"k": 30}, "results_found": len(overview_result.chunks_used)},
+                        {"tool": "extract_contract_records", "args": {"model": settings.groq_model}, "results_found": len(overview_result.contracts)},
+                        {"tool": "synthesise_vendor_table", "args": {}, "results_found": 1},
+                    ],
+                }
+                return
+            logger.warning("portfolio_overview agent failed — falling back to SLM")
+            retrieved = overview_result.chunks_used
+
         else:
             # Route vendor/comparison queries through the entity-aware retriever
             # (anchors to the correct contract document before filling slots with
