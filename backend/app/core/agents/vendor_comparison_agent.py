@@ -237,6 +237,46 @@ def _fx_note() -> str:
     return f"1 USD ≈ {settings.usd_to_inr_rate:.0f} INR"
 
 
+def _sys_tokens(label: str | None) -> set[str]:
+    import re
+
+    return set(re.findall(r"[a-z]+", (label or "").lower()))
+
+
+def _filter_cross_domain(chunks: list[dict]) -> list[dict]:
+    """Drop benchmark chunks from a DIFFERENT service system than the current
+    contract in question, using corpus_index facts, so a cross-domain comparison
+    doc (e.g. an HVAC benchmark pulled into a lift query) can't leak stray rows
+    into the table. Current-contract and unknown-system chunks are always kept.
+
+    (Injecting an authoritative current-facts block was tried too, but it confused
+    the synthesiser into emitting a broken second table; the current-column figures
+    are already grounded in the retrieved contract chunks, so the filter alone is
+    the clean win.)
+    """
+    from app.core.corpus_index import get_corpus_index
+
+    ci = get_corpus_index()
+    current = next(
+        (ci.meta(c["source_doc"]) for c in chunks
+         if ci.meta(c["source_doc"]) and ci.meta(c["source_doc"]).role == "current"),
+        None,
+    )
+    if current is None:
+        return chunks
+
+    want = _sys_tokens(current.system or current.category)
+
+    def keep(doc: str) -> bool:
+        m = ci.meta(doc)
+        if not m or m.role == "current":
+            return True  # keep the current contract(s); unknown docs pass through
+        have = _sys_tokens(m.system or m.category)
+        return bool(want & have) if (want and have) else True
+
+    return [c for c in chunks if keep(c["source_doc"])] or chunks
+
+
 def synthesize_comparison(
     query: str,
     chunks: list[dict],
@@ -257,6 +297,10 @@ def synthesize_comparison(
         from app.core.chat_pipeline import _doc_type_label
 
         from groq import Groq
+
+        # Drop cross-domain benchmark chunks (via corpus_index system) before
+        # building the synthesis context, so no stray rows leak into the table.
+        chunks = _filter_cross_domain(chunks)
 
         context_text = "\n\n---\n\n".join(
             f"[{_doc_type_label(c['source_doc'])} | {c['section']}]\n{c['text']}"
