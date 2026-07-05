@@ -257,6 +257,7 @@ class ChatPipeline:
         query: str,
         mode: str = "simple",
         history: list[dict] | None = None,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         t_start = time.time()
         history = history or []
@@ -266,8 +267,10 @@ class ChatPipeline:
         )
 
         # ── 1. Cache lookup ─────────────────────────────────────────────────
+        # bypass_cache (eval harness) forces cold inference: skip the read here and
+        # every self.cache.set below, so a cached answer can't corrupt the metrics.
         yield {"type": "step", "name": "cache_lookup", "status": "start"}
-        cached = self.cache.get(query, mode)
+        cached = None if bypass_cache else self.cache.get(query, mode)
         if cached is not None:
             # Run the fast rule-based check on cached answers to evict any bad entries
             # that were stored before the validator was tightened (no API call needed).
@@ -348,7 +351,7 @@ class ChatPipeline:
         retrieved: list[dict] = []
         if cap.agent and cap.agent in _AGENT_METHODS and settings.groq_api_key:
             handler = getattr(self, _AGENT_METHODS[cap.agent])
-            outcome = yield from handler(query, mode, retrieval_query, t_start)
+            outcome = yield from handler(query, mode, retrieval_query, t_start, bypass_cache)
             if outcome.handled:
                 return
             retrieved = outcome.retrieved
@@ -462,7 +465,8 @@ class ChatPipeline:
         )
         if result.passed:
             final_answer = result.answer
-            self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
+            if not bypass_cache:
+                self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
             yield {
                 "type": "done",
                 "latency_ms": {"total": int((time.time() - t_start) * 1000)},
@@ -491,7 +495,8 @@ class ChatPipeline:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _agent_incident_triage(
-        self, query: str, mode: str, retrieval_query: str, t_start: float
+        self, query: str, mode: str, retrieval_query: str, t_start: float,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         # Incident Triage: classify → find vendor → check SLA → draft escalation
         yield {"type": "step", "name": "incident_triage", "status": "start"}
@@ -539,7 +544,8 @@ class ChatPipeline:
                 f"{triage.escalation_email}"
             )
             source_docs = triage.sources
-            self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
+            if not bypass_cache:
+                self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
             yield {"type": "token", "text": final_answer}
             yield {
                 "type": "done",
@@ -561,7 +567,8 @@ class ChatPipeline:
         return _AgentOutcome(handled=False, retrieved=[])
 
     def _agent_vendor_decision(
-        self, query: str, mode: str, retrieval_query: str, t_start: float
+        self, query: str, mode: str, retrieval_query: str, t_start: float,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         # Agentic path: explicitly research BOTH the current contract and the
         # competitor benchmark via separate, targeted tool calls — guaranteed
@@ -649,7 +656,8 @@ class ChatPipeline:
 
             if groq_answer:
                 source_docs = sorted({r["source_doc"] for r in retrieved})
-                self.cache.set(query, mode, {"answer": groq_answer, "retrieved_sources": source_docs})
+                if not bypass_cache:
+                    self.cache.set(query, mode, {"answer": groq_answer, "retrieved_sources": source_docs})
                 yield {"type": "token", "text": groq_answer}
                 total_ms = int((time.time() - t_start) * 1000)
                 logger.info(
@@ -674,7 +682,8 @@ class ChatPipeline:
         return _AgentOutcome(handled=False, retrieved=retrieved)
 
     def _agent_budget_analysis(
-        self, query: str, mode: str, retrieval_query: str, t_start: float
+        self, query: str, mode: str, retrieval_query: str, t_start: float,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         # Agentic path: retrieve financial sections from ALL vendor contracts,
         # extract cost data via Groq (structured JSON), synthesise a per-system
@@ -714,7 +723,8 @@ class ChatPipeline:
                 logger.warning("budget answer failed verification: %s", report.summary())
             yield {"type": "step", "name": "verification", "status": "done",
                    "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]}}
-            self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
+            if not bypass_cache:
+                self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
             yield {"type": "token", "text": budget_result.answer}
             total_ms = int((time.time() - t_start) * 1000)
             logger.info(
@@ -741,7 +751,8 @@ class ChatPipeline:
         return _AgentOutcome(handled=False, retrieved=budget_result.chunks_used)
 
     def _agent_portfolio_overview(
-        self, query: str, mode: str, retrieval_query: str, t_start: float
+        self, query: str, mode: str, retrieval_query: str, t_start: float,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         # Agentic path: retrieve contract headers from ALL current vendor agreements,
         # extract {system, vendor, category, agreement_no, term} via Groq, synthesise
@@ -779,7 +790,8 @@ class ChatPipeline:
                 logger.warning("portfolio answer failed verification: %s", report.summary())
             yield {"type": "step", "name": "verification", "status": "done",
                    "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]}}
-            self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
+            if not bypass_cache:
+                self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
             yield {"type": "token", "text": overview_result.answer}
             total_ms = int((time.time() - t_start) * 1000)
             logger.info(
