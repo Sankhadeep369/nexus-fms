@@ -704,9 +704,9 @@ class ChatPipeline:
                 "final_answer": budget_result.answer,
                 "agent_synthesized": True,
                 "agent_tool_calls": [
-                    {"tool": "retrieve_financial_chunks", "args": {"k": settings.retrieval_reranker_candidates}, "results_found": len(budget_result.chunks_used)},
-                    {"tool": "extract_cost_data", "args": {"model": settings.groq_model}, "results_found": len(budget_result.line_items)},
-                    {"tool": "synthesise_budget_table", "args": {"year": budget_year}, "results_found": 1},
+                    {"tool": "read_contract_facts", "args": {"scope": "current"}, "results_found": len(budget_result.line_items)},
+                    {"tool": "compute_annual_budget", "args": {"year": budget_year}, "results_found": len(budget_result.chunks_used)},
+                    {"tool": "format_budget_table", "args": {}, "results_found": 1},
                 ],
             }
             return _AgentOutcome(handled=True)

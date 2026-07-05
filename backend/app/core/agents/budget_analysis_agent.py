@@ -1,87 +1,23 @@
-"""Budget Analysis Agent.
+"""Budget Analysis Agent (orchestration layer — grounded computation).
 
-Retrieves financial/commercial-terms chunks from ALL vendor contracts in the
-corpus, extracts cost data via a single Groq extraction call, then synthesises
-a per-system annual budget table with a grand total.
+Reads the recurring-fee facts for every CURRENT contract straight from the
+self-describing corpus index (currency, monthly/annual fee, extracted once at
+ingest), then computes the annual budget deterministically in Python and formats
+the table without any LLM synthesis.
 
-Unlike single-shot retrieval (which returns the best-matching chunk), this
-agent uses a broad financial query to maximise recall across contracts, then
-deduplicates by source document so every vendor is represented exactly once
-before passing the full set to Groq.
-
-Two-pass Groq flow (both on the fast llama-3.1-8b-instant path):
-  1. extract  — structured JSON: [{vendor, system, monthly_fee, annual_fee, ...}]
-  2. synthesise — final Markdown table with Indian-comma notation + grand total
+This replaces the previous top-k-retrieval + two-pass-Groq approach, which
+suffered three failures: incomplete coverage (top-k returned only a handful of
+the 20 contracts), ungrounded totals (the synthesis LLM invented a grand total),
+and currency confusion (fields were hardcoded as INR while the contracts are in
+USD).  Every number here is computed, so it always reconciles.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 from dataclasses import dataclass, field
 
 logger = logging.getLogger("nexus.agent.budget_analysis")
-
-# Broad lexical query that BM25 scores highly for commercial-terms sections
-# across FM contracts.  Sent to the retriever instead of the user's query so
-# that fee/pricing sections from all vendors rank near the top regardless of
-# how the user phrased their question.
-_FINANCIAL_BM25_QUERY = (
-    "commercial terms monthly service fee AMC cost rate pricing payment contract value"
-)
-
-_EXTRACT_PROMPT = """\
-You are an FM budget analyst. Extract cost data from the contract sections below.
-
-USER QUERY: {query}
-
-CONTRACT SECTIONS:
-{chunks}
-
-Return ONLY a valid JSON array (no other text). Each element:
-{{
-  "vendor": "<vendor name, exact from document>",
-  "system": "<FM system type: one of HVAC, Electrical, Fire Safety, Plumbing, \
-Security & Surveillance, Lifts & Escalators, BMS, Housekeeping, Civil & Structural, \
-Parking & ANPR, Landscaping, or Other>",
-  "monthly_fee_inr": <integer or null>,
-  "annual_fee_inr": <integer or null>,
-  "scope": "<e.g. Comprehensive AMC, Non-comprehensive, Guarding, STP/ETP>",
-  "source_doc": "<source document filename>"
-}}
-
-Rules:
-- If monthly fee is given and annual is null: set annual_fee_inr = monthly_fee_inr * 12
-- If annual fee is given and monthly is null: set monthly_fee_inr = round(annual_fee_inr / 12)
-- Include ALL distinct cost lines — one element per fee line, even from the same vendor
-- Skip sections with no extractable fee figures
-- Vendor name: use the exact name as it appears in the header or document title
-- Do not invent figures; use null if a value is genuinely absent
-
-Return ONLY the JSON array."""
-
-_SYNTHESIS_PROMPT = """\
-You are an FM budget analyst. Using the extracted cost data, produce a budget report.
-
-USER QUERY: {query}
-REPORT YEAR: {year}
-
-EXTRACTED DATA:
-{data}
-
-Produce exactly:
-1. A Markdown table with columns: System | Vendor | Scope | Monthly (INR) | Annual {year} (INR)
-2. A **Total** row at the bottom with the sum of all annual costs (leave System/Vendor/Scope blank)
-3. One summary line: "**Total {year} facilities management spend: INR X,XX,XXX**"
-4. Only if some systems have missing data: one short note starting "Note:"
-
-Formatting rules:
-- Use Indian comma notation: 1,00,000 not 100,000
-- Bold the Total row amounts
-- If a vendor has both comprehensive and non-comprehensive rates show them as separate rows
-- Do not add any information not in the extracted data above
-- No explanatory paragraphs, no caveats beyond the one "Note:" line"""
 
 
 @dataclass
@@ -92,6 +28,14 @@ class BudgetAnalysisResult:
     succeeded: bool = True
 
 
+def _fmt(amount: float, currency: str) -> str:
+    """Currency-aware amount, thousands-grouped, no trailing .0 for whole numbers."""
+    n = int(round(amount)) if abs(amount - round(amount)) < 0.005 else amount
+    body = f"{n:,}" if isinstance(n, int) else f"{n:,.2f}"
+    symbol = {"USD": "$", "INR": "₹"}.get(currency, "")
+    return f"{symbol}{body}" if symbol else f"{body} {currency}".strip()
+
+
 def run_budget_analysis(
     query: str,
     year: int,
@@ -99,135 +43,93 @@ def run_budget_analysis(
     api_key: str,
     model: str,
 ) -> BudgetAnalysisResult:
-    """Retrieve cost chunks across all contracts, extract, synthesise, return table."""
+    """Compute the annual budget across all current contracts from indexed facts."""
+    from app.core.corpus_index import get_corpus_index
 
-    # ── Step 1: Retrieve financial sections from the full corpus ─────────────
-    # Use a broad BM25-optimised financial query instead of the user's query.
-    # Fetch 20 candidates so we get coverage across multiple vendor contracts.
-    from app.core.config import settings
-
-    raw_chunks = retriever.retrieve(
-        _FINANCIAL_BM25_QUERY,
-        k=settings.retrieval_reranker_candidates,  # 20 — full candidate pool
-    )
-
-    if not raw_chunks:
+    ci = get_corpus_index()
+    current = ci.current_docs
+    if not current:
         return BudgetAnalysisResult(
-            answer="No financial data could be retrieved from the corpus.",
-            chunks_used=[],
-            succeeded=False,
+            answer="No current contracts are present in the corpus.",
+            chunks_used=[], succeeded=False,
         )
 
-    # Deduplicate: keep the highest-scoring chunk per source document so every
-    # vendor contract is represented once before extraction.
-    best_per_doc: dict[str, dict] = {}
-    for chunk in raw_chunks:
-        doc = chunk["source_doc"]
-        if doc not in best_per_doc or chunk["score"] > best_per_doc[doc]["score"]:
-            best_per_doc[doc] = chunk
-    chunks = list(best_per_doc.values())
+    # Build one grounded line item per contract, grouped by currency so mixed-
+    # currency portfolios are summed correctly (never added across currencies).
+    line_items: list[dict] = []
+    for m in current:
+        line_items.append({
+            "system": m.system or m.category or "Not specified",
+            "vendor": m.vendor or "Not specified",
+            "site": m.site or "Not specified",
+            "currency": m.currency,
+            "monthly": m.monthly_value(),
+            "annual": m.annual_value(),
+            "source_doc": m.source_doc,
+        })
 
+    priced = [li for li in line_items if li["annual"] is not None and li["currency"]]
+    if not priced:
+        return BudgetAnalysisResult(
+            answer="No recurring-fee data is available for the current contracts.",
+            chunks_used=[], line_items=line_items, succeeded=False,
+        )
+
+    answer = _format_budget(line_items, year)
+    chunks_used = _provenance(retriever, {li["source_doc"] for li in priced})
     logger.info(
-        "budget_analysis: retrieved %d raw chunks → %d unique docs",
-        len(raw_chunks), len(chunks),
+        "budget_analysis: %d contracts priced (of %d), currencies=%s",
+        len(priced), len(current), sorted({li["currency"] for li in priced}),
     )
-
-    # ── Step 2: Extract cost data (Groq, structured JSON) ────────────────────
-    chunk_texts = "\n\n---CONTRACT SECTION---\n\n".join(
-        f"[Source: {c['source_doc']}]\n{c['text'][:900]}"
-        for c in chunks
-    )
-
-    try:
-        from groq import Groq
-
-        client = Groq(api_key=api_key)
-        extract_resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": _EXTRACT_PROMPT.format(
-                query=query[:400],
-                chunks=chunk_texts,
-            )}],
-            max_tokens=900,
-            temperature=0.0,
-        )
-        raw_extract = extract_resp.choices[0].message.content.strip()
-
-        json_match = re.search(r"\[[\s\S]+\]", raw_extract)
-        if not json_match:
-            raise ValueError(f"No JSON array in extraction response: {raw_extract[:200]}")
-        line_items: list[dict] = json.loads(json_match.group())
-
-    except Exception as exc:
-        logger.warning("budget extraction Groq call failed (%s) — falling back to SLM", exc)
-        return BudgetAnalysisResult(
-            answer="",
-            chunks_used=chunks,
-            succeeded=False,
-        )
-
-    if not line_items:
-        logger.warning("budget extraction returned no line items")
-        return BudgetAnalysisResult(
-            answer="No cost figures could be extracted from the retrieved contract sections.",
-            chunks_used=chunks,
-            succeeded=False,
-        )
-
-    logger.info("budget_analysis: extracted %d cost line items", len(line_items))
-
-    # ── Step 3: Synthesise formatted table (Groq) ─────────────────────────────
-    try:
-        synth_resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": _SYNTHESIS_PROMPT.format(
-                query=query[:400],
-                year=year,
-                data=json.dumps(line_items, indent=2),
-            )}],
-            max_tokens=700,
-            temperature=0.0,
-        )
-        answer = synth_resp.choices[0].message.content.strip()
-
-    except Exception as exc:
-        logger.warning("budget synthesis Groq call failed (%s) — using fallback formatter", exc)
-        answer = _format_fallback_table(line_items, year)
-
     return BudgetAnalysisResult(
-        answer=answer,
-        chunks_used=chunks,
-        line_items=line_items,
-        succeeded=True,
+        answer=answer, chunks_used=chunks_used, line_items=line_items, succeeded=True,
     )
 
 
-def _format_fallback_table(line_items: list[dict], year: int) -> str:
-    """Plain Python fallback if the synthesis Groq call fails."""
-    rows: list[str] = []
-    total_annual = 0
+def _format_budget(items: list[dict], year: int) -> str:
+    """Deterministic Markdown: per-currency table + totals. No LLM, so the numbers
+    always reconcile with the rows."""
+    by_currency: dict[str, list[dict]] = {}
+    for li in items:
+        if li["annual"] is None or not li["currency"]:
+            continue
+        by_currency.setdefault(li["currency"], []).append(li)
 
-    for item in line_items:
-        system = item.get("system", "Unknown")
-        vendor = item.get("vendor", "Unknown")
-        scope = item.get("scope", "")
-        monthly = item.get("monthly_fee_inr")
-        annual = item.get("annual_fee_inr")
+    out: list[str] = []
+    for currency in sorted(by_currency):
+        rows = sorted(by_currency[currency], key=lambda x: (x["system"].lower(), x["vendor"].lower()))
+        out.append(f"| System | Vendor | Site | Monthly ({currency}) | Annual {year} ({currency}) |")
+        out.append("| --- | --- | --- | --- | --- |")
+        total = 0.0
+        for li in rows:
+            total += li["annual"]
+            out.append(
+                f"| {li['system']} | {li['vendor']} | {li['site']} | "
+                f"{_fmt(li['monthly'], currency)} | {_fmt(li['annual'], currency)} |"
+            )
+        out.append(f"| **Total** | | | | **{_fmt(total, currency)}** |")
+        out.append("")
+        out.append(f"**Total {year} facilities spend ({currency}): {_fmt(total, currency)}** "
+                   f"across {len(rows)} contracts.")
+        out.append("")
 
-        if monthly is not None and annual is None:
-            annual = int(monthly) * 12
-        if annual is not None:
-            total_annual += int(annual)
+    # Flag any contracts with no recurring fee so the reader knows the total's scope.
+    unpriced = [li for li in items if li["annual"] is None]
+    if unpriced:
+        names = ", ".join(sorted({li["vendor"] for li in unpriced}))
+        out.append(f"*Excluded (no recurring fee on file): {names}.*")
 
-        monthly_str = f"{int(monthly):,}" if monthly is not None else "Not specified"
-        annual_str = f"{int(annual):,}" if annual is not None else "Not specified"
-        rows.append(f"| {system} | {vendor} | {scope} | {monthly_str} | {annual_str} |")
+    return "\n".join(out).strip()
 
-    header = (
-        f"| System | Vendor | Scope | Monthly (INR) | Annual {year} (INR) |\n"
-        f"| --- | --- | --- | --- | --- |"
-    )
-    total_row = f"| **Total** | | | | **{total_annual:,}** |"
-    summary = f"\n**Total {year} facilities management spend: INR {total_annual:,}**"
 
-    return f"{header}\n" + "\n".join(rows) + f"\n{total_row}{summary}"
+def _provenance(retriever, source_docs: set[str]) -> list[dict]:
+    """First indexed chunk per contributing contract, for source attribution /
+    G-Eval — the figures come from the index, this is just where they live."""
+    chunks: list[dict] = []
+    seen: set[str] = set()
+    if retriever is not None and hasattr(retriever, "chunks"):
+        for c in retriever.chunks:
+            if c.source_doc in source_docs and c.source_doc not in seen:
+                seen.add(c.source_doc)
+                chunks.append({"source_doc": c.source_doc, "section": c.section, "text": c.text})
+    return chunks

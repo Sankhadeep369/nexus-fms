@@ -108,6 +108,12 @@ class Settings(BaseSettings):
     # level (background * factor).  Swapping the embedding model recalibrates
     # automatically.  Set retrieval_dense_gate_auto=False to use the fixed
     # retrieval_min_dense_score below instead.
+    # Approximate FX rate used only to normalise cross-currency vendor comparisons
+    # (some current contracts are in USD, some market benchmarks in INR) so a
+    # renewal recommendation compares like-for-like instead of raw numbers. Stated
+    # as an assumption in the answer; not used for any authoritative figure.
+    usd_to_inr_rate: float = 83.0
+
     retrieval_dense_gate_auto: bool = True
     retrieval_dense_gate_factor: float = 1.10
     retrieval_min_dense_score: float = 0.18  # manual fallback when auto is off

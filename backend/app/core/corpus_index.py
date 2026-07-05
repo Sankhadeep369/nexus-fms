@@ -83,6 +83,12 @@ def _first(rx: re.Pattern, text: str) -> str | None:
 # Data model
 # ---------------------------------------------------------------------------
 
+# Bump when the extraction schema / prompt changes so the cached index is
+# rebuilt even though the corpus text itself is unchanged (the content
+# fingerprint alone wouldn't catch a schema change).
+_SCHEMA_VERSION = "3"
+
+
 @dataclass
 class DocMeta:
     source_doc: str          # posix relpath, e.g. "current_contracts/01_Apex...txt"
@@ -94,7 +100,33 @@ class DocMeta:
     category: str | None = None    # service category as stated, e.g. "HVAC AMC"
     agreement_no: str | None = None
     term: str | None = None
+    effective_date: str | None = None
     expiry_date: str | None = None
+    # Financial / operational facts (Phase 4 orchestration — grounded computation).
+    currency: str | None = None        # ISO-ish code of the fees, e.g. "USD", "INR"
+    monthly_fee: float | None = None   # PRIMARY recurring monthly service/AMC fee
+    annual_fee: float | None = None    # PRIMARY recurring annual fee, if stated annually
+    sla_response: str | None = None    # primary emergency response SLA, e.g. "4 hours"
+
+    def annual_value(self) -> float | None:
+        """Canonical yearly cost of the recurring fee (annual as-stated, else
+        monthly x 12). None when no recurring fee was extracted."""
+        if self.annual_fee is not None:
+            return round(self.annual_fee, 2)
+        if self.monthly_fee is not None:
+            return round(self.monthly_fee * 12, 2)
+        return None
+
+    def monthly_value(self) -> float | None:
+        """Canonical monthly cost (monthly as-stated, else annual / 12)."""
+        if self.monthly_fee is not None:
+            return round(self.monthly_fee, 2)
+        if self.annual_fee is not None:
+            return round(self.annual_fee / 12, 2)
+        return None
+
+
+_DOCMETA_FIELDS = set(DocMeta.__dataclass_fields__.keys())
 
 
 class CorpusIndex:
@@ -219,15 +251,92 @@ short label if none fit; null only if the document is not about a specific syste
   "category": "<service category exactly as stated in the document, e.g. 'HVAC AMC', \
 'Guarding & CCTV', or null>",
   "agreement_no": "<agreement / contract number if present, else null>",
-  "term": "<contract term string if present, else null>",
-  "expiry_date": "<contract end / expiry / renewal date if present, else null>"
+  "term": "<contract length only, e.g. '12 months' or '24 months'; null if absent. \
+Do NOT put the agreement title or scope here.>",
+  "effective_date": "<contract effective / start date if present, else null>",
+  "expiry_date": "<contract end / expiry / renewal date if present, else null>",
+  "currency": "<ISO code of the fee amounts, 'USD' for $ or 'INR' for INR/Rs; null if no fee>",
+  "monthly_fee": <PRIMARY recurring monthly service/AMC/maintenance fee as a plain \
+number (no symbols or commas), or null if the recurring fee is stated annually or absent>,
+  "annual_fee": <PRIMARY recurring annual service/AMC/maintenance fee as a plain number, \
+or null if the recurring fee is stated monthly or absent>,
+  "sla_response": "<primary emergency/breakdown response SLA if stated, e.g. '4 hours', else null>"
 }}
+
+Fee rules (important):
+- Extract only the PRIMARY RECURRING maintenance/service/AMC fee. IGNORE one-time
+  mobilization/setup fees, per-incident emergency callout charges, retainers,
+  spare-parts markups, and hourly labour rates.
+- Fill exactly ONE of monthly_fee / annual_fee based on how the contract states the
+  recurring fee; leave the other null (do not compute it yourself).
+- currency reflects the fee symbol ($ -> USD).
 
 Use null for any field genuinely absent. Do not invent values."""
 
 
+def _num(s: str | None) -> float | None:
+    if not s:
+        return None
+    try:
+        return float(s.replace(",", ""))
+    except ValueError:
+        return None
+
+
+# --- Recurring-fee parser -------------------------------------------------
+# The primary recurring fee lives in the "Commercial Terms" table as a row like
+# "| <label> | $<amount> | <note> |".  The annual-vs-monthly BASIS is stated in
+# the label/note ("Annual AMC fee", "Monthly retainer", "$2,900 per month") — the
+# LLM was unreliable at this (it read "Annual $36,000 payable monthly" as a monthly
+# fee, inflating the year 12x), so we read the basis deterministically from the
+# explicit wording, which is exact for this corpus.
+_COMMERCIAL_SEC = re.compile(r"#\s*\d*\.?\s*Commercial Terms(.*?)(?:\n#\s|\Z)", re.S | re.I)
+_MONEY = re.compile(r"(\$|INR\s*|₹|Rs\.?\s*)\s*([\d,]+(?:\.\d+)?)")
+# Rows that are NOT the recurring service fee.
+_FEE_EXCLUDE = re.compile(
+    r"mobiliz|one[- ]?time|per hour|/hour|per incident|per visit|additional|onsite config"
+    r"|call[- ]?out|hourly|spare|markup|deposit|set[- ]?up|installation|upgrade|project",
+    re.I,
+)
+_ANNUAL_HINT = re.compile(r"annual|per annum|/year|/yr|per year|yearly", re.I)
+_MONTHLY_HINT = re.compile(r"month", re.I)
+
+
+def _extract_fee(text: str) -> dict:
+    """Return {currency, monthly_fee, annual_fee} for the primary recurring fee,
+    read from the Commercial Terms table. All None if no recurring fee found."""
+    none = {"currency": None, "monthly_fee": None, "annual_fee": None}
+    sec = _COMMERCIAL_SEC.search(text)
+    scope = sec.group(1) if sec else text
+    for line in scope.splitlines():
+        if "|" not in line:
+            continue
+        low = line.lower()
+        if "fee" not in low and "retainer" not in low:
+            continue
+        if _FEE_EXCLUDE.search(line):
+            continue
+        money = _MONEY.search(line)
+        if not money:
+            continue
+        amount = _num(money.group(2))
+        if amount is None:
+            continue
+        sym = money.group(1).strip()
+        currency = "USD" if sym == "$" else "INR"
+        # Basis: check annual wording first (an annual fee may say "payable monthly").
+        if _ANNUAL_HINT.search(line):
+            return {"currency": currency, "monthly_fee": None, "annual_fee": amount}
+        if _MONTHLY_HINT.search(line):
+            return {"currency": currency, "monthly_fee": amount, "annual_fee": None}
+        # Recurring fee with no explicit period stated → assume monthly (dominant form).
+        return {"currency": currency, "monthly_fee": amount, "annual_fee": None}
+    return none
+
+
 def _extract_deterministic(text: str, rel: str) -> dict:
     category = _first(_CATEGORY_RE, text)
+    fee = _extract_fee(text)
     return {
         "vendor": _first(_VENDOR_RE, text),
         "site": _first(_SITE_RE, text),
@@ -236,6 +345,7 @@ def _extract_deterministic(text: str, rel: str) -> dict:
         "agreement_no": (_AGREEMENT_RE.search(text).group() if _AGREEMENT_RE.search(text) else None),
         "term": _first(_TERM_RE, text),
         "expiry_date": _first(_EXPIRY_RE, text),
+        **fee,
     }
 
 
@@ -256,7 +366,15 @@ def _extract_llm(text: str, rel: str, api_key: str, model: str) -> dict | None:
             return None
         data = json.loads(m.group())
         # Normalise empty strings / "null" strings to None.
-        return {k: (v if v not in ("", "null", "None", None) else None) for k, v in data.items()}
+        clean = {k: (v if v not in ("", "null", "None", None) else None) for k, v in data.items()}
+        # Coerce fee fields to numbers (the model may return "4,800" or "$4800").
+        for fee in ("monthly_fee", "annual_fee"):
+            v = clean.get(fee)
+            if isinstance(v, str):
+                clean[fee] = _num(re.sub(r"[^\d.,]", "", v)) if v else None
+            elif isinstance(v, (int, float)):
+                clean[fee] = float(v)
+        return clean
     except Exception as exc:
         logger.warning("corpus ingest: LLM extraction failed for %s (%s)", rel, exc)
         return None
@@ -278,6 +396,7 @@ def _corpus_fingerprint(corpus_dir: Path) -> str:
     """Hash of all *.txt contents + the manifest, so the cache invalidates when
     the corpus or its labelling changes but is stable across machines/OSes."""
     h = hashlib.sha256()
+    h.update(f"schema={_SCHEMA_VERSION}\n".encode())
     for path in sorted(corpus_dir.rglob("*.txt")):
         h.update(path.relative_to(corpus_dir).as_posix().encode())
         h.update(_norm_bytes(path))
@@ -300,7 +419,11 @@ def _build(corpus_dir: Path) -> CorpusIndex:
         except Exception:
             cached = None
     if cached and cached.get("fingerprint") == fingerprint:
-        docs = {d["source_doc"]: DocMeta(**d) for d in cached["docs"]}
+        # Filter to known fields so an older/newer cache shape can't crash construction.
+        docs = {
+            d["source_doc"]: DocMeta(**{k: v for k, v in d.items() if k in _DOCMETA_FIELDS})
+            for d in cached["docs"]
+        }
         class_labels = cached.get("class_labels", {})
         logger.info("corpus_index: loaded %d docs from cache (fingerprint match)", len(docs))
         return CorpusIndex(docs, class_labels)
@@ -326,6 +449,13 @@ def _build(corpus_dir: Path) -> CorpusIndex:
             fields = _extract_llm(text, rel, settings.groq_api_key, settings.groq_model)
         if fields is None:
             fields = _extract_deterministic(text, rel)
+        else:
+            # The recurring-fee basis (monthly vs annual) is read more reliably from
+            # the explicit fee label than by the LLM, so let the deterministic parser
+            # override the fee fields whenever it finds a fee.
+            fee = _extract_fee(text)
+            if fee["monthly_fee"] is not None or fee["annual_fee"] is not None:
+                fields.update(fee)
 
         docs[rel] = DocMeta(
             source_doc=rel,
@@ -337,7 +467,12 @@ def _build(corpus_dir: Path) -> CorpusIndex:
             category=fields.get("category"),
             agreement_no=fields.get("agreement_no"),
             term=fields.get("term"),
+            effective_date=fields.get("effective_date"),
             expiry_date=fields.get("expiry_date"),
+            currency=fields.get("currency"),
+            monthly_fee=fields.get("monthly_fee"),
+            annual_fee=fields.get("annual_fee"),
+            sla_response=fields.get("sla_response"),
         )
 
     # --- persist cache -----------------------------------------------------

@@ -1,83 +1,20 @@
-"""Portfolio Overview Agent.
+"""Portfolio Overview Agent (orchestration layer — grounded, deterministic).
 
-Retrieves contract header/parties sections from ALL current vendor contracts,
-extracts structured records via Groq, and synthesises a clean Markdown table
-of all active agreements.
-
-Unlike budget_analysis (financial terms focus), this agent targets parties,
-category, agreement-number, and scope-of-services headers so the user can
-see who their vendors are and what systems are covered — without cost data.
-
-Two-pass Groq flow:
-  1. extract  — [{system, vendor, category, agreement_no, term, site}]
-  2. synthesise — clean table sorted by system, with total count
+Produces the registry of every CURRENT contract directly from the self-describing
+corpus index (vendor / system / category / agreement / term / site, extracted once
+at ingest). The table is formatted in Python — no LLM synthesis — so it always has
+100% coverage of the 20 contracts, a Site column to disambiguate a vendor's two
+sites, and no hallucinated footnotes (the previous Groq synthesis invented a
+"missing agreement numbers" note and mis-placed an agreement title in the Term
+column).
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import re
 from dataclasses import dataclass, field
 
 logger = logging.getLogger("nexus.agent.portfolio_overview")
-
-# Targets the "Section 1: Parties", header tables, and scope-of-services sections
-# that every current contract document has.  "current contracts" helps BM25 rank
-# internal documents over competitor-benchmark comparisons.
-_HEADER_BM25_QUERY = (
-    "vendor client agreement number category effective date term service scope parties"
-)
-
-_EXTRACT_PROMPT = """\
-You are an FM contract analyst. Extract the active contract portfolio from the sections below.
-
-USER QUERY: {query}
-
-CONTRACT SECTIONS:
-{chunks}
-
-Return ONLY a valid JSON array (no other text). Each element:
-{{
-  "system": "<FM system type: HVAC, Electrical, Fire Safety, Plumbing, Security & CCTV, \
-Lifts & Escalators, BMS, Housekeeping & Pest Control, Civil & Structural, Parking & ANPR, \
-Access Control, Landscaping, Generator & UPS, or Other>",
-  "vendor": "<exact vendor/company name from document header>",
-  "category": "<service category as stated in the document, e.g. 'Lift Modernization', \
-'HVAC AMC', 'Guarding & CCTV', 'Access Control'>",
-  "agreement_no": "<agreement or contract number if present, else null>",
-  "term": "<contract term string if present, e.g. '12 months from 08 May 2026', else null>",
-  "source_doc": "<source document filename>"
-}}
-
-Rules:
-- ONE element per distinct vendor contract document
-- Include ONLY current/active contracts — skip competitor or market-benchmark documents
-  (those have titles like "Comparison" or "Market Alternative")
-- Use the exact vendor legal name from the document header or parties section
-- For system type, choose the best-matching FM category from the list above
-- If a field is absent, use null — do not invent values
-
-Return ONLY the JSON array."""
-
-_SYNTHESIS_PROMPT = """\
-You are an FM contract analyst. Produce a clean contract registry from the data below.
-
-USER QUERY: {query}
-
-EXTRACTED CONTRACT RECORDS:
-{data}
-
-Produce exactly:
-1. A Markdown table with columns: | System | Vendor | Category | Agreement No. | Term |
-2. One line below the table: "**Total active agreements: N**" (N = number of table rows)
-3. One short note ONLY if more than 2 records have missing agreement numbers.
-
-Rules:
-- Sort rows alphabetically by System
-- Use **Not specified** for any null field
-- No recommendations, no analysis, no caveats beyond the missing-number note
-- Do not add information not in the extracted data"""
 
 
 @dataclass
@@ -88,168 +25,65 @@ class PortfolioOverviewResult:
     succeeded: bool = True
 
 
-def _direct_contract_headers(retriever) -> list[dict]:
-    """Walk retriever.chunks directly and take the FIRST section chunk from each
-    current_contracts document.
-
-    This bypasses top-k retrieval entirely — for a portfolio listing we want ALL
-    documents, not just the best-matching ones, and the first section of each
-    contract (typically "Parties and Site Details") already contains the vendor
-    name, category, agreement number, and term that Groq needs to extract.
-
-    Every chunk has the document header block prepended (see retrieval.py), so
-    even non-header sections carry the identity info, but the first section is the
-    cleanest and shortest input to the extraction prompt.
-    """
-    if not hasattr(retriever, "chunks") or not retriever.chunks:
-        return []
-
-    # Chunks are loaded in sorted(path) order, sections in document order —
-    # so the first chunk seen for each source_doc is the first section.
-    seen: dict[str, dict] = {}
-    for chunk in retriever.chunks:
-        if "current_contracts" not in chunk.source_doc:
-            continue
-        if chunk.source_doc not in seen:
-            seen[chunk.source_doc] = {
-                "source_doc": chunk.source_doc,
-                "section": chunk.section,
-                "text": chunk.text,
-                "score": 0.0,
-            }
-
-    return list(seen.values())
-
-
-def _contracts_from_index() -> tuple[list[dict], list[str]]:
-    """Build contract records directly from the self-describing corpus index.
-
-    The index already holds the vendor / system / category / agreement-no / term
-    for every document, extracted once at ingest. So the portfolio registry is
-    simply the metadata of every doc whose role is 'current' — no per-request
-    Groq extraction pass, no hardcoded system-type enum, no top-k retrieval, and
-    guaranteed 100% coverage of current contracts. Returns (records, source_docs).
-    """
-    from app.core.corpus_index import get_corpus_index
-
-    records: list[dict] = []
-    sources: list[str] = []
-    for m in get_corpus_index().current_docs:
-        records.append({
-            "system": m.system or m.category,
-            "vendor": m.vendor,
-            "category": m.category,
-            "agreement_no": m.agreement_no,
-            "term": m.term,
-            "source_doc": m.source_doc,
-        })
-        sources.append(m.source_doc)
-    return records, sources
-
-
 def run_portfolio_overview(
     query: str,
     retriever,
     api_key: str,
     model: str,
 ) -> PortfolioOverviewResult:
-    """Build a registry of all current contracts, then synthesise a clean table.
+    """Build the active-contract registry from indexed facts and format it."""
+    from app.core.corpus_index import get_corpus_index
 
-    Primary path is metadata-driven: contract records come straight from the
-    corpus index (role == current). The retriever is used only for provenance
-    (source chunks for G-Eval) and as a fallback when the index is empty.
-    """
-
-    # Provenance chunks (one header section per current-contract doc) for sources.
-    chunks = _direct_contract_headers(retriever)
-
-    # Primary: records from the self-describing corpus index — dynamic + complete.
-    contracts, _ = _contracts_from_index()
-
-    if not contracts:
-        # Fallback: index unavailable → extract from retrieved header chunks via Groq.
-        logger.warning("portfolio_overview: corpus index empty, falling back to Groq extraction")
-        if not chunks:
-            raw = retriever.retrieve(_HEADER_BM25_QUERY, k=40)
-            seen: dict[str, dict] = {}
-            for c in raw:
-                if c.get("source_doc") not in seen:
-                    seen[c["source_doc"]] = c
-            chunks = list(seen.values())
-        if not chunks:
-            return PortfolioOverviewResult(
-                answer="No contract data could be retrieved from the corpus.",
-                chunks_used=[], succeeded=False,
-            )
-        chunk_texts = "\n\n---CONTRACT SECTION---\n\n".join(
-            f"[Source: {c['source_doc']}]\n{c['text'][:900]}" for c in chunks
-        )
-        try:
-            from groq import Groq
-
-            client = Groq(api_key=api_key)
-            extract_resp = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": _EXTRACT_PROMPT.format(
-                    query=query[:400], chunks=chunk_texts,
-                )}],
-                max_tokens=1000,
-                temperature=0.0,
-            )
-            json_match = re.search(r"\[[\s\S]+\]", extract_resp.choices[0].message.content.strip())
-            if not json_match:
-                raise ValueError("No JSON array in extraction response")
-            contracts = json.loads(json_match.group())
-        except Exception as exc:
-            logger.warning("portfolio extraction fallback failed (%s) — deferring to SLM", exc)
-            return PortfolioOverviewResult(answer="", chunks_used=chunks, succeeded=False)
-
-    if not contracts:
+    current = get_corpus_index().current_docs
+    if not current:
         return PortfolioOverviewResult(
             answer="No current contracts are present in the corpus.",
-            chunks_used=chunks, succeeded=False,
+            chunks_used=[], succeeded=False,
         )
 
-    logger.info("portfolio_overview: %d contract records (metadata-driven)", len(contracts))
+    contracts = [
+        {
+            "system": m.system or m.category or "Not specified",
+            "vendor": m.vendor or "Not specified",
+            "site": m.site or "Not specified",
+            "category": m.category or "Not specified",
+            "agreement_no": m.agreement_no or "Not specified",
+            "term": m.term or "Not specified",
+            "source_doc": m.source_doc,
+        }
+        for m in current
+    ]
 
-    try:
-        from groq import Groq
-
-        client = Groq(api_key=api_key)
-        synth_resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": _SYNTHESIS_PROMPT.format(
-                query=query[:400],
-                data=json.dumps(contracts, indent=2),
-            )}],
-            max_tokens=800,
-            temperature=0.0,
-        )
-        answer = synth_resp.choices[0].message.content.strip()
-
-    except Exception as exc:
-        logger.warning("portfolio synthesis Groq call failed (%s) — using fallback", exc)
-        answer = _format_fallback_table(contracts)
-
+    answer = _format_registry(contracts)
+    chunks_used = _provenance(retriever, {c["source_doc"] for c in contracts})
+    logger.info("portfolio_overview: %d current contracts (deterministic)", len(contracts))
     return PortfolioOverviewResult(
-        answer=answer,
-        chunks_used=chunks,
-        contracts=contracts,
-        succeeded=True,
+        answer=answer, chunks_used=chunks_used, contracts=contracts, succeeded=True,
     )
 
 
-def _format_fallback_table(contracts: list[dict]) -> str:
-    sorted_c = sorted(contracts, key=lambda c: (c.get("system") or "").lower())
-    rows = []
-    for c in sorted_c:
-        system = c.get("system") or "Not specified"
-        vendor = c.get("vendor") or "Not specified"
-        category = c.get("category") or "Not specified"
-        agno = c.get("agreement_no") or "Not specified"
-        term = c.get("term") or "Not specified"
-        rows.append(f"| {system} | {vendor} | {category} | {agno} | {term} |")
+def _format_registry(contracts: list[dict]) -> str:
+    rows = sorted(contracts, key=lambda c: (c["system"].lower(), c["vendor"].lower(), c["site"].lower()))
+    out = [
+        "| System | Vendor | Site | Agreement No. | Term |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for c in rows:
+        out.append(
+            f"| {c['system']} | {c['vendor']} | {c['site']} | {c['agreement_no']} | {c['term']} |"
+        )
+    out.append("")
+    out.append(f"**Total active agreements: {len(contracts)}**")
+    return "\n".join(out)
 
-    header = "| System | Vendor | Category | Agreement No. | Term |\n| --- | --- | --- | --- | --- |"
-    total = f"\n\n**Total active agreements: {len(contracts)}**"
-    return f"{header}\n" + "\n".join(rows) + total
+
+def _provenance(retriever, source_docs: set[str]) -> list[dict]:
+    """First indexed chunk per contract, for source attribution / G-Eval."""
+    chunks: list[dict] = []
+    seen: set[str] = set()
+    if retriever is not None and hasattr(retriever, "chunks"):
+        for c in retriever.chunks:
+            if c.source_doc in source_docs and c.source_doc not in seen:
+                seen.add(c.source_doc)
+                chunks.append({"source_doc": c.source_doc, "section": c.section, "text": c.text})
+    return chunks

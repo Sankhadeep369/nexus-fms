@@ -216,8 +216,22 @@ Write:
 2. A bolded **Recommendation:** sentence — state renew, switch, or negotiate, \
 with one brief reason grounded in the table
 
+CURRENCY RULE (critical): If the Current Vendor and Market Benchmark fees are in \
+DIFFERENT currencies, you MUST NOT compare the raw numbers — that is meaningless. \
+Convert to a single currency using the approximate rate {fx_note}, and base the \
+comparison and recommendation on the converted, like-for-like figures. Add one \
+short italic line stating the conversion assumption (e.g. "*Compared at {fx_note}.*"). \
+If both are the same currency, ignore this rule.
+
 Rules: English only. No invented names, amounts, or dates. Do not mention \
 "retrieved documents" or "context". No trailing disclaimers or meta-commentary."""
+
+
+def _fx_note() -> str:
+    """Human-readable FX assumption for cross-currency normalisation."""
+    from app.core.config import settings
+
+    return f"1 USD ≈ {settings.usd_to_inr_rate:.0f} INR"
 
 
 def synthesize_comparison(
@@ -255,6 +269,7 @@ def synthesize_comparison(
                     "content": _SYNTHESIS_PROMPT.format(
                         context=context_text,
                         query=query[:500],
+                        fx_note=_fx_note(),
                     ),
                 }
             ],

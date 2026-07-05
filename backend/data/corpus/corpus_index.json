@@ -1,5 +1,5 @@
 {
-  "fingerprint": "428be50dfd3b817fb7d6ec6bb14bcd6e9f30ce32a005afe04dd4aae0b5384da5",
+  "fingerprint": "f87bda07e42454d15049b764ecd195d66e8ebccf01ccb948a9339f0c10b5e31e",
   "class_labels": {
     "competitor_contracts": "MARKET REFERENCE (benchmark only — not a current agreement)",
     "current_contracts": "CURRENT CONTRACT",
@@ -16,7 +16,12 @@
       "category": "HVAC Preventive Maintenance and Optimization Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": null,
+      "annual_fee": 1800000.0,
+      "sla_response": "4-hour response"
     },
     {
       "source_doc": "competitor_contracts/02_HVAC_Emergency_Comparison.txt",
@@ -28,7 +33,12 @@
       "category": "HVAC Emergency Response and Breakdown Support Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 1050000.0,
+      "annual_fee": null,
+      "sla_response": "Within 8 hours"
     },
     {
       "source_doc": "competitor_contracts/03_CCTV_Installation_Comparison.txt",
@@ -39,8 +49,13 @@
       "system": "Security & CCTV",
       "category": "CCTV Installation and Commissioning Agreement",
       "agreement_no": null,
-      "term": null,
-      "expiry_date": null
+      "term": "24 months",
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": null,
+      "annual_fee": 2400000.0,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/04_CCTV_Maintenance_Comparison.txt",
@@ -51,8 +66,13 @@
       "system": "Security & CCTV",
       "category": "CCTV Preventive Maintenance and Monitoring Agreement",
       "agreement_no": null,
-      "term": null,
-      "expiry_date": null
+      "term": "12 months",
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": null,
+      "annual_fee": 960000.0,
+      "sla_response": "4-hour response"
     },
     {
       "source_doc": "competitor_contracts/05_Lift_PM_Comparison.txt",
@@ -64,7 +84,12 @@
       "category": "Lift Preventive Maintenance Agreement",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 144000.0,
+      "annual_fee": null,
+      "sla_response": "24x7"
     },
     {
       "source_doc": "competitor_contracts/06_Lift_Breakdown_Comparison.txt",
@@ -76,7 +101,12 @@
       "category": "Lift Breakdown Response and Rescue Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 880000.0,
+      "annual_fee": null,
+      "sla_response": "24x7"
     },
     {
       "source_doc": "competitor_contracts/07_Fire_Safety_Comparison.txt",
@@ -88,7 +118,12 @@
       "category": "Fire Alarm, Detection, and Suppression Maintenance Agreement",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 1680000.0,
+      "annual_fee": null,
+      "sla_response": "As required"
     },
     {
       "source_doc": "competitor_contracts/08_Fire_Extinguisher_Comparison.txt",
@@ -100,7 +135,12 @@
       "category": "Fire Extinguisher Inspection and Refilling",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 180000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/09_Access_Control_Comparison.txt",
@@ -112,7 +152,12 @@
       "category": "Access Control System Supply, Integration, and Support Agreement",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": null,
+      "annual_fee": 240000.0,
+      "sla_response": "6 hours"
     },
     {
       "source_doc": "competitor_contracts/10_Guarding_Services_Comparison.txt",
@@ -124,7 +169,12 @@
       "category": "Manpower Security Guarding Services",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 2100000.0,
+      "annual_fee": null,
+      "sla_response": "24x7"
     },
     {
       "source_doc": "competitor_contracts/11_Patrol_Services_Comparison.txt",
@@ -136,7 +186,12 @@
       "category": "Perimeter Patrol and Mobile Response Agreement",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 920000.0,
+      "annual_fee": null,
+      "sla_response": "20 minutes"
     },
     {
       "source_doc": "competitor_contracts/12_Visitor_Reception_Comparison.txt",
@@ -148,7 +203,12 @@
       "category": "Reception Security and Visitor Management",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 780000.0,
+      "annual_fee": null,
+      "sla_response": "24x7"
     },
     {
       "source_doc": "competitor_contracts/13_Plumbing_Comparison.txt",
@@ -160,7 +220,12 @@
       "category": "Plumbing Maintenance and Drainage Support Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 480000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/14_Electrical_Comparison.txt",
@@ -172,7 +237,12 @@
       "category": "Electrical Maintenance and Critical Power Support Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 840000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/15_Generator_UPS_Comparison.txt",
@@ -180,11 +250,16 @@
       "role": "benchmark",
       "vendor": "PrimeGen Power Systems Pvt Ltd",
       "site": "Apex One Commercial Services LLC - Backup Power Yard",
-      "system": "DG Set and UPS Maintenance",
+      "system": "Generator & UPS",
       "category": "DG Set and UPS Maintenance Agreement",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 1120000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/16_Building_Automation_Comparison.txt",
@@ -192,11 +267,16 @@
       "role": "benchmark",
       "vendor": "SmartGrid Automation Solutions LLP",
       "site": "Apex One Commercial Services LLC - Smart Operations Hub",
-      "system": "Building Management System and Automation",
+      "system": "Building Automation",
       "category": "Building Management System and Automation Support",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": null,
+      "annual_fee": 1350000.0,
+      "sla_response": "4 hours"
     },
     {
       "source_doc": "competitor_contracts/17_Pest_Control_Comparison.txt",
@@ -208,19 +288,29 @@
       "category": "Pest Control and Hygiene Prevention Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 195000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/18_Housekeeping_Comparison.txt",
       "doc_class": "competitor_contracts",
       "role": "benchmark",
-      "vendor": "Apex One Commercial Services LLC",
+      "vendor": "CleanLine Facility Services Pvt Ltd",
       "site": "Apex One Commercial Services LLC - All Office Floors",
       "system": "Housekeeping",
       "category": "Housekeeping and Janitorial Services Agreement",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 1575000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "competitor_contracts/19_Facade_Cleaning_Comparison.txt",
@@ -229,10 +319,15 @@
       "vendor": "CrystalFaçade Maintenance Pvt Ltd",
       "site": "Apex One Commercial Services LLC - Glass Tower",
       "system": "Housekeeping",
-      "category": "Facade and Window Cleaning Agreement",
+      "category": "Facade and Window Cleaning",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 620000.0,
+      "annual_fee": null,
+      "sla_response": "Within 7 days"
     },
     {
       "source_doc": "competitor_contracts/20_Waste_Management_Comparison.txt",
@@ -244,7 +339,12 @@
       "category": "Waste Collection and Resource Recovery",
       "agreement_no": null,
       "term": "12 months",
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": "INR",
+      "monthly_fee": 340000.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/01_Apex_Climate_Systems_HVAC_HQ.txt",
@@ -255,8 +355,13 @@
       "system": "HVAC",
       "category": "HVAC",
       "agreement_no": "NML-FS-2026-001",
-      "term": null,
-      "expiry_date": null
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": null,
+      "annual_fee": 48000.0,
+      "sla_response": "Within 4 hours"
     },
     {
       "source_doc": "current_contracts/02_Apex_Climate_Systems_HVAC_Austin.txt",
@@ -268,7 +373,12 @@
       "category": "HVAC",
       "agreement_no": "NML-FS-2026-002",
       "term": null,
-      "expiry_date": null
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 5200.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/03_Vertex_SecureVision_CCTV_HQ.txt",
@@ -280,7 +390,12 @@
       "category": "CCTV",
       "agreement_no": "NML-FS-2026-003",
       "term": null,
-      "expiry_date": null
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": null,
+      "annual_fee": 22500.0,
+      "sla_response": "Within 8 business hours"
     },
     {
       "source_doc": "current_contracts/04_Vertex_SecureVision_CCTV_Plano.txt",
@@ -291,8 +406,13 @@
       "system": "Security & CCTV",
       "category": "CCTV",
       "agreement_no": "NML-FS-2026-004",
-      "term": "SURVEILLANCE SYSTEM EXPANSION AND SUPPORT AGREEMENT",
-      "expiry_date": null
+      "term": null,
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 2900.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/05_Summit_Lift_Services_HQ.txt",
@@ -303,8 +423,13 @@
       "system": "Lifts",
       "category": "Lifts",
       "agreement_no": "NML-FS-2026-005",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": null,
+      "annual_fee": 36000.0,
+      "sla_response": "Within 2 hours"
     },
     {
       "source_doc": "current_contracts/06_Summit_Lift_Services_FortWorth.txt",
@@ -315,8 +440,13 @@
       "system": "Lifts",
       "category": "Lifts",
       "agreement_no": "NML-FS-2026-006",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 3450.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/07_IronGate_Access_Control_HQ.txt",
@@ -327,8 +457,13 @@
       "system": "Access Control",
       "category": "Access Control",
       "agreement_no": "NML-FS-2026-007",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 4800.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/08_IronGate_Access_Control_Austin.txt",
@@ -339,8 +474,13 @@
       "system": "Access Control",
       "category": "Access Control",
       "agreement_no": "NML-FS-2026-008",
-      "term": "twelve (12) months",
-      "expiry_date": null
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 3900.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/09_BlueShield_Fire_Life_Safety_HQ.txt",
@@ -351,8 +491,13 @@
       "system": "Fire & Life Safety",
       "category": "Fire Safety",
       "agreement_no": "NML-FS-2026-009",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 4200.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/10_BlueShield_Fire_Life_Safety_Plano.txt",
@@ -363,8 +508,13 @@
       "system": "Fire & Life Safety",
       "category": "Fire Safety",
       "agreement_no": "NML-FS-2026-010",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 5300.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/11_ClearFlow_Plumbing_HQ.txt",
@@ -375,8 +525,13 @@
       "system": "Plumbing",
       "category": "Plumbing",
       "agreement_no": "NML-FS-2026-011",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 3200.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/12_ClearFlow_Plumbing_FortWorth.txt",
@@ -387,8 +542,13 @@
       "system": "Plumbing",
       "category": "Plumbing",
       "agreement_no": "NML-FS-2026-012",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 2950.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/13_PrimeEdge_Electrical_HQ.txt",
@@ -399,8 +559,13 @@
       "system": "Electrical",
       "category": "Electrical",
       "agreement_no": "NML-FS-2026-013",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 4100.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/14_PrimeEdge_Electrical_Austin.txt",
@@ -411,8 +576,13 @@
       "system": "Electrical",
       "category": "Electrical",
       "agreement_no": "NML-FS-2026-014",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 3600.0,
+      "annual_fee": null,
+      "sla_response": "24/7"
     },
     {
       "source_doc": "current_contracts/15_GreenArc_Landscaping_HQ.txt",
@@ -423,8 +593,13 @@
       "system": "Landscaping",
       "category": "Landscape",
       "agreement_no": "NML-FS-2026-015",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 2800.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/16_GreenArc_Landscaping_Plano.txt",
@@ -435,8 +610,13 @@
       "system": "Landscaping",
       "category": "Landscape",
       "agreement_no": "NML-FS-2026-016",
-      "term": "twelve (12) months",
-      "expiry_date": "09 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 2200.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/17_SafeStep_Housekeeping_HQ.txt",
@@ -447,8 +627,13 @@
       "system": "Housekeeping",
       "category": "Housekeeping",
       "agreement_no": "NML-FS-2026-017",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 8600.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/18_SafeStep_Housekeeping_Austin.txt",
@@ -459,8 +644,13 @@
       "system": "Housekeeping",
       "category": "Housekeeping",
       "agreement_no": "NML-FS-2026-018",
-      "term": "twelve (12) months",
-      "expiry_date": "09 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 7250.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/19_Titan_Guard_Services_HQ.txt",
@@ -471,8 +661,13 @@
       "system": "Security",
       "category": "Security",
       "agreement_no": "NML-FS-2026-019",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 19800.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "current_contracts/20_Titan_Guard_Services_Plano.txt",
@@ -483,8 +678,13 @@
       "system": "Security",
       "category": "Security",
       "agreement_no": "NML-FS-2026-020",
-      "term": "twelve (12) months",
-      "expiry_date": "08 May 2027"
+      "term": "12 months",
+      "effective_date": "08 May 2026",
+      "expiry_date": null,
+      "currency": "USD",
+      "monthly_fee": 17400.0,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/01_Facility_Overall_Operations_SOP.txt",
@@ -496,7 +696,12 @@
       "category": "Facility Operations SOP and Training Manual",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/02_HVAC_Operations_Maintenance_AMC.txt",
@@ -505,10 +710,15 @@
       "vendor": "Apex Integrated Facilities LLC",
       "site": null,
       "system": "HVAC",
-      "category": "HVAC Maintenance, AMC, and Logs",
-      "agreement_no": "FCL-002",
-      "term": "1.0",
-      "expiry_date": null
+      "category": "HVAC AMC",
+      "agreement_no": null,
+      "term": null,
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/03_Electrical_Systems_Drawings_Certificates.txt",
@@ -520,7 +730,12 @@
       "category": "Electrical Systems, Drawings, and Certificates",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/04_Fire_Safety_Compliance_NOC_Drills.txt",
@@ -532,31 +747,46 @@
       "category": "Fire Safety, NOC, Drills, and Inspection",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/05_Security_CCTV_Assets_Incidents.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": null,
+      "site": "Orion Business Park",
       "system": "Security & CCTV",
-      "category": "Security post operations, CCTV coverage, access control, incident handling, and asset protection",
-      "agreement_no": "FCL-005",
+      "category": "Security Operations, CCTV, Asset Protection, and Incident Reporting",
+      "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/06_HSE_Risk_PPE_Permits.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": null,
-      "system": null,
+      "site": "Orion Business Park",
+      "system": "Health and Safety, Risk Assessment, PPE, and Permit Controls",
       "category": "Health and Safety, Risk Assessment, PPE, and Permit Controls",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/07_Water_Treatment_Testing_Pipes.txt",
@@ -565,10 +795,15 @@
       "vendor": "Apex Integrated Facilities LLC",
       "site": null,
       "system": "Water Systems, Treatment, Testing, and Pipe Management",
-      "category": "Water supply treatment, testing, distribution, and pipe maintenance procedures",
+      "category": null,
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/08_Plumbing_Layout_Repair.txt",
@@ -580,7 +815,12 @@
       "category": "Plumbing Layout, Repair, and Preventive Maintenance",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/09_Civil_Structural_Drawings.txt",
@@ -591,8 +831,13 @@
       "system": "Civil Works, Structural Care, and Drawing Control",
       "category": "Civil maintenance, structural observations, drawing control, and repair planning",
       "agreement_no": "FCL-009",
-      "term": "1.0",
-      "expiry_date": "Upon issue"
+      "term": null,
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/10_Energy_Audit_Metering_Targets.txt",
@@ -604,7 +849,12 @@
       "category": "Energy Management, Metering, Audit, and Target Tracking",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/11_Network_BMS_IT_Infrastructure_Licenses.txt",
@@ -616,31 +866,46 @@
       "category": "Network, BMS, IT Infrastructure, and License Management",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/12_Parking_Operations_AMC_ANPR_Barriers.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": null,
-      "system": "Parking Operations, AMC, ANPR, and Barrier Control",
-      "category": null,
+      "site": "Parking Operations, AMC, ANPR, and Barrier Control",
+      "system": "Parking Operations",
+      "category": "Parking Operations, access technology, barrier maintenance, bay management, and incident handling",
       "agreement_no": "FCL-012",
       "term": null,
-      "expiry_date": null
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/13_Budgeting_AMC_Calendar_Renewals.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": "Orion Business Park",
+      "site": null,
       "system": null,
       "category": "Budgeting, AMC Calendar, and Renewal Planning",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/14_General_Housekeeping_Pest_Space.txt",
@@ -652,31 +917,46 @@
       "category": "General Housekeeping, Pest Control, and Space Management",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/15_Waste_Disposal_Compliance.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": "Orion Business Park",
-      "system": "Waste Management",
-      "category": "Waste Management, Disposal Compliance, and Segregation",
+      "site": null,
+      "system": "Waste Management, Disposal Compliance, and Segregation",
+      "category": null,
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/16_Emergency_BCP_Evaluations_Drills.txt",
       "doc_class": "domain_docs",
       "role": "reference",
       "vendor": "Apex Integrated Facilities LLC",
-      "site": null,
-      "system": null,
+      "site": "Orion Business Park",
+      "system": "Emergency Preparedness, BCP, Evaluations, and Drills",
       "category": "Emergency Preparedness, BCP, Evaluations, and Drills",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": null,
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     },
     {
       "source_doc": "domain_docs/17_Vendors_Contracts_Onboarding.txt",
@@ -688,7 +968,12 @@
       "category": "Vendor Contracts, Onboarding, and Service Acceptance",
       "agreement_no": null,
       "term": null,
-      "expiry_date": null
+      "effective_date": "Upon issue",
+      "expiry_date": null,
+      "currency": null,
+      "monthly_fee": null,
+      "annual_fee": null,
+      "sla_response": null
     }
   ]
 }
