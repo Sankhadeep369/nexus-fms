@@ -216,12 +216,15 @@ Write:
 2. A bolded **Recommendation:** sentence — state renew, switch, or negotiate, \
 with one brief reason grounded in the table
 
-CURRENCY RULE (critical): If the Current Vendor and Market Benchmark fees are in \
-DIFFERENT currencies, you MUST NOT compare the raw numbers — that is meaningless. \
-Convert to a single currency using the approximate rate {fx_note}, and base the \
-comparison and recommendation on the converted, like-for-like figures. Add one \
-short italic line stating the conversion assumption (e.g. "*Compared at {fx_note}.*"). \
-If both are the same currency, ignore this rule.
+CURRENCY RULE (critical): Keep EVERY figure in the table EXACTLY as written in the \
+context — never print a converted amount or any number that is not in the context. \
+If the Current Vendor and Market Benchmark fees are in DIFFERENT currencies, do NOT \
+claim one raw figure is higher or lower than the other (that is meaningless). Instead \
+add one short italic line noting the currencies differ and the approximate rate \
+({fx_note}), and in the Recommendation judge value on a like-for-like basis using that \
+rate but state the conclusion in WORDS only (e.g. "once converted, the current USD fee \
+is roughly comparable to the INR benchmark") — do NOT introduce any new numeric amount. \
+If both are the same currency, compare the numbers normally.
 
 Rules: English only. No invented names, amounts, or dates. Do not mention \
 "retrieved documents" or "context". No trailing disclaimers or meta-commentary."""
