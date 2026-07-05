@@ -620,6 +620,27 @@ class ChatPipeline:
 
             if groq_answer:
                 groq_answer = _strip_artifacts(groq_answer)
+
+                # Verify-then-refine: catch structural (malformed table) and
+                # currency (raw cross-currency comparison) issues and let the model
+                # fix just those once, before the safety validators and shipping.
+                from app.core.verify import refine_answer, verify_answer
+
+                report = verify_answer(groq_answer, check_currency=True)
+                if not report.ok:
+                    revised = refine_answer(
+                        groq_answer, report.issues, settings.groq_api_key, settings.groq_model
+                    )
+                    if revised:
+                        revised = _strip_artifacts(revised)
+                        report2 = verify_answer(revised, check_currency=True)
+                        if len(report2.issues) < len(report.issues):
+                            groq_answer, report = revised, report2
+                yield {
+                    "type": "step", "name": "verification", "status": "done",
+                    "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]},
+                }
+
                 rule_fail = _rule_check(groq_answer)
                 numeric_fail = None if rule_fail else _numeric_grounding_check(groq_answer, retrieved)
 
@@ -688,6 +709,13 @@ class ChatPipeline:
         }
 
         if budget_result.succeeded and budget_result.answer:
+            from app.core.verify import verify_answer
+
+            report = verify_answer(budget_result.answer)
+            if not report.ok:
+                logger.warning("budget answer failed verification: %s", report.summary())
+            yield {"type": "step", "name": "verification", "status": "done",
+                   "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]}}
             self.cache.set(query, mode, {"answer": budget_result.answer, "retrieved_sources": source_docs})
             yield {"type": "token", "text": budget_result.answer}
             total_ms = int((time.time() - t_start) * 1000)
@@ -746,6 +774,13 @@ class ChatPipeline:
         }
 
         if overview_result.succeeded and overview_result.answer:
+            from app.core.verify import verify_answer
+
+            report = verify_answer(overview_result.answer)
+            if not report.ok:
+                logger.warning("portfolio answer failed verification: %s", report.summary())
+            yield {"type": "step", "name": "verification", "status": "done",
+                   "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]}}
             self.cache.set(query, mode, {"answer": overview_result.answer, "retrieved_sources": source_docs})
             yield {"type": "token", "text": overview_result.answer}
             total_ms = int((time.time() - t_start) * 1000)

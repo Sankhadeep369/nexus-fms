@@ -28,6 +28,7 @@ export const STEP_LABELS = {
   agent_research: "Researching vendor & market data",
   incident_triage: "Triaging incident — classifying, finding vendor, checking SLA",
   synthesis: "Synthesising comparison",
+  verification: "Verifying answer",
   generation: "Generating answer",
   refinement: "Refining answer",
 };
