@@ -496,13 +496,11 @@ class ChatPipeline:
         # Incident Triage: classify → find vendor → check SLA → draft escalation
         yield {"type": "step", "name": "incident_triage", "status": "start"}
         from app.core.agents.incident_triage_agent import run_incident_triage
-        from app.core.entity_registry import get_entity_registry
 
         triage = run_incident_triage(
             incident=retrieval_query,
             api_key=settings.groq_api_key,
             model=settings.groq_model,
-            registry=get_entity_registry(),
             retriever=self.retriever,
         )
         yield {

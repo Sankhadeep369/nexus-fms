@@ -26,7 +26,9 @@ logger = logging.getLogger("nexus.agent.incident_triage")
 
 _CLASSIFY_PROMPT = """\
 Classify this facilities incident report. Extract:
-1. domain: one of hvac|electrical|fire_safety|security_cctv|plumbing|civil|lifts|access_control|housekeeping|landscape|waste|bms|parking|general
+1. domain: the facilities system most responsible, chosen from this list:
+   {domains}
+   Use the exact label as written; use "general" only if none clearly fit.
 2. severity: critical|high|medium|low
    - critical: safety risk or business stopping (fire, flood, trapped person, no power)
    - high: affects multiple people or core operations (AC down floor, major leak)
@@ -102,73 +104,56 @@ def _sla_status(duration_hours: float | None, sla_hours: float | None) -> str:
     return "WITHIN_SLA"
 
 
-_DOMAIN_CATEGORY_MAP = {
-    "hvac": ["HVAC", "Chiller", "Air Conditioning", "Cooling", "Heating"],
-    "electrical": ["Electrical", "Power", "Generator", "UPS"],
-    "fire_safety": ["Fire", "Safety", "Suppression", "Sprinkler"],
-    "security_cctv": ["CCTV", "Security", "Surveillance", "Access Control", "Guard"],
-    "plumbing": ["Plumbing", "Water", "Drainage", "Leak"],
-    "civil": ["Civil", "Structural", "Facade", "Waterproof"],
-    "lifts": ["Lift", "Elevator", "Escalator"],
-    "access_control": ["Access Control", "Door", "Barrier", "Lock"],
-    "housekeeping": ["Housekeeping", "Cleaning", "Hygiene"],
-    "landscape": ["Landscape", "Groundskeeping", "Garden"],
-    "waste": ["Waste", "Disposal", "Garbage"],
-    "parking": ["Parking", "ANPR", "Barrier"],
-    "bms": ["BMS", "Building Management", "SCADA", "DDC", "Network"],
-}
+def _domain_tokens(label: str | None) -> set[str]:
+    return set(re.findall(r"[a-z]+", (label or "").lower()))
 
 
 def _find_vendor_for_domain(
     domain: str,
-    registry,
     retriever,
-) -> tuple[list[dict], str, str]:
-    """Find chunks from the current contract matching the incident domain.
-    Returns (chunks, vendor_name, site_name)."""
-    search_terms = _DOMAIN_CATEGORY_MAP.get(domain, [domain])
-    all_chunks = []
-    for term in search_terms[:2]:
-        docs = [d for d in registry.find_docs(term) if d.startswith("current_contracts/")]
-        if docs:
-            from app.core.agents.tools import _rank_chunks_in_docs
-            chunks = _rank_chunks_in_docs(
-                retriever,
-                f"{term} SLA response time breakdown attendance",
-                "current_contracts/",
-                docs,
-                k=2,
-            )
-            all_chunks.extend(chunks)
-            if all_chunks:
-                break
+) -> tuple[list[dict], str, str, str | None, list[str]]:
+    """Resolve the responsible current contract for an incident domain from the
+    self-describing corpus index, returning
+    (chunks, vendor, site, sla_from_facts, source_docs).
 
-    # Extract vendor and site from first chunk's source_doc filename
-    vendor, site = "Unknown Vendor", "Site"
-    if all_chunks:
-        fname = all_chunks[0]["source_doc"].split("/")[-1].replace(".txt", "")
-        parts = fname.split("_")
-        # Filename pattern: NN_VendorName_ServiceType_Site
-        if len(parts) >= 3:
-            vendor = " ".join(parts[1:-2]).replace("_", " ") if len(parts) > 3 else parts[1]
-            site = parts[-1]
+    Vendor, site, and SLA come straight from the indexed contract facts (clean
+    legal name + facility name), not from parsing the filename, and the domain is
+    matched against the live `system` of each current contract — so a new system
+    added to the corpus is handled with no code change.
+    """
+    from app.core.agents.tools import _rank_chunks_in_docs
+    from app.core.corpus_index import get_corpus_index
 
-    seen = set()
-    deduped = []
-    for c in all_chunks:
-        key = (c["source_doc"], c["section"])
-        if key not in seen:
-            seen.add(key)
-            deduped.append(c)
+    ci = get_corpus_index()
+    want = _domain_tokens(domain)
+    matches = [
+        m for m in ci.current_docs
+        if want and (want & _domain_tokens(m.system or m.category))
+    ]
+    if not matches:
+        return [], "Unknown Vendor", "Site", None, []
 
-    return deduped[:3], vendor, site
+    doc = sorted(matches, key=lambda m: m.source_doc)[0]  # deterministic (HQ first)
+    chunks = _rank_chunks_in_docs(
+        retriever,
+        f"{domain} SLA response time breakdown attendance emergency callout",
+        "current_contracts/",
+        [doc.source_doc],
+        k=2,
+    )
+    return (
+        chunks,
+        doc.vendor or "Unknown Vendor",
+        doc.site or "Site",
+        doc.sla_response,
+        [doc.source_doc],
+    )
 
 
 def run_incident_triage(
     incident: str,
     api_key: str,
     model: str,
-    registry,
     retriever,
 ) -> TriageResult:
     if not api_key:
@@ -183,10 +168,15 @@ def run_incident_triage(
 
         client = Groq(api_key=api_key)
 
-        # Step 1: classify
+        # Step 1: classify — domain options are the live contracted systems.
+        from app.core.corpus_index import get_corpus_index
+
+        domains = ", ".join(get_corpus_index().contracted_systems + ["general"])
         r = client.chat.completions.create(
             model=model,
-            messages=[{"role": "user", "content": _CLASSIFY_PROMPT.format(incident=incident[:800])}],
+            messages=[{"role": "user", "content": _CLASSIFY_PROMPT.format(
+                incident=incident[:800], domains=domains,
+            )}],
             max_tokens=150, temperature=0.0,
         )
         raw = r.choices[0].message.content.strip()
@@ -201,21 +191,22 @@ def run_incident_triage(
         logger.info("incident classified: domain=%s severity=%s duration=%.1fh",
                     domain, severity, duration_hours or 0)
 
-        # Step 2: find responsible vendor + SLA
-        chunks, vendor, site = _find_vendor_for_domain(domain, registry, retriever)
-        sources = list({c["source_doc"] for c in chunks})
+        # Step 2: find responsible vendor + SLA from indexed contract facts
+        chunks, vendor, site, sla_from_facts, doc_sources = _find_vendor_for_domain(domain, retriever)
+        sources = list({c["source_doc"] for c in chunks}) or doc_sources
 
-        # Step 3: extract SLA from retrieved chunks
-        sla_text = "Not specified"
-        for chunk in chunks:
-            text = chunk["text"]
-            m = re.search(
-                r"(?:breakdown|response|attendance|emergency|callout)[^\n]*?(\d+\s*hour[s]?[^\.]*)",
-                text, re.IGNORECASE,
-            )
-            if m:
-                sla_text = m.group(0).strip()[:120]
-                break
+        # Step 3: SLA — prefer the indexed fact; fall back to the chunk text when
+        # the fact wasn't extracted (SLA is only reliably on file for some contracts).
+        sla_text = sla_from_facts or "Not specified"
+        if not sla_from_facts:
+            for chunk in chunks:
+                m = re.search(
+                    r"(?:breakdown|response|attendance|emergency|callout)[^\n]*?(\d+\s*hour[s]?[^\.]*)",
+                    chunk["text"], re.IGNORECASE,
+                )
+                if m:
+                    sla_text = m.group(0).strip()[:120]
+                    break
 
         sla_hours = _parse_sla_hours(sla_text)
         sla_status = _sla_status(duration_hours, sla_hours)
