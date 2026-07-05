@@ -81,8 +81,11 @@ CAPABILITIES: list[QueryCapability] = [
             "competitive\", \"do we want to continue with\". The vendor referenced must "
             "be one we currently have an active contract with. DO NOT use for: "
             "market-benchmark comparisons, analysing competitor alternatives, evaluating "
-            "third-party options that are not our live contracts, or any query that lacks "
-            "an explicit first-person renewal/switch/negotiate decision framing."
+            "third-party options that are not our live contracts; generating, drafting, "
+            "or sending a renewal ALERT, reminder, or expiry notice (use draft); "
+            "calculating a cost or budget VARIANCE such as \"how much more/less would we "
+            "pay\" or a cost difference (use comparison); or any query that lacks an "
+            "explicit first-person renewal/switch/negotiate decision framing."
         ),
     ),
     QueryCapability(
@@ -136,9 +139,10 @@ CAPABILITIES: list[QueryCapability] = [
             "these three options stack up\", \"which alternative is best value\", "
             "\"evaluate these competitor options\"). Use this for ALL multi-vendor "
             "analysis that does NOT have an explicit first-person "
-            "renewal/switch/negotiate decision framing. Also use for single-vendor "
-            "budget-variance arithmetic (e.g. \"if we switched to X, how much more would "
-            "we pay\")."
+            "renewal/switch/negotiate decision framing. ALSO use for any cost or budget "
+            "VARIANCE calculation — \"how much more/less would we pay if we switched to "
+            "X\", \"what is the cost difference vs the benchmark\" — even when only one "
+            "current vendor is named; this is a comparison, not a renewal decision."
         ),
     ),
     QueryCapability(
@@ -146,12 +150,15 @@ CAPABILITIES: list[QueryCapability] = [
         retrieval_k=3,
         max_tokens=400,
         criteria=(
-            "requesting a document (email, memo, report, alert, letter, template). This "
-            "takes PRECEDENCE whenever the query is an explicit instruction to WRITE, "
-            "DRAFT, COMPOSE, or PREPARE such a document — even if it names a specific "
-            "vendor, contract, or renewal (e.g. \"draft an email to Apex about the "
-            "renewal\", \"write a memo on the HVAC contract\"). The user wants the "
-            "document produced, not a lookup or comparison."
+            "requesting a document (email, memo, report, alert, reminder, notice, "
+            "letter, template). This takes PRECEDENCE whenever the query is an explicit "
+            "instruction to WRITE, DRAFT, COMPOSE, or PREPARE such a document — even if "
+            "it names a specific vendor, contract, or renewal (e.g. \"draft an email to "
+            "Apex about the renewal\", \"write a memo on the HVAC contract\"). A renewal "
+            "ALERT, renewal reminder, or contract expiry notice is ALWAYS a draft "
+            "request (the user wants the alert/notice produced), even without an explicit "
+            "\"write\"/\"draft\" verb. The user wants the document produced, not a lookup, "
+            "decision, or comparison."
         ),
     ),
     QueryCapability(

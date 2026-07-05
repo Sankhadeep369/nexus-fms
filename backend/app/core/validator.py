@@ -117,20 +117,16 @@ GENERATED ANSWER (raw output from the assistant):
 
 Your task — do BOTH in one pass:
 
-STEP 1 — VALIDATE. Check all four:
+STEP 1 — VALIDATE (hard reject only — these cannot be fixed by rewriting):
   a) Is the entire answer in English? No other language or script?
-  b) Does it contain only facts from the context or general FM knowledge?
-     Reject if it contains specific street addresses, building names, company
-     registration details, or dollar amounts that do not appear verbatim in
-     the retrieved context shown above.
-  c) Does it contain implausible data? Reject if it has: years before 2000 or
-     after 2050, amounts over $5 million for a single AMC, incorrect country/state
-     pairings (e.g. "Dallas IL"), or section references that don't exist in context.
   d) Does it contain meta-commentary quoting rules or instructions? e.g. phrases
      like "This response follows all four mandatory rules" or "no invented facts"
-     copied from the system instructions. Reject if yes.
+     copied from the system instructions.
 
-If ANY check fails → respond with ONLY: {{"valid": false, "answer": ""}}
+If either fails → respond with ONLY the single word: REJECT
+
+Ungrounded specifics (invented amounts, addresses, section refs, implausible data)
+are NOT a reason to reject — they are FIXED in STEP 2 below.
 
 STEP 2 — REWRITE (only if all checks passed):
   Rewrite the answer to be:
@@ -161,12 +157,18 @@ STEP 2 — REWRITE (only if all checks passed):
     "recommend retrieving from"), consolidate ALL of them into ONE terse sentence
     at the very end. Remove all inline hedging from the body of the answer.
   - English only: translate or silently remove any non-English fragments
-  - Grounded: remove specific details not in the context (replace with "Not specified"
-    rather than inventing values)
+  - GROUNDING (most important): remove or correct EVERY specific figure that does
+    NOT appear verbatim in the Context above — currency/dollar amounts, rates,
+    dates, section/appendix/exhibit references, street addresses, building names,
+    registration numbers. Replace an unsupported value with "Not specified" or drop
+    the clause entirely. Also fix implausible data (years before 2000 or after 2050,
+    a single AMC over $5 million, wrong city/state pairings). NEVER invent or carry
+    forward a specific the Context does not support — a vaguer true statement beats a
+    precise invented one.
   - Do NOT add any facts not in the original answer or context
 
-Respond with ONLY valid JSON, no markdown fences, no other text:
-{{"valid": true, "answer": "...rewritten answer..."}}"""
+OUTPUT: respond with ONLY the corrected answer as plain Markdown — no JSON, no code
+fences, no preamble, no commentary. (Or the single word REJECT if STEP 1 failed.)"""
 
 
 @dataclass
@@ -246,29 +248,17 @@ def _groq_rewrite(
         logger.warning("Groq API call failed (%s) — pass-through (no response received)", exc)
         return ValidationResult(passed=True, answer=answer, reason=f"groq unreachable: {exc}", layer="groq")
 
-    try:
-        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
-        json_match = re.search(r"\{[\s\S]+\}", raw)
-        if not json_match:
-            logger.warning("rewriter response unparseable (likely truncated): %s", raw[:120])
-            return ValidationResult(passed=False, answer="", reason="rewriter response truncated/unparseable", layer="groq")
+    # Plain-text protocol (robust to Markdown tables / newlines that broke the old
+    # JSON-wrapped answer): the model returns either "REJECT" or the corrected answer
+    # directly. Strip any stray code fences the model may add.
+    rewritten = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n").strip()
 
-        # strict=False allows literal \n/\t inside JSON string values — Groq's
-        # multi-paragraph answers routinely contain raw newlines that strict
-        # JSON parsing would otherwise reject.
-        clean_json = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", json_match.group())
-        data = json.loads(clean_json, strict=False)
-    except (json.JSONDecodeError, ValueError) as exc:
-        logger.warning("rewriter JSON malformed (%s): %s", exc, raw[:160])
-        return ValidationResult(passed=False, answer="", reason=f"rewriter JSON malformed: {exc}", layer="groq")
+    if not rewritten or rewritten.upper().startswith("REJECT"):
+        return ValidationResult(passed=False, answer="", reason="rewriter rejected (non-English/meta)", layer="groq")
 
-    if not data.get("valid", True):
-        return ValidationResult(passed=False, answer="", reason="failed Groq validation", layer="groq")
-
-    rewritten = str(data.get("answer", "")).strip()
-    if not rewritten or len(rewritten) < _MIN_ANSWER_LENGTH:
-        logger.warning("rewriter returned empty answer — keeping original")
-        return ValidationResult(passed=True, answer=answer, reason="empty rewrite — kept original", layer="groq")
+    if len(rewritten) < _MIN_ANSWER_LENGTH:
+        logger.warning("rewriter returned too-short answer — keeping original")
+        return ValidationResult(passed=True, answer=answer, reason="rewrite too short — kept original", layer="groq")
 
     logger.info("answer rewritten by Groq (%d→%d chars)", len(answer), len(rewritten))
     return ValidationResult(passed=True, answer=rewritten, reason="ok", layer="groq")
