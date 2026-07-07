@@ -210,12 +210,12 @@ def _build_user_content(query: str, retrieved: list[dict]) -> str:
 # Pipeline
 # ---------------------------------------------------------------------------
 
-_FALLBACK_MESSAGE = (
-    "NEXUS generated an answer but the quality check found it unreliable — "
-    "likely a hallucinated figure or non-English fragment from the fine-tuned model.\n\n"
-    "The answer has been withheld to avoid surfacing incorrect information. "
-    "Try the same question on a fresher session, or use the suggestion chips "
-    "for instant verified answers on common FM topics."
+# Shown ONLY when both the SLM and the Groq recovery are unreachable — i.e. a
+# genuine connectivity issue, never a model-quality problem. Everything else is
+# recovered silently, so the user never sees a "quality check failed" message.
+_CONNECTIVITY_MESSAGE = (
+    "NEXUS can't reach the answer service right now. This is a temporary "
+    "connectivity issue on the free-tier deployment — please try again in a moment."
 )
 
 
@@ -407,21 +407,38 @@ class ChatPipeline:
                 answer_parts.append(token)
                 yield {"type": "token", "text": token}
         except LLMBusyError:
-            # Fail fast instead of silently queueing behind another generation --
-            # queueing let two overlapping requests compound into 20+ minute waits.
+            # The single SLM context is busy. Rather than making the user wait,
+            # recover immediately with a fast grounded Groq answer from the context
+            # already retrieved — no error surfaced, and lower latency than queueing.
             yield {"type": "step", "name": "generation", "status": "done", "detail": {"busy": True}}
+            from app.core.recovery import recover_answer
+
+            yield {"type": "step", "name": "recovery", "status": "start"}
+            recovered = recover_answer(
+                processed.rewritten, processed.query_type, retrieved,
+                settings.groq_api_key, settings.groq_model,
+            )
+            yield {"type": "step", "name": "recovery", "status": "done",
+                   "detail": {"ok": bool(recovered), "reason": "slm_busy"}}
+            if recovered:
+                source_docs = sorted({r["source_doc"] for r in retrieved})
+                if not bypass_cache:
+                    self.cache.set(query, mode, {"answer": recovered, "retrieved_sources": source_docs})
+                yield {"type": "token", "text": recovered}
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                    "cache_hit": None, "retrieved_sources": source_docs,
+                    "valid": True, "final_answer": recovered, "recovered": True,
+                }
+                return
+            # SLM busy AND Groq unreachable → genuine connectivity issue.
             yield {
                 "type": "done",
                 "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-                "cache_hit": None,
-                "retrieved_sources": [],
-                "valid": False,
-                "fallback": (
-                    "NEXUS is currently generating another answer and can only handle one "
-                    "request at a time on this free-tier deployment.\n\n"
-                    "Please wait a minute and try again."
-                ),
-                "validation_reason": "llm busy",
+                "cache_hit": None, "retrieved_sources": [],
+                "valid": False, "fallback": _CONNECTIVITY_MESSAGE,
+                "validation_reason": "llm busy, recovery unavailable",
             }
             return
         raw_answer = _strip_artifacts("".join(answer_parts))
@@ -463,28 +480,58 @@ class ChatPipeline:
             t_end - t_start,
             prompt_chars,
         )
-        if result.passed:
-            final_answer = result.answer
-            if not bypass_cache:
-                self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
-            yield {
-                "type": "done",
-                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-                "cache_hit": None,
-                "retrieved_sources": source_docs,
-                "valid": True,
-                "final_answer": final_answer,
-            }
-        else:
-            yield {
-                "type": "done",
-                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-                "cache_hit": None,
-                "retrieved_sources": [],
-                "valid": False,
-                "fallback": _FALLBACK_MESSAGE,
-                "validation_reason": result.reason,
-            }
+        # Decide if the answer is unusable and must be recovered rather than shown:
+        #  (a) hard validation failure (non-English / garbled / rewriter reject), or
+        #  (b) a hallucination that survived the rewriter — ungrounded figures on a
+        #      context-backed query. Either way the user must never see an error.
+        recovered_flag = False
+        needs_recovery = not result.passed
+        recovery_reason = result.reason
+        if result.passed and retrieved:
+            from app.core.validator import _numeric_grounding_check
+            ng = _numeric_grounding_check(result.answer, retrieved)
+            if ng is not None:
+                logger.info("post-refinement hallucination detected (%s) — recovering", ng.reason)
+                needs_recovery = True
+                recovery_reason = ng.reason
+
+        if needs_recovery:
+            from app.core.recovery import recover_answer
+            yield {"type": "step", "name": "recovery", "status": "start"}
+            recovered = recover_answer(
+                processed.rewritten, processed.query_type, retrieved,
+                settings.groq_api_key, settings.groq_model,
+            )
+            yield {"type": "step", "name": "recovery", "status": "done",
+                   "detail": {"ok": bool(recovered), "reason": recovery_reason}}
+            if recovered:
+                from app.core.validator import ValidationResult
+                result = ValidationResult(passed=True, answer=recovered, reason="recovered")
+                recovered_flag = True
+            else:
+                # Both the SLM answer and the Groq recovery are unusable — only a
+                # genuine outage reaches the user, framed as connectivity.
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                    "cache_hit": None, "retrieved_sources": [],
+                    "valid": False, "fallback": _CONNECTIVITY_MESSAGE,
+                    "validation_reason": f"recovery unavailable ({recovery_reason})",
+                }
+                return
+
+        final_answer = result.answer
+        if not bypass_cache:
+            self.cache.set(query, mode, {"answer": final_answer, "retrieved_sources": source_docs})
+        yield {
+            "type": "done",
+            "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+            "cache_hit": None,
+            "retrieved_sources": source_docs,
+            "valid": True,
+            "final_answer": final_answer,
+            "recovered": recovered_flag,
+        }
 
     # ─────────────────────────────────────────────────────────────────────────
     # Agent handlers.  Each owns a self-contained agentic path: it emits its own

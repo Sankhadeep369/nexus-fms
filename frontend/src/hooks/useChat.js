@@ -31,6 +31,7 @@ export const STEP_LABELS = {
   verification: "Verifying answer",
   generation: "Generating answer",
   refinement: "Refining answer",
+  recovery: "Recovering a grounded answer",
 };
 
 function newId() {
