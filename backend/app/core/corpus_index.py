@@ -30,13 +30,82 @@ import hashlib
 import json
 import logging
 import re
+from calendar import monthrange
 from dataclasses import asdict, dataclass, field
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 
 from app.core.config import settings
 
 logger = logging.getLogger("nexus.corpus_index")
+
+
+# ---------------------------------------------------------------------------
+# Date / term helpers (grounded renewal-date computation)
+# ---------------------------------------------------------------------------
+
+_DATE_FORMATS = (
+    "%d %B %Y", "%d %b %Y", "%B %d %Y", "%b %d %Y", "%B %d, %Y", "%b %d, %Y",
+    "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
+)
+
+
+def _parse_date(s: str | None):
+    """Parse a date string (e.g. '08 May 2026') to a datetime.date, or None."""
+    if not s:
+        return None
+    s = s.strip().rstrip(".")
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    try:  # last resort if python-dateutil happens to be installed
+        from dateutil import parser as _p
+
+        return _p.parse(s, dayfirst=True).date()
+    except Exception:
+        return None
+
+
+def _add_months(d: date, months: int) -> date:
+    """Add `months` calendar months to a date, clamping the day to month length."""
+    total = d.month - 1 + months
+    year = d.year + total // 12
+    month = total % 12 + 1
+    return date(year, month, min(d.day, monthrange(year, month)[1]))
+
+
+_EFFECTIVE_DATE_RE = re.compile(
+    r"(?:Effective Date|Commencement Date|Start Date|Effective (?:from|on|as of))\b"
+    r"[^\n|]{0,20}[|:\-]?\s*"
+    r"(\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})",
+    re.IGNORECASE,
+)
+
+
+def _extract_effective_date(text: str) -> str | None:
+    """Contract effective/start date, read deterministically from the header/table
+    (e.g. '| Effective Date | 08 May 2026 |'). Authoritative over the LLM and
+    rate-limit-proof, so the renewal date is always computable."""
+    m = _EFFECTIVE_DATE_RE.search(text)
+    return m.group(1).strip() if m else None
+
+
+def _extract_term_months(text: str) -> int | None:
+    """Contract length in months from the Term wording — 'twelve (12) months',
+    '12 months', '2 years'. Prefers the '# … Term …' section. Returns int or None."""
+    m = re.search(r"#\s*\d*\.?\s*Term[^\n]*\n(.*?)(?:\n#\s|\Z)", text, re.S | re.I)
+    scope = m.group(1) if m else text
+    mm = (re.search(r"\((\d{1,3})\)\s*months?", scope, re.I)
+          or re.search(r"\b(\d{1,3})\s*months?\b", scope, re.I))
+    if mm:
+        return int(mm.group(1))
+    yy = re.search(r"\b(\d{1,2})\s*(?:year|yr)s?\b", scope, re.I)
+    if yy:
+        return int(yy.group(1)) * 12
+    return None
 
 # Filenames co-located with the data (ignored by the retriever's *.txt glob).
 _MANIFEST_NAME = "corpus_manifest.json"
@@ -86,7 +155,7 @@ def _first(rx: re.Pattern, text: str) -> str | None:
 # Bump when the extraction schema / prompt changes so the cached index is
 # rebuilt even though the corpus text itself is unchanged (the content
 # fingerprint alone wouldn't catch a schema change).
-_SCHEMA_VERSION = "3"
+_SCHEMA_VERSION = "5"
 
 
 @dataclass
@@ -100,6 +169,7 @@ class DocMeta:
     category: str | None = None    # service category as stated, e.g. "HVAC AMC"
     agreement_no: str | None = None
     term: str | None = None
+    term_months: int | None = None     # numeric contract length in months (parsed)
     effective_date: str | None = None
     expiry_date: str | None = None
     # Financial / operational facts (Phase 4 orchestration — grounded computation).
@@ -107,6 +177,15 @@ class DocMeta:
     monthly_fee: float | None = None   # PRIMARY recurring monthly service/AMC fee
     annual_fee: float | None = None    # PRIMARY recurring annual fee, if stated annually
     sla_response: str | None = None    # primary emergency response SLA, e.g. "4 hours"
+
+    def renewal_date(self):
+        """Computed renewal/expiry date = effective_date + term_months. Returns a
+        datetime.date, or None when either input is missing/unparseable. This is the
+        grounded basis for "how many days until X renews" — computed, never guessed."""
+        eff = _parse_date(self.effective_date)
+        if eff is None or not self.term_months:
+            return None
+        return _add_months(eff, self.term_months)
 
     def annual_value(self) -> float | None:
         """Canonical yearly cost of the recurring fee (annual as-stated, else
@@ -349,7 +428,7 @@ def _extract_deterministic(text: str, rel: str) -> dict:
     }
 
 
-def _extract_llm(text: str, rel: str, api_key: str, model: str) -> dict | None:
+def _extract_llm(text: str, rel: str, api_key: str, model: str, _retry: bool = True) -> dict | None:
     try:
         from groq import Groq
 
@@ -360,7 +439,22 @@ def _extract_llm(text: str, rel: str, api_key: str, model: str) -> dict | None:
             max_tokens=350,
             temperature=0.0,
         )
-        raw = resp.choices[0].message.content.strip()
+        return _normalise_llm_fields(resp.choices[0].message.content.strip())
+    except Exception as exc:
+        # Free-tier rate limits (429) are transient — honour the suggested wait once
+        # so the ingest completes cleanly instead of falling back to deterministic.
+        if _retry and "429" in str(exc):
+            import time
+
+            wm = re.search(r"try again in ([\d.]+)s", str(exc))
+            time.sleep(min(float(wm.group(1)) + 1.0, 20.0) if wm else 6.0)
+            return _extract_llm(text, rel, api_key, model, _retry=False)
+        logger.warning("corpus ingest: LLM extraction failed for %s (%s)", rel, exc)
+        return None
+
+
+def _normalise_llm_fields(raw: str) -> dict | None:
+    try:
         m = re.search(r"\{[\s\S]+\}", raw)
         if not m:
             return None
@@ -376,7 +470,7 @@ def _extract_llm(text: str, rel: str, api_key: str, model: str) -> dict | None:
                 clean[fee] = float(v)
         return clean
     except Exception as exc:
-        logger.warning("corpus ingest: LLM extraction failed for %s (%s)", rel, exc)
+        logger.warning("corpus ingest: LLM field parse failed (%s)", exc)
         return None
 
 
@@ -457,6 +551,11 @@ def _build(corpus_dir: Path) -> CorpusIndex:
             if fee["monthly_fee"] is not None or fee["annual_fee"] is not None:
                 fields.update(fee)
 
+        # Term length and effective date parsed deterministically (authoritative over
+        # the LLM and rate-limit-proof) — both needed to compute the renewal date.
+        term_months = _extract_term_months(text)
+        eff_date = _extract_effective_date(text)
+
         docs[rel] = DocMeta(
             source_doc=rel,
             doc_class=doc_class,
@@ -467,7 +566,8 @@ def _build(corpus_dir: Path) -> CorpusIndex:
             category=fields.get("category"),
             agreement_no=fields.get("agreement_no"),
             term=fields.get("term"),
-            effective_date=fields.get("effective_date"),
+            term_months=term_months,
+            effective_date=eff_date or fields.get("effective_date"),
             expiry_date=fields.get("expiry_date"),
             currency=fields.get("currency"),
             monthly_fee=fields.get("monthly_fee"),

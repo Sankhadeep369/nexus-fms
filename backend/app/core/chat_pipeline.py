@@ -232,6 +232,7 @@ _AGENT_METHODS: dict[str, str] = {
     "vendor_comparison": "_agent_vendor_decision",
     "budget_analysis": "_agent_budget_analysis",
     "portfolio_overview": "_agent_portfolio_overview",
+    "contract_timeline": "_agent_contract_timeline",
 }
 
 
@@ -875,6 +876,66 @@ class ChatPipeline:
             return _AgentOutcome(handled=True)
         logger.warning("portfolio_overview agent failed — falling back to SLM")
         return _AgentOutcome(handled=False, retrieved=overview_result.chunks_used)
+
+    def _agent_contract_timeline(
+        self, query: str, mode: str, retrieval_query: str, t_start: float,
+        bypass_cache: bool = False,
+    ) -> Iterator[dict[str, Any]]:
+        # Grounded temporal path: compute each current contract's renewal date
+        # (effective + term) and days-from-today in Python, then let Groq answer the
+        # user's specific "when / how many days until" question from that timeline.
+        yield {"type": "step", "name": "agent_research", "status": "start"}
+        from app.core.agents.contract_timeline_agent import run_contract_timeline
+
+        result = run_contract_timeline(
+            retrieval_query, self.retriever, settings.groq_api_key, settings.groq_model,
+        )
+        t_retrieval = time.time()
+        source_docs = sorted({c["source_doc"] for c in result.chunks_used})
+        yield {
+            "type": "step", "name": "agent_research", "status": "done",
+            "detail": {
+                "docs_found": source_docs,
+                "contracts_found": len(result.rows),
+                "sources": [
+                    {"source_doc": c["source_doc"], "section": c.get("section", ""), "text_preview": c["text"][:300]}
+                    for c in result.chunks_used
+                ],
+            },
+        }
+
+        if result.succeeded and result.answer:
+            from app.core.verify import verify_answer
+
+            report = verify_answer(result.answer)
+            if not report.ok:
+                logger.warning("timeline answer failed verification: %s", report.summary())
+            yield {"type": "step", "name": "verification", "status": "done",
+                   "detail": {"ok": report.ok, "issues": [i.code for i in report.issues]}}
+            if not bypass_cache:
+                self.cache.set(query, mode, {"answer": result.answer, "retrieved_sources": source_docs})
+            yield {"type": "token", "text": result.answer}
+            total_ms = int((time.time() - t_start) * 1000)
+            logger.info(
+                "latency breakdown [contract_timeline/groq]: compute=%.1fs total=%.1fs contracts=%d",
+                t_retrieval - t_start, total_ms / 1000, len(result.rows),
+            )
+            yield {
+                "type": "done",
+                "latency_ms": {"total": total_ms},
+                "cache_hit": None,
+                "retrieved_sources": source_docs,
+                "valid": True,
+                "final_answer": result.answer,
+                "agent_synthesized": True,
+                "agent_tool_calls": [
+                    {"tool": "compute_renewal_dates", "args": {"scope": "current"}, "results_found": len(result.rows)},
+                    {"tool": "answer_timing_question", "args": {"model": settings.groq_model}, "results_found": 1},
+                ],
+            }
+            return _AgentOutcome(handled=True)
+        logger.warning("contract_timeline agent failed — falling back to SLM")
+        return _AgentOutcome(handled=False, retrieved=result.chunks_used)
 
     def _standard_retrieval(
         self, cap, retrieval_query: str

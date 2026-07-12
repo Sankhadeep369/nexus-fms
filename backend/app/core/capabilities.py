@@ -74,6 +74,19 @@ CAPABILITIES: list[QueryCapability] = [
         ),
     ),
     QueryCapability(
+        name="contract_timeline",
+        agent="contract_timeline",
+        max_tokens=400,
+        criteria=(
+            "asking about contract TIMING — when a contract renews or expires, how many "
+            "days/weeks/months until a renewal or expiry, or which contracts are up for "
+            "renewal within a period (e.g. \"how many days until the HVAC contract "
+            "renewal\", \"when does our fire safety contract expire\", \"which contracts "
+            "renew in the next 60 days\"). A DATE calculation about renewal/expiry timing "
+            "— never a spend (budget) or renew/switch-decision query."
+        ),
+    ),
+    QueryCapability(
         name="vendor_decision",
         agent="vendor_comparison",
         retrieval_k=4,
@@ -230,6 +243,28 @@ _HOWTO = re.compile(
     re.IGNORECASE,
 )
 
+# Temporal / renewal-timing intent = a renewal/expiry signal AND a "when / how long /
+# until / within N days" question structure. Both must be present so that
+# "should we renew…" (a decision) or "how much do we spend…" (budget) do NOT match.
+_RENEWAL_SIGNAL = re.compile(
+    r"\b(renew\w*|expir\w*|lapse\w*|renewal|expiry|expiration|up for renewal)\b"
+    r"|\b(amc|contract|agreement|term|deal)\b[^.?!\n]{0,20}\b(end|ends|ending|over|due|up)\b",
+    re.IGNORECASE,
+)
+_WHEN_SIGNAL = re.compile(
+    r"\bhow (many|long|much|soon)\b|\bwhen (do|does|will|is|are)\b|\buntil\b|"
+    r"\b(days|weeks|months) (until|till|to|left|remaining|away|before)\b|"
+    r"\bin the next \d+\b|\bwithin \d+\b|\b(due|deadline|expiry) date\b|\btime (left|until|remaining)\b",
+    re.IGNORECASE,
+)
+
+
+def is_temporal_query(query: str) -> bool:
+    """True for contract renewal/expiry TIMING questions ("how many days until X
+    renews", "when does Y expire", "which contracts renew in the next 60 days").
+    Used both to route these reliably to contract_timeline and to guard that agent."""
+    return bool(_RENEWAL_SIGNAL.search(query) and _WHEN_SIGNAL.search(query))
+
 
 def passes_agent_precondition(name: str, query: str) -> bool:
     """Cheap guard: does `query` genuinely fit the committed agent `name`?
@@ -245,6 +280,9 @@ def passes_agent_precondition(name: str, query: str) -> bool:
     if name == "incident_triage":
         # A live incident is a report, not a "how do I handle…" procedural question.
         return not _HOWTO.match(q)
+    if name == "contract_timeline":
+        # Only genuine renewal/expiry timing questions may use the timeline agent.
+        return is_temporal_query(q)
     return True
 
 

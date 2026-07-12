@@ -27,6 +27,7 @@ from app.core.capabilities import (
     capability_names,
     classifier_type_block,
     classifier_type_enum,
+    is_temporal_query,
     never_clarify_names,
 )
 
@@ -131,6 +132,11 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         query_type = str(data.get("type", "general"))
         if query_type not in capability_names():
             query_type = "general"
+        # Deterministic temporal override: renewal/expiry TIMING questions route to
+        # the contract_timeline agent regardless of the classifier, which tends to
+        # mislabel them (e.g. as budget_analysis) on the "contract" keyword.
+        if is_temporal_query(query):
+            query_type = "contract_timeline"
         entities = [str(e) for e in data.get("entities", []) if e]
 
         needs_clarification = bool(data.get("needs_clarification", False))
@@ -164,4 +170,10 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
 
     except Exception as exc:
         logger.warning("query preprocessor failed (%s) — using raw query", exc)
-        return ProcessedQuery(original=query, rewritten=query, preprocessed=False)
+        # The temporal override is deterministic and must still apply even when the
+        # Groq classifier is unavailable (e.g. rate-limited), so renewal/expiry
+        # timing questions still reach the contract_timeline agent.
+        qtype = "contract_timeline" if is_temporal_query(query) else "general"
+        return ProcessedQuery(
+            original=query, rewritten=query, query_type=qtype, preprocessed=False,
+        )
