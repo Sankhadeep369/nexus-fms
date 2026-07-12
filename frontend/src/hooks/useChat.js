@@ -22,6 +22,8 @@ function stripArtifacts(text) {
 const MIN_THINKING_MS = 600;
 
 export const STEP_LABELS = {
+  triage: "Understanding your message",
+  scope_check: "Checking what I can answer",
   cache_lookup: "Checking cache",
   query_analysis: "Analysing query",
   retrieval: "Searching documents",

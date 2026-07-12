@@ -83,6 +83,21 @@ Given the user's query, return ONLY a valid JSON object with these fields:
   Empty string if needs_clarification is false.
 - "clarification_options": if needs_clarification is true, 3–4 specific options.
   Empty array if needs_clarification is false.
+- "in_scope": true if the question can be answered from facilities-management
+  CONTRACT data (vendors, contracts, costs, fees, SLAs, renewals/expiry, systems,
+  FM procedures/SOPs). false ONLY for clearly unrelated topics (weather, sports,
+  news, general trivia, coding, personal chat, cooking). When unsure, use true.
+- "action_request": true ONLY if the user asks NEXUS to PERFORM an action it cannot
+  do — book/schedule a service, send/email/call a vendor, actually renew, sign,
+  cancel, or pay for a contract. Writing/drafting a document is NOT an action
+  (that is the draft type). false otherwise.
+- "missing_data": if the question depends on data NOT held in FM contracts (e.g.
+  compliance certificates, warranties, square footage / area, headcount, live
+  energy/meter readings, real-time sensor status), name that data type in 2-4
+  words; otherwise empty string "".
+- "suggested_question": ONLY when in_scope is false, action_request is true, or
+  missing_data is set — the single closest question NEXUS CAN answer from contract
+  data, phrased the way the user would ask it. Otherwise empty string "".
 
 Respond with ONLY the JSON object. No other text.
 
@@ -99,6 +114,11 @@ class ProcessedQuery:
     needs_clarification: bool = False
     clarification_question: str = ""
     clarification_options: list[str] = field(default_factory=list)
+    # Layer B honesty signals.
+    in_scope: bool = True
+    action_request: bool = False
+    missing_data: str = ""
+    suggested_question: str = ""
 
 
 def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
@@ -117,7 +137,7 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
                     "content": _PREPROCESS_PROMPT.format(query=query[:800], today=today_str),
                 }
             ],
-            max_tokens=350,
+            max_tokens=480,
             temperature=0.0,
         )
 
@@ -153,9 +173,20 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         if not clarification_question or not clarification_options:
             needs_clarification = False
 
+        # Layer B honesty signals. Default to permissive (in_scope=True) so a
+        # classifier hiccup never wrongly declines a real FM question.
+        in_scope = bool(data.get("in_scope", True))
+        action_request = bool(data.get("action_request", False))
+        missing_data = str(data.get("missing_data", "")).strip()
+        suggested_question = str(data.get("suggested_question", "")).strip()
+        # A recognised structured/agent intent is definitionally in scope — don't let
+        # a stray in_scope=false decline it.
+        if query_type != "general":
+            in_scope = True
+
         logger.info(
-            "query preprocessed: type=%s entities=%s clarify=%s",
-            query_type, entities, needs_clarification,
+            "query preprocessed: type=%s entities=%s clarify=%s in_scope=%s action=%s",
+            query_type, entities, needs_clarification, in_scope, action_request,
         )
         return ProcessedQuery(
             original=query,
@@ -166,6 +197,10 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
             needs_clarification=needs_clarification,
             clarification_question=clarification_question,
             clarification_options=clarification_options,
+            in_scope=in_scope,
+            action_request=action_request,
+            missing_data=missing_data,
+            suggested_question=suggested_question,
         )
 
     except Exception as exc:

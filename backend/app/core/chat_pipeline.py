@@ -267,6 +267,25 @@ class ChatPipeline:
             else settings.temperature_simple
         )
 
+        # ── 0. Fast triage (Layer A) ─────────────────────────────────────────
+        # Greetings, "what can you do", off-topic/gibberish, and adversarial input
+        # are answered instantly from templates — never reaching Groq or the
+        # multi-minute SLM. This keeps a "hi" at ~0ms.
+        from app.core.triage import pre_filter
+
+        triaged = pre_filter(query)
+        if triaged is not None:
+            kind, answer = triaged
+            yield {"type": "step", "name": "triage", "status": "done", "detail": {"kind": kind}}
+            yield {"type": "token", "text": answer}
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None, "retrieved_sources": [],
+                "valid": True, "final_answer": answer, "triaged": kind,
+            }
+            return
+
         # ── 1. Cache lookup ─────────────────────────────────────────────────
         # bypass_cache (eval harness) forces cold inference: skip the read here and
         # every self.cache.set below, so a cached answer can't corrupt the metrics.
@@ -318,6 +337,31 @@ class ChatPipeline:
             }
         else:
             processed = ProcessedQuery(original=query, rewritten=query)
+
+        # ── 2a. Scope / honesty gate (Layer B) ────────────────────────────────
+        # Decline — honestly, with the closest answerable question — queries the
+        # classifier flags as out-of-scope, an action NEXUS can't perform, or
+        # dependent on data we don't hold. Fast path: no retrieval, no SLM, so an
+        # off-topic question can't waste a multi-minute generation or hallucinate.
+        from app.core.triage import compose_decline, is_action_request
+
+        action_req = processed.action_request or is_action_request(query)
+        if (not processed.in_scope) or action_req or processed.missing_data:
+            reason = ("action" if action_req
+                      else "missing_data" if processed.missing_data else "out_of_scope")
+            msg = compose_decline(
+                action_req, processed.missing_data, processed.suggested_question,
+            )
+            logger.info("scope gate declined (%s): %r", reason, query[:80])
+            yield {"type": "step", "name": "scope_check", "status": "done", "detail": {"reason": reason}}
+            yield {"type": "token", "text": msg}
+            yield {
+                "type": "done",
+                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                "cache_hit": None, "retrieved_sources": [],
+                "valid": True, "final_answer": msg, "declined": reason,
+            }
+            return
 
         # ── 2b. Clarification gate ────────────────────────────────────────────
         # If the preprocessor flagged the query as needing scope clarification
