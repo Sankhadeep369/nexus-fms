@@ -20,6 +20,7 @@ type, so the order here is the routing priority (most specific first).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 
@@ -62,10 +63,14 @@ CAPABILITIES: list[QueryCapability] = [
         agent="incident_triage",
         max_tokens=350,
         criteria=(
-            "user is REPORTING a live facilities problem right now (e.g. \"AC down "
-            "floor 3\", \"water leak in basement\", \"elevator stuck\"). Use ONLY for "
-            "in-progress incidents needing triage and escalation — NOT for historical "
-            "queries."
+            "user is REPORTING a live facilities problem happening right now (e.g. \"AC "
+            "down floor 3\", \"water leak in basement\", \"elevator stuck\"). Use ONLY "
+            "for in-progress incidents needing triage and escalation. DO NOT use for "
+            "historical queries, and DO NOT use for HOW-TO or procedural questions about "
+            "handling a problem — \"how do I respond to a leak\", \"what is the procedure "
+            "for a fire alarm\", \"steps to handle X\" are factual/checklist requests, "
+            "not incident reports. The user must be stating that something IS wrong now, "
+            "not asking how to deal with it."
         ),
     ),
     QueryCapability(
@@ -106,13 +111,17 @@ CAPABILITIES: list[QueryCapability] = [
         name="budget_analysis",
         agent="budget_analysis",
         criteria=(
-            "user wants an AGGREGATED spend summary across the ENTIRE PORTFOLIO of "
+            "user wants an AGGREGATED MONEY/SPEND summary across the ENTIRE PORTFOLIO of "
             "contracts (e.g. \"total AMC spend across all vendors\", \"complete 2026 "
             "facilities budget breakdown\", \"how much are we spending on all systems "
-            "combined\"). The query MUST ask for totals or breakdowns that span multiple "
-            "separate vendor contracts. DO NOT use for: single-vendor cost queries, "
-            "individual contract arithmetic, budget variance on one contract, or any "
-            "query where the key figures are already provided in the user's message."
+            "combined\"). The query MUST explicitly ask about COST / SPEND / BUDGET "
+            "amounts AND span multiple separate vendor contracts. DO NOT use for: "
+            "single-vendor cost queries, individual contract arithmetic, budget variance "
+            "on one contract, or any query where the key figures are already provided. "
+            "CRITICALLY, do NOT use for questions about DATES, renewal/expiry TIMING "
+            "(\"how many days until…\", \"when does … expire\"), SLAs, scope, coverage, "
+            "or contract terms — those are factual/vendor lookups, never budget. If the "
+            "query does not explicitly ask about money, it is NOT budget_analysis."
         ),
     ),
     QueryCapability(
@@ -196,6 +205,47 @@ CAPABILITIES: list[QueryCapability] = [
 DEFAULT_CAPABILITY_NAME = "general"
 
 _BY_NAME: dict[str, QueryCapability] = {c.name: c for c in CAPABILITIES}
+
+
+# ---------------------------------------------------------------------------
+# Agent-dispatch preconditions (defense in depth)
+# ---------------------------------------------------------------------------
+# The four agents produce a COMMITTED answer shape (a table, an escalation email)
+# and bypass general reasoning, so a misclassification onto an agent is
+# catastrophic — the user gets a confident wrong-shaped answer (e.g. a budget
+# table for a "how many days until renewal" question). The LLM classifier is the
+# primary router; these cheap checks are a safety net that must PASS before an
+# agent runs. If a check fails, the pipeline downgrades to standard retrieval +
+# SLM, which at least tries to answer the actual question. Genuine agent queries
+# comfortably satisfy them.
+_MONEY_INTENT = re.compile(
+    r"\b(budget|spend|spending|spent|cost|costs|costing|expenditure|expense|"
+    r"how much|afford|pricing|financ|amount|total (spend|cost|amount|bill))\b|[$₹]",
+    re.IGNORECASE,
+)
+_HOWTO = re.compile(
+    r"^\s*(how (do|can|should|would|to)\b|what('?s| is| are) the (procedure|process|steps|"
+    r"protocol|best way)|steps (to|for)|guide (to|for|me)|explain how|walk me through|"
+    r"tips (to|for)|best practice)",
+    re.IGNORECASE,
+)
+
+
+def passes_agent_precondition(name: str, query: str) -> bool:
+    """Cheap guard: does `query` genuinely fit the committed agent `name`?
+
+    Returns True (allow the agent) unless a hard mismatch is detected. Only the two
+    agents with observed catastrophic over-triggers are guarded; the rest always pass
+    and rely on the classifier + criteria.
+    """
+    q = query.strip()
+    if name == "budget_analysis":
+        # A portfolio spend summary must actually be about money.
+        return bool(_MONEY_INTENT.search(q))
+    if name == "incident_triage":
+        # A live incident is a report, not a "how do I handle…" procedural question.
+        return not _HOWTO.match(q)
+    return True
 
 
 def get_capability(name: str | None) -> QueryCapability:

@@ -30,7 +30,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.core.cache import ResponseCache, get_response_cache
-from app.core.capabilities import RETRIEVAL_ENTITY, get_capability
+from app.core.capabilities import RETRIEVAL_ENTITY, get_capability, passes_agent_precondition
 from app.core.config import settings
 from app.core.llm import ChatModel, LLMBusyError, get_llm, load_system_prompt
 from app.core.query_processor import ProcessedQuery, preprocess
@@ -348,8 +348,21 @@ class ChatPipeline:
         # entity retrieval runs and we fall through to SLM generation.  All
         # tuning (retrieval strategy, k, generation budget) lives on `cap`.
         cap = get_capability(processed.query_type)
+        # Defense in depth: a committed agent runs only if the query genuinely fits
+        # it. If the classifier misrouted (e.g. a "how many days until renewal"
+        # question onto budget_analysis), the precondition fails and we downgrade to
+        # standard retrieval + SLM so the user gets an answer to what they actually
+        # asked, not a confident wrong-shaped agent answer.
+        agent_ok = cap.agent in _AGENT_METHODS and settings.groq_api_key
+        if agent_ok and not passes_agent_precondition(cap.name, query):
+            logger.info(
+                "agent '%s' precondition failed for query %r — downgrading to SLM path",
+                cap.agent, query[:80],
+            )
+            agent_ok = False
+
         retrieved: list[dict] = []
-        if cap.agent and cap.agent in _AGENT_METHODS and settings.groq_api_key:
+        if agent_ok:
             handler = getattr(self, _AGENT_METHODS[cap.agent])
             outcome = yield from handler(query, mode, retrieval_query, t_start, bypass_cache)
             if outcome.handled:
