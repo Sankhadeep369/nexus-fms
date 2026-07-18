@@ -89,6 +89,26 @@ def is_action_request(query: str) -> bool:
     return bool(_ACTION.match((query or "").strip()))
 
 
+# Explicit request to PRODUCE a document — this is a core service (the draft type),
+# never an "action". Catches "draft me a mail to the vendor", "write a memo on the
+# HVAC contract", "compose a complaint email", etc.
+_DRAFT_REQUEST = re.compile(
+    r"\b(draft|write|compose|prepare|create|put\s+together|type\s+up|pen|word)\b"
+    r"[\w\s,'\"-]{0,45}?"
+    r"\b(e-?mails?|mails?|memos?|letters?|reports?|notices?|alerts?|reminders?|"
+    r"messages?|notes?|repl(?:y|ies)|responses?|documents?|complaints?|"
+    r"escalations?|correspondence)\b",
+    re.IGNORECASE,
+)
+
+
+def is_draft_request(query: str) -> bool:
+    """Deterministic detection of a request to draft/write a document. Drafting is a
+    service NEXUS provides (the draft type), so this must never be treated as an
+    out-of-scope action — it overrides a classifier that mislabels it."""
+    return bool(_DRAFT_REQUEST.search(query or ""))
+
+
 def pre_filter(query: str) -> tuple[str, str] | None:
     """Return (kind, canned_answer) for an instantly-handleable edge case, else None.
 

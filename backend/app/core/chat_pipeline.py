@@ -341,12 +341,18 @@ class ChatPipeline:
         # ── 2a. Scope / honesty gate (Layer B) ────────────────────────────────
         # Decline — honestly, with the closest answerable question — queries the
         # classifier flags as out-of-scope, an action NEXUS can't perform, or
-        # dependent on data we don't hold. Fast path: no retrieval, no SLM, so an
-        # off-topic question can't waste a multi-minute generation or hallucinate.
+        # dependent on data we don't hold. Fast path: no retrieval, no SLM.
+        #
+        # Only the catch-all 'general' bucket is eligible: any recognised capability
+        # (draft, vendor, budget, timeline, comparison, …) is a service we provide
+        # and must never be declined — e.g. "draft me a mail to the vendor" is a
+        # draft request, not an action.
         from app.core.triage import compose_decline, is_action_request
 
         action_req = processed.action_request or is_action_request(query)
-        if (not processed.in_scope) or action_req or processed.missing_data:
+        if processed.query_type == "general" and (
+            (not processed.in_scope) or action_req or processed.missing_data
+        ):
             reason = ("action" if action_req
                       else "missing_data" if processed.missing_data else "out_of_scope")
             msg = compose_decline(

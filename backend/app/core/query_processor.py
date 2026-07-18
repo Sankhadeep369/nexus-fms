@@ -30,6 +30,7 @@ from app.core.capabilities import (
     is_temporal_query,
     never_clarify_names,
 )
+from app.core.triage import is_draft_request
 
 logger = logging.getLogger("nexus.query_processor")
 
@@ -183,6 +184,12 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
         # a stray in_scope=false decline it.
         if query_type != "general":
             in_scope = True
+        # An explicit request to draft/write a document is a core service — route it
+        # to draft and clear any decline signals, overriding a classifier that
+        # mislabels "draft me a mail to the vendor" as an action.
+        if is_draft_request(query) or query_type == "draft":
+            query_type = "draft"
+            in_scope, action_request, missing_data = True, False, ""
 
         logger.info(
             "query preprocessed: type=%s entities=%s clarify=%s in_scope=%s action=%s",
@@ -205,10 +212,15 @@ def preprocess(query: str, api_key: str, model: str) -> ProcessedQuery:
 
     except Exception as exc:
         logger.warning("query preprocessor failed (%s) — using raw query", exc)
-        # The temporal override is deterministic and must still apply even when the
-        # Groq classifier is unavailable (e.g. rate-limited), so renewal/expiry
-        # timing questions still reach the contract_timeline agent.
-        qtype = "contract_timeline" if is_temporal_query(query) else "general"
+        # Deterministic overrides must still apply when the Groq classifier is
+        # unavailable (e.g. rate-limited): an explicit draft request is drafted, and
+        # renewal/expiry timing questions reach the contract_timeline agent.
+        if is_draft_request(query):
+            qtype = "draft"
+        elif is_temporal_query(query):
+            qtype = "contract_timeline"
+        else:
+            qtype = "general"
         return ProcessedQuery(
             original=query, rewritten=query, query_type=qtype, preprocessed=False,
         )
