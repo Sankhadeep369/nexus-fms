@@ -128,12 +128,20 @@ Otherwise, return the answer rewritten to satisfy ALL of these:
   bold **key terms**.
 - Consolidate any hedging into ONE terse sentence at the end; remove inline hedging.
 - English only: translate or drop non-English fragments.
-- GROUNDING (most important): remove or correct EVERY specific figure NOT present
-  verbatim in the Context — amounts, rates, dates, section/appendix/exhibit refs,
-  addresses, building names, registration numbers. Replace an unsupported value with
-  "Not specified" or drop the clause. Fix implausible data (years <2000 or >2050, a
-  single AMC over $5M, wrong city/state). A vaguer true statement beats a precise
-  invented one. Add no facts not in the draft or Context.
+- GROUNDING (most important): remove or correct EVERY specific claim NOT present
+  verbatim in the Context. This applies to BOTH numbers and words:
+  * Figures — amounts, rates, dates, section/appendix/exhibit refs, addresses,
+    building names, registration numbers.
+  * Qualitative claims — vendor capabilities, service-scope items, SLA tiers / breach
+    thresholds / response-time guarantees, certifications, penalty/escalation clauses,
+    service frequencies, exclusions. If the Context does not state it, do NOT assert
+    it (the SLM tends to invent these from training knowledge).
+  * Named sections ("Appendix A", "Clause 4.2", "Exhibit 3") not found in the
+    Context — drop the reference entirely; never guess its content.
+  Replace an unsupported specific with "Not specified" or drop the clause. Fix
+  implausible data (years <2000 or >2050, a single AMC over $5M, wrong city/state).
+  A vaguer TRUE statement always beats a precise INVENTED one. Add no facts not in
+  the draft or Context.
 
 ORIGINAL QUERY: {query}
 QUERY TYPE: {query_type}

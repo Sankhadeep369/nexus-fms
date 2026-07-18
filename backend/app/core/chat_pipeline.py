@@ -246,6 +246,30 @@ class _AgentOutcome:
     retrieved: list[dict] = field(default_factory=list)
 
 
+# Site tokens that appear in both queries and source_doc filenames, used to break
+# same-vendor, different-site retrieval ties (e.g. IronGate HQ vs IronGate Austin).
+_SITE_HINTS = ("austin", "plano", "fortworth", "fort worth", "headquarters", "hq")
+
+
+def _site_rerank(chunks: list[dict], query: str) -> list[dict]:
+    """If the query names a specific site (or asks for a competitor/benchmark),
+    stably re-order chunks so the matching document sorts first — so it survives
+    the top-k cut. Pure reorder (no dropped docs), deterministic, ~0ms."""
+    q = query.lower()
+    hint = next((s for s in _SITE_HINTS if s in q), None)
+    want_competitor = any(w in q for w in ("competitor", "benchmark", "market alternative"))
+    if not hint and not want_competitor:
+        return chunks
+
+    def key(c: dict) -> int:
+        doc = c["source_doc"].lower()
+        if want_competitor:
+            return 0 if "competitor_contracts/" in doc else 1
+        return 0 if hint.replace(" ", "") in doc.replace(" ", "").replace("_", "") else 1
+
+    return sorted(chunks, key=key)  # stable: preserves relevance order within each group
+
+
 class ChatPipeline:
     def __init__(self, cache: ResponseCache, llm: ChatModel, retriever: Retriever):
         self.cache = cache
@@ -1008,6 +1032,7 @@ class ChatPipeline:
                 if c["dense_score"] >= active_retriever.min_dense_score
                 or c["bm25_score"] >= settings.retrieval_min_bm25_score
             ]
+            retrieved = _site_rerank(retrieved, retrieval_query)
         else:
             # Standard retriever: fetch the full cross-encoder candidate pool
             # (reranker_candidates=20) so the relevance gate can rescue high-BM25
@@ -1020,6 +1045,9 @@ class ChatPipeline:
                 if c["dense_score"] >= active_retriever.min_dense_score
                 or c["bm25_score"] >= settings.retrieval_min_bm25_score
             ]
+            # Site-preference re-rank BEFORE the top-k cut so a site-matched document
+            # survives a same-vendor tie (e.g. IronGate Austin vs HQ).
+            gated = _site_rerank(gated, retrieval_query)
             retrieved = gated[:retrieval_k]
         yield {
             "type": "step",
