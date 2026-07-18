@@ -171,6 +171,9 @@ CAPABILITIES: list[QueryCapability] = [
         name="draft",
         retrieval_k=3,
         max_tokens=400,
+        compress=True,   # drafts are long prose with no critical tables — safe to
+                         # compress each chunk to its query-relevant sentences,
+                         # cutting the context the SLM must read (less hallucination)
         criteria=(
             "requesting a document (email, memo, report, alert, reminder, notice, "
             "letter, template). This takes PRECEDENCE whenever the query is an explicit "
@@ -195,7 +198,7 @@ CAPABILITIES: list[QueryCapability] = [
     QueryCapability(
         name="factual",
         retrieval_k=3,
-        max_tokens=260,
+        max_tokens=320,   # was 260 — budget-variance / multi-figure answers truncated
         never_clarify=False,
         criteria=(
             "asking for a specific fact, SOP, procedure, explanation, or lookup. Default "
@@ -266,6 +269,24 @@ def is_temporal_query(query: str) -> bool:
     return bool(_RENEWAL_SIGNAL.search(query) and _WHEN_SIGNAL.search(query))
 
 
+# First-person renew/switch/negotiate DECISION framing — the only thing the
+# committed vendor_decision agent (current-vs-alternatives table) should fire on.
+# Guards against the classifier routing budget-variance / renewal-alert queries
+# (which merely mention a vendor + cost/renewal) onto the decision agent.
+# Only UNAMBIGUOUS first-person decision framings. A bare "renew with X" is
+# deliberately excluded because it also appears in budget-variance questions
+# ("how much more if we renew with Apex") that must downgrade, not hit the agent.
+_VENDOR_DECISION_SIGNAL = re.compile(
+    r"\bshould\s+(we|i|us)\s+(renew|switch|continue|stay|keep|drop|replace|negotiate|move|go)\b|"
+    r"\bis\s+(our|the)\b[\w\s]{0,30}?\b(deal|contract|agreement|vendor|rate|price|pricing|arrangement)\b"
+    r"[\w\s]{0,20}?\b(competitive|worth|fair|reasonable|value|better|good)\b|"
+    r"\bdo\s+we\s+(want|need)\s+to\s+(continue|stay|keep|renew|switch|negotiate)\b|"
+    r"\b(worth|better\s+to)\s+(renewing|switching|staying|keeping|negotiating)\b|"
+    r"\b(renew|stay\s+with|switch\s+from)\b.{0,30}\bor\s+(switch|move|change|go)\b",
+    re.IGNORECASE,
+)
+
+
 def passes_agent_precondition(name: str, query: str) -> bool:
     """Cheap guard: does `query` genuinely fit the committed agent `name`?
 
@@ -283,6 +304,11 @@ def passes_agent_precondition(name: str, query: str) -> bool:
     if name == "contract_timeline":
         # Only genuine renewal/expiry timing questions may use the timeline agent.
         return is_temporal_query(q)
+    if name == "vendor_decision":
+        # Only explicit first-person renew/switch/negotiate decisions; a
+        # budget-variance or renewal-alert query that names a vendor downgrades to
+        # the standard path rather than getting a wrong current-vs-alternatives table.
+        return bool(_VENDOR_DECISION_SIGNAL.search(q))
     return True
 
 

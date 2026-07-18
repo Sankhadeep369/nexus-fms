@@ -19,6 +19,8 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 
+from app.core.agents._common import provenance_chunks
+
 logger = logging.getLogger("nexus.agent.contract_timeline")
 
 _SYNTH_PROMPT = """\
@@ -83,7 +85,7 @@ def run_contract_timeline(
             chunks_used=[], rows=rows, succeeded=False,
         )
 
-    chunks_used = _provenance(retriever, {r["source_doc"] for r in rows})
+    chunks_used = provenance_chunks(retriever, {r["source_doc"] for r in rows})
 
     # Groq interprets the question over the deterministic timeline (dates grounded).
     try:
@@ -125,12 +127,3 @@ def _format_table(rows: list[dict]) -> str:
     return "\n".join(out)
 
 
-def _provenance(retriever, source_docs: set[str]) -> list[dict]:
-    chunks: list[dict] = []
-    seen: set[str] = set()
-    if retriever is not None and hasattr(retriever, "chunks"):
-        for c in retriever.chunks:
-            if c.source_doc in source_docs and c.source_doc not in seen:
-                seen.add(c.source_doc)
-                chunks.append({"source_doc": c.source_doc, "section": c.section, "text": c.text})
-    return chunks

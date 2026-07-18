@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from app.core.agents._common import provenance_chunks
+
 logger = logging.getLogger("nexus.agent.portfolio_overview")
 
 
@@ -55,7 +57,7 @@ def run_portfolio_overview(
     ]
 
     answer = _format_registry(contracts)
-    chunks_used = _provenance(retriever, {c["source_doc"] for c in contracts})
+    chunks_used = provenance_chunks(retriever, {c["source_doc"] for c in contracts})
     logger.info("portfolio_overview: %d current contracts (deterministic)", len(contracts))
     return PortfolioOverviewResult(
         answer=answer, chunks_used=chunks_used, contracts=contracts, succeeded=True,
@@ -77,13 +79,3 @@ def _format_registry(contracts: list[dict]) -> str:
     return "\n".join(out)
 
 
-def _provenance(retriever, source_docs: set[str]) -> list[dict]:
-    """First indexed chunk per contract, for source attribution / G-Eval."""
-    chunks: list[dict] = []
-    seen: set[str] = set()
-    if retriever is not None and hasattr(retriever, "chunks"):
-        for c in retriever.chunks:
-            if c.source_doc in source_docs and c.source_doc not in seen:
-                seen.add(c.source_doc)
-                chunks.append({"source_doc": c.source_doc, "section": c.section, "text": c.text})
-    return chunks

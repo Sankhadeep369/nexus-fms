@@ -60,10 +60,12 @@ class Settings(BaseSettings):
     # Silently skipped if the installed llama-cpp-python wheel predates support.
     llm_flash_attn: bool = True
     # Contextual compression: after retrieval, a single Groq call extracts only the
-    # 2-3 sentences per chunk most relevant to the query.  Disabled: compression
-    # strips scenario-matrix rows, exact INR figures, and multi-clause SLA content
-    # that the SLM needs verbatim — faithfulness and ROUGE both drop when active.
-    context_compression_enabled: bool = False
+    # 2-3 sentences per chunk most relevant to the query.  This is now a MASTER
+    # switch, gated per-capability by cap.compress — only capabilities that opt in
+    # are compressed.  It was globally harmful when applied to table/figure-heavy
+    # types (comparison/vendor: it stripped scenario-matrix rows and INR figures),
+    # so only `draft` (long prose, no critical tables) opts in.
+    context_compression_enabled: bool = True
 
     # --- LLM backend ---
     # "local"      -> run the GGUF on-device via llama.cpp (default, no extra setup)

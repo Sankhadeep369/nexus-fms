@@ -17,6 +17,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from app.core.agents._common import provenance_chunks
+
 logger = logging.getLogger("nexus.agent.budget_analysis")
 
 
@@ -76,7 +78,7 @@ def run_budget_analysis(
         )
 
     answer = _format_budget(line_items, year)
-    chunks_used = _provenance(retriever, {li["source_doc"] for li in priced})
+    chunks_used = provenance_chunks(retriever, {li["source_doc"] for li in priced})
     logger.info(
         "budget_analysis: %d contracts priced (of %d), currencies=%s",
         len(priced), len(current), sorted({li["currency"] for li in priced}),
@@ -122,14 +124,3 @@ def _format_budget(items: list[dict], year: int) -> str:
     return "\n".join(out).strip()
 
 
-def _provenance(retriever, source_docs: set[str]) -> list[dict]:
-    """First indexed chunk per contributing contract, for source attribution /
-    G-Eval — the figures come from the index, this is just where they live."""
-    chunks: list[dict] = []
-    seen: set[str] = set()
-    if retriever is not None and hasattr(retriever, "chunks"):
-        for c in retriever.chunks:
-            if c.source_doc in source_docs and c.source_doc not in seen:
-                seen.add(c.source_doc)
-                chunks.append({"source_doc": c.source_doc, "section": c.section, "text": c.text})
-    return chunks
