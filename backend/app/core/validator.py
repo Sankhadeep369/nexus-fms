@@ -101,74 +101,46 @@ def _numeric_grounding_check(answer: str, context_chunks: list[dict]) -> Validat
     return None
 
 _REWRITE_PROMPT = """\
-You are a quality-control rewriter for NEXUS, an AI facilities-management assistant.
+You are a silent quality-control rewriter for NEXUS, an FM assistant. You clean up
+the assistant's draft answer and return ONLY the finished answer the user will read.
+
+CRITICAL OUTPUT RULE: your entire reply is EITHER the rewritten answer OR the single
+word REJECT — nothing else. Do NOT narrate your process. Never output words like
+"STEP 1", "STEP 2", "VALIDATION", "REWRITE", "Here is the rewritten answer", or any
+heading/label describing what you did. The user must see only the final answer.
+
+Reply with exactly REJECT (and nothing else) only if the draft is not in English, or
+is pure meta-commentary quoting rules/instructions (e.g. "This response follows all
+mandatory rules"). Ungrounded figures are NOT a reason to reject — you fix those below.
+
+Otherwise, return the answer rewritten to satisfy ALL of these:
+- Concise, no repetition/padding/preamble ("Certainly! Here is…"), no trailing
+  disclaimers, no self-dialogue (never ask the user a question and then answer it
+  yourself). Keep every substantive point. Target length by query type:
+  factual 80–150w · vendor 150–220w · comparison 150–200w · checklist 150–250w ·
+  vendor_decision 200–280w · draft 200–350w · general 120–200w.
+- Formatted for the query type:
+  vendor_decision → Markdown table (Term | Current | Alternative) + one bold
+  **Recommendation:** line. vendor → header line + Markdown terms table (Term |
+  Detail), missing = "Not specified". comparison → Markdown table only. checklist →
+  numbered/bulleted list. draft → full document (Subject/Greeting/Body/Sign-off).
+  factual → direct answer, ## headings only if multi-section. general → structured,
+  bold **key terms**.
+- Consolidate any hedging into ONE terse sentence at the end; remove inline hedging.
+- English only: translate or drop non-English fragments.
+- GROUNDING (most important): remove or correct EVERY specific figure NOT present
+  verbatim in the Context — amounts, rates, dates, section/appendix/exhibit refs,
+  addresses, building names, registration numbers. Replace an unsupported value with
+  "Not specified" or drop the clause. Fix implausible data (years <2000 or >2050, a
+  single AMC over $5M, wrong city/state). A vaguer true statement beats a precise
+  invented one. Add no facts not in the draft or Context.
 
 ORIGINAL QUERY: {query}
 QUERY TYPE: {query_type}
-(vendor_decision=renew/switch recommendation with current-vs-alternatives table,
-vendor=contract/agreement details, factual=fact/procedure, comparison=multi-vendor table,
-draft=email/memo/document, checklist=inspection/steps, general=best-practices/overview)
+RETRIEVED CONTEXT: {context}
+DRAFT ANSWER TO CLEAN UP: {answer}
 
-RETRIEVED CONTEXT (what the assistant had access to):
-{context}
-
-GENERATED ANSWER (raw output from the assistant):
-{answer}
-
-Your task — do BOTH in one pass:
-
-STEP 1 — VALIDATE (hard reject only — these cannot be fixed by rewriting):
-  a) Is the entire answer in English? No other language or script?
-  d) Does it contain meta-commentary quoting rules or instructions? e.g. phrases
-     like "This response follows all four mandatory rules" or "no invented facts"
-     copied from the system instructions.
-
-If either fails → respond with ONLY the single word: REJECT
-
-Ungrounded specifics (invented amounts, addresses, section refs, implausible data)
-are NOT a reason to reject — they are FIXED in STEP 2 below.
-
-STEP 2 — REWRITE (only if all checks passed):
-  Rewrite the answer to be:
-  - Complete but concise: remove repetition, padding, preamble ("Certainly! Here is…"),
-    trailing disclaimers, and meta-commentary, but KEEP all substantive points.
-    Target word counts by query type — stop when content is complete, do NOT pad:
-    * factual        → 80–150 words (direct answer, no scene-setting intro)
-    * vendor/contract→ 150–220 words (terms table + one caveat line at most)
-    * comparison     → 150–200 words (table only, no body paragraphs)
-    * checklist      → 150–250 words (5–10 items, all relevant steps retained)
-    * vendor_decision→ 200–280 words (comparison table + Recommendation sentence)
-    * draft/email    → 200–350 words (full document: subject/greeting/body/sign-off)
-    * general        → 120–200 words
-  - Correctly formatted for the query type:
-    * vendor_decision → Two-part structure: (1) Markdown table comparing current
-      terms vs. competitor/market alternatives (Term | Current | Alternative),
-      (2) a bolded one-line **Recommendation:** sentence at the end with reasoning.
-    * vendor/contract → Header line (Vendor — Category — Agreement No.) + Markdown
-      table of terms (Term | Detail). Missing values = "Not specified". ONE optional
-      terse caveat line at the very end. No inline hedging whatsoever.
-    * comparison  → Markdown table (| col | col | with | --- | separator)
-    * checklist   → numbered or bulleted list with all relevant items
-    * draft       → full document (Subject / Greeting / Body / Sign-off for emails)
-    * factual     → direct answer; ## headings only if genuinely multi-section
-    * general     → structured answer with bold **key terms**
-  - Uncertainty handling: if the original answer contains multiple caveats or
-    hedging phrases ("as not explicitly stated", "per our records this may vary",
-    "recommend retrieving from"), consolidate ALL of them into ONE terse sentence
-    at the very end. Remove all inline hedging from the body of the answer.
-  - English only: translate or silently remove any non-English fragments
-  - GROUNDING (most important): remove or correct EVERY specific figure that does
-    NOT appear verbatim in the Context above — currency/dollar amounts, rates,
-    dates, section/appendix/exhibit references, street addresses, building names,
-    registration numbers. Replace an unsupported value with "Not specified" or drop
-    the clause entirely. Also fix implausible data (years before 2000 or after 2050,
-    a single AMC over $5 million, wrong city/state pairings). NEVER invent or carry
-    forward a specific the Context does not support — a vaguer true statement beats a
-    precise invented one.
-  - Do NOT add any facts not in the original answer or context
-
-OUTPUT: respond with ONLY the corrected answer as plain Markdown — no JSON, no code
-fences, no preamble, no commentary. (Or the single word REJECT if STEP 1 failed.)"""
+Remember: output ONLY the finished answer (or REJECT). No labels, no explanation."""
 
 
 @dataclass
@@ -201,6 +173,29 @@ def _rule_check(answer: str) -> ValidationResult | None:
     return None
 
 
+_STEP2_RE = re.compile(r"^\s*(?:#+\s*)?STEP\s*2\b.*$", re.IGNORECASE | re.MULTILINE)
+_STEP_HEADER_RE = re.compile(
+    r"^\s*(?:#+\s*)?(?:STEP\s*\d\b.*|VALIDATION|REWRITE|OUTPUT)\s*:?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _strip_rewriter_scaffolding(text: str) -> str:
+    """Remove any rewriter step-narration that leaked into the answer.
+
+    The rewrite prompt is instructed to output only the finished answer, but a
+    smaller model sometimes echoes its process ("STEP 1 VALIDATION … STEP 2
+    REWRITE … <answer>"). If that happens, keep only what follows the last STEP 2
+    marker and drop any residual step/validation header lines, so the user never
+    sees the internal scaffolding.
+    """
+    matches = list(_STEP2_RE.finditer(text))
+    if matches:
+        text = text[matches[-1].end():]
+    text = _STEP_HEADER_RE.sub("", text)
+    return text.strip()
+
+
 def _groq_rewrite(
     query: str,
     query_type: str,
@@ -223,7 +218,7 @@ def _groq_rewrite(
         from groq import Groq
 
         context_text = "\n\n---\n\n".join(
-            f"[Section: {c['section']}]\n{c['text']}" for c in context_chunks
+            f"[Section: {c.get('section', '')}]\n{c.get('text', '')}" for c in context_chunks
         )[:3000]
 
         client = Groq(api_key=api_key)
@@ -241,7 +236,7 @@ def _groq_rewrite(
                 }
             ],
             max_tokens=2048,
-            temperature=0.1,
+            temperature=0.0,
         )
         raw = response.choices[0].message.content.strip()
     except Exception as exc:
@@ -252,6 +247,9 @@ def _groq_rewrite(
     # JSON-wrapped answer): the model returns either "REJECT" or the corrected answer
     # directly. Strip any stray code fences the model may add.
     rewritten = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n").strip()
+    # Safety net: if the model still narrated its process (e.g. "STEP 1
+    # VALIDATION … STEP 2 REWRITE …"), keep only the real answer.
+    rewritten = _strip_rewriter_scaffolding(rewritten)
 
     if not rewritten or rewritten.upper().startswith("REJECT"):
         return ValidationResult(passed=False, answer="", reason="rewriter rejected (non-English/meta)", layer="groq")
