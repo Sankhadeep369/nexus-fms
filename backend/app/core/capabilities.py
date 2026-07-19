@@ -286,6 +286,29 @@ _VENDOR_DECISION_SIGNAL = re.compile(
     re.IGNORECASE,
 )
 
+# Unambiguous first-person decision framing — always a vendor_decision, even if it
+# also mentions cost (e.g. "should we switch to a cheaper vendor").
+_DECISION_STRONG = re.compile(
+    r"\bshould\s+(we|i|us)\s+(renew|switch|continue|stay|keep|drop|replace|negotiate|move|go)\b|"
+    r"\bdo\s+we\s+(want|need)\s+to\s+(continue|stay|keep|renew|switch|negotiate)\b|"
+    r"\b(worth|better\s+to)\s+(renewing|switching|staying|keeping|negotiating)\b",
+    re.IGNORECASE,
+)
+
+# Cost-VARIANCE framing — a "how much" / cost-difference CALCULATION (a
+# comparison/budget query), NOT a decision, even when it names a vendor and says
+# "renew". This deny-list downgrades those off the committed decision agent.
+_BUDGET_VARIANCE_DENY = re.compile(
+    r"\bhow\s+much\s+(more|less|cheaper|extra|would|do|does)\b|"
+    r"\bcost\s+(difference|delta|saving|savings|comparison|increase|reduction|impact|gap)\b|"
+    r"\b(difference|delta|gap|increase|reduction)\b[\w\s]{0,20}?\b(cost|price|fee|rate|spend|pay)\b|"
+    r"\bwhat\s+(would|will|does|is)\b[\w\s]{0,20}?\b(cost|difference|save|savings|extra)\b|"
+    r"\b(save|saving|savings|cheaper|dearer|more\s+expensive)\b[\w\s]{0,20}?\b(if|by|per|annually|monthly|a\s+year)\b|"
+    r"\bvs\.?\s+(our|the|current|contracted)\b|\bcompared\s+to\s+(our|the|current|contracted)\b|"
+    r"\bcontracted\s+rate\b",
+    re.IGNORECASE,
+)
+
 
 def passes_agent_precondition(name: str, query: str) -> bool:
     """Cheap guard: does `query` genuinely fit the committed agent `name`?
@@ -305,9 +328,11 @@ def passes_agent_precondition(name: str, query: str) -> bool:
         # Only genuine renewal/expiry timing questions may use the timeline agent.
         return is_temporal_query(q)
     if name == "vendor_decision":
-        # Only explicit first-person renew/switch/negotiate decisions; a
-        # budget-variance or renewal-alert query that names a vendor downgrades to
-        # the standard path rather than getting a wrong current-vs-alternatives table.
+        # A cost-variance "how much / cost difference" question is a comparison, not a
+        # decision — downgrade it UNLESS there is an unambiguous first-person decision
+        # ("should we…"). Then require an explicit decision signal to fire the agent.
+        if _BUDGET_VARIANCE_DENY.search(q) and not _DECISION_STRONG.search(q):
+            return False
         return bool(_VENDOR_DECISION_SIGNAL.search(q))
     return True
 
