@@ -33,6 +33,7 @@ export const STEP_LABELS = {
   verification: "Verifying answer",
   generation: "Generating answer",
   refinement: "Refining answer",
+  faithfulness: "Fact-checking against sources",
   recovery: "Recovering a grounded answer",
 };
 

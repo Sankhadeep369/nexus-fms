@@ -100,6 +100,65 @@ def _numeric_grounding_check(answer: str, context_chunks: list[dict]) -> Validat
             )
     return None
 
+
+_FAITHFULNESS_PROMPT = """\
+You are a strict fact-checker for a facilities-management assistant. Decide whether
+the ANSWER asserts any SPECIFIC claim that the CONTEXT does not support — an invented
+figure, vendor capability, SLA / response-time, service-scope item, certification,
+penalty / exclusion, or clause / section reference.
+
+Only flag a CLEAR invention of a specific. Do NOT flag: general FM best-practice
+statements, reasonable paraphrase of the context, "Not specified", or formatting.
+
+CONTEXT:
+{context}
+
+ANSWER:
+{answer}
+
+Reply with exactly the word GROUNDED if every specific claim is supported by the
+context (or is a general best-practice statement with no invented specifics).
+Otherwise reply "UNSUPPORTED:" followed by a very short list of the invented
+specifics. Output nothing else."""
+
+
+def check_faithfulness(
+    answer: str, context_chunks: list[dict], api_key: str | None, model: str
+) -> ValidationResult | None:
+    """Focused LLM fact-check for the SLM path: returns a failure ValidationResult
+    when the answer contains SPECIFIC claims not supported by the context, else None.
+
+    This is the qualitative backstop the deterministic numeric check can't provide —
+    it catches invented vendor capabilities / SLA tiers / clause references. Fails
+    OPEN (returns None) on any error so a checker outage never blocks a usable
+    answer, and is deliberately conservative to avoid over-triggering recovery."""
+    if not answer or not context_chunks or not api_key:
+        return None
+    try:
+        from groq import Groq
+
+        context = "\n\n---\n\n".join(c.get("text", "") for c in context_chunks)[:4000]
+        client = Groq(api_key=api_key)
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": _FAITHFULNESS_PROMPT.format(
+                context=context, answer=answer[:2500],
+            )}],
+            max_tokens=160,
+            temperature=0.0,
+        )
+        verdict = resp.choices[0].message.content.strip()
+        if verdict.upper().startswith("UNSUPPORTED"):
+            return ValidationResult(
+                passed=False, answer="",
+                reason=f"unfaithful: {verdict[:180]}", layer="faithfulness",
+            )
+        return None
+    except Exception as exc:
+        logger.warning("faithfulness check unavailable (%s) — passing through", exc)
+        return None
+
+
 _REWRITE_PROMPT = """\
 You are a silent quality-control rewriter for NEXUS, an FM assistant. You clean up
 the assistant's draft answer and return ONLY the finished answer the user will read.

@@ -576,12 +576,25 @@ class ChatPipeline:
         needs_recovery = not result.passed
         recovery_reason = result.reason
         if result.passed and retrieved:
-            from app.core.validator import _numeric_grounding_check
+            from app.core.validator import _numeric_grounding_check, check_faithfulness
             ng = _numeric_grounding_check(result.answer, retrieved)
             if ng is not None:
                 logger.info("post-refinement hallucination detected (%s) — recovering", ng.reason)
                 needs_recovery = True
                 recovery_reason = ng.reason
+            elif settings.faithfulness_gate_enabled and settings.groq_api_key:
+                # Qualitative backstop: catch invented capabilities / SLAs / clauses
+                # the numeric check can't, and recover from context if found.
+                yield {"type": "step", "name": "faithfulness", "status": "start"}
+                ff = check_faithfulness(
+                    result.answer, retrieved, settings.groq_api_key, settings.groq_model
+                )
+                yield {"type": "step", "name": "faithfulness", "status": "done",
+                       "detail": {"grounded": ff is None}}
+                if ff is not None:
+                    logger.info("faithfulness gate: unsupported claims — recovering (%s)", ff.reason)
+                    needs_recovery = True
+                    recovery_reason = ff.reason
 
         if needs_recovery:
             from app.core.recovery import recover_answer

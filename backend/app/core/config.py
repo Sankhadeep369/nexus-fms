@@ -145,6 +145,11 @@ class Settings(BaseSettings):
     query_preprocessor_enabled: bool = True
     # Toggle the Groq answer rewriter (validates + rewrites the generated answer)
     answer_rewriter_enabled: bool = True
+    # Faithfulness gate: after refinement, a focused Groq fact-check on the SLM answer
+    # vs the retrieved context; unsupported qualitative claims trigger grounded
+    # recovery. Catches what the deterministic numeric-grounding check can't. Adds one
+    # Groq call to context-backed SLM answers (negligible vs CPU generation).
+    faithfulness_gate_enabled: bool = True
     # Minimum quality score (0-10) to accept an answer; below this a fallback is shown.
     validation_min_score: int = 6
     # How many previous conversation turns (user+assistant pairs) to include in the
