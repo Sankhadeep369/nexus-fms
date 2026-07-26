@@ -1,7 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSuggestions } from "../hooks/useSuggestions";
-import { LogoIcon, SparkleIcon, ZapIcon } from "./icons";
+import { ChevronDownIcon, LogoIcon, SparkleIcon, ZapIcon } from "./icons";
 import MessageBubble from "./MessageBubble";
+
+// How close to the bottom (px) still counts as "following" the conversation.
+const NEAR_BOTTOM_PX = 120;
 
 const CHIP_COUNT = 4;
 
@@ -23,15 +26,34 @@ function getGreeting() {
 
 export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, disabled }) {
   const endRef = useRef(null);
+  const scrollRef = useRef(null);
+  const [atBottom, setAtBottom] = useState(true);
   const suggestions = useSuggestions();
   const chips = pickChips(suggestions);
 
+  const scrollToBottom = (behavior = "smooth") =>
+    endRef.current?.scrollIntoView({ behavior, block: "end" });
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setAtBottom(distance <= NEAR_BOTTOM_PX);
+  };
+
+  // Auto-follow new content only while the user is already at the bottom, so we
+  // don't yank them down when they've scrolled up to read earlier messages.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    if (atBottom) scrollToBottom();
+  }, [messages, atBottom]);
 
   return (
-    <div className="scroll-thin relative flex-1 overflow-y-auto px-4 py-6">
+    <div className="relative flex-1 overflow-hidden">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="scroll-thin absolute inset-0 overflow-y-auto px-4 py-6"
+      >
       <div className="mx-auto flex max-w-3xl flex-col gap-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center pt-16 text-center sm:pt-24">
@@ -66,7 +88,8 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
               ))}
             </div>
             <p className="mt-3 text-[11px] text-nexus-muted">
-              Tip: type <span className="rounded bg-nexus-panel2 px-1 py-0.5 font-mono">/</span> for more suggested questions.
+              Tip: type <span className="rounded bg-nexus-panel2 px-1 py-0.5 font-mono">/</span> or press{" "}
+              <span className="rounded bg-nexus-panel2 px-1 py-0.5 font-mono">⌘K</span> for more suggested questions.
             </p>
           </div>
         )}
@@ -81,7 +104,18 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
           />
         ))}
         <div ref={endRef} />
+        </div>
       </div>
+      {!atBottom && messages.length > 0 && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom()}
+          aria-label="Scroll to latest message"
+          className="absolute bottom-4 left-1/2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-nexus-border bg-nexus-panel text-nexus-text shadow-lg transition-all hover:border-nexus-accent/60 hover:text-nexus-accent active:scale-95"
+        >
+          <ChevronDownIcon className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

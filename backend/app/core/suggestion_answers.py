@@ -283,4 +283,187 @@ Proposed fixes (e.g., re-issue access cards, patch a door sensor, retrain staff)
 - **Mounting** -- bracket secure, extinguisher at the correct mounting height.
 
 Any unit that fails inspection should be tagged out of service and replaced immediately, with the defective unit sent for refill/servicing per the manufacturer's schedule.""",
+    "What are the ideal temperature and humidity setpoints for an office building?": """## Comfort Setpoints for an Office Building
+
+| Parameter | Recommended range | Notes |
+| --- | --- | --- |
+| Temperature (occupied) | 23-26 degC (summer), 21-24 degC (winter) | Aim for ~24 degC as a comfortable, energy-efficient middle ground. |
+| Relative humidity | 40-60% RH | Below 30% feels dry; above 65% risks condensation and mould. |
+| Setback (unoccupied) | +3-4 degC above cooling setpoint | Relax the setpoint after hours to save energy. |
+| Fresh air | Per occupancy / CO2 sensor | Keep CO2 under ~1000 ppm for good indoor air quality. |
+
+Raising the cooling setpoint by even 1 degC typically cuts HVAC energy by 3-5%. Use a small dead-band (e.g. cool at 25, heat at 22) so the plant isn't fighting itself, and let the BMS ramp setpoints gradually to avoid comfort complaints.""",
+    "What water treatment parameters should I monitor for cooling towers?": """## Cooling Tower Water Treatment -- Key Parameters
+
+| Parameter | Typical target | Why it matters |
+| --- | --- | --- |
+| pH | 6.5-8.5 | Low pH corrodes metal; high pH encourages scale. |
+| Conductivity / TDS | Per system design; controls blowdown | Rising conductivity means concentrating solids -- triggers bleed. |
+| Cycles of concentration | 3-6 | Balances water saving against scaling risk. |
+| Total hardness | Site-specific | High hardness drives calcium scale on fills and tubes. |
+| Free chlorine / biocide residual | 0.2-0.5 ppm free chlorine | Controls biofilm and general bacteria. |
+| Legionella | Undetectable / low CFU | Public-health critical -- test periodically per local code. |
+
+Dose scale, corrosion, and biocide chemicals via automatic controllers where possible, log readings on the water-treatment sheet, and schedule periodic Legionella sampling. Any biocide residual dropping to zero or a Legionella-positive result should trigger immediate corrective dosing and a system review.""",
+    "What's the escalation path when a vendor repeatedly misses its SLA?": """## Escalation Path for Repeated SLA Breaches
+
+1. **Log and quantify** -- record each missed SLA (date, ticket, target vs. actual) so the pattern is documented, not anecdotal.
+2. **Level 1 -- technician/site supervisor** -- raise the immediate breach with the vendor's on-site team and confirm corrective action for the open ticket.
+3. **Level 2 -- account manager** -- issue a formal written notice summarising the repeated breaches and request a root-cause explanation and improvement plan within a set timeframe.
+4. **Level 3 -- performance review meeting** -- convene with the vendor's management; review the SLA scorecard, agree on measurable targets, and set a probation/monitoring period.
+5. **Contractual remedies** -- apply any penalty/liquidated-damages clause, withhold disputed payment, or invoke the cure period per the contract's default clause.
+6. **Termination / re-tender** -- if performance doesn't recover within the cure period, trigger the termination clause and begin sourcing an alternative vendor to avoid a coverage gap.
+
+Keep every step in writing and attach it to the vendor file -- a documented escalation trail is essential if you later need to enforce penalties or terminate for cause.""",
+    "How do I calculate the AMC cost per square foot?": """## Calculating AMC Cost per Square Foot
+
+**Formula**
+
+> AMC cost per sq ft = Total annual AMC value / Total serviced area (sq ft)
+
+**Worked example**
+- Annual AMC value: INR 12,00,000
+- Serviced (built-up) area: 50,000 sq ft
+- Cost per sq ft = 12,00,000 / 50,000 = **INR 24 per sq ft per year**
+
+**Tips for a meaningful figure**
+- Decide whether to use **built-up** or **carpet** area, and apply it consistently across all vendors so comparisons are fair.
+- For a **single-system** AMC (e.g. HVAC only), divide by the area that system actually serves, not the whole building.
+- Compare on a **like-for-like scope** -- a comprehensive AMC (parts + labour) will naturally show a higher per-sq-ft cost than a non-comprehensive one.
+- Track the figure year-on-year; a sharp rise not explained by scope changes is a prompt to re-tender.""",
+    "Draft a work order for AC repair on the third floor.": """## WORK ORDER
+
+**Work Order No.:** ________
+**Date raised:** ________
+**Priority:** High
+**Raised by:** Facilities Helpdesk
+
+**Location:** 3rd Floor (specify zone / room no.)
+**Asset / Equipment:** Air-conditioning unit (AHU / FCU / split unit -- specify tag no.)
+
+**1. Problem reported**
+Air conditioning on the 3rd floor is not cooling / not operating. (Add specifics: no airflow, warm air, water leak, abnormal noise, tripped unit.)
+
+**2. Requested action**
+Inspect and repair the affected AC unit; diagnose root cause (refrigerant, compressor, fan, thermostat, drainage, electrical) and restore normal cooling.
+
+**3. Assigned to**
+Vendor / in-house technician: ________  |  Contact: ________
+
+**4. Target response / completion**
+Response by: ________  |  Completion by: ________ (per SLA)
+
+**5. Parts / materials (if any)**
+________________________________________
+
+**6. Work performed / resolution**
+________________________________________
+
+**Technician sign-off:** ________  **Date/Time:** ________
+**Verified by (Facilities):** ________""",
+    "Draft a tenant notice about scheduled water tank cleaning.": """## NOTICE -- Scheduled Water Tank Cleaning
+
+**Date:** ________
+**To:** All Tenants / Occupants
+**From:** Facilities Management
+
+Please be informed that the building's water storage tanks will undergo scheduled cleaning and disinfection as part of our routine maintenance and hygiene program.
+
+- **Date of work:** ________
+- **Time:** ________ to ________
+- **Affected supply:** Domestic water supply to (specify floors/zones) will be temporarily interrupted during this period.
+
+**What to expect**
+- Water supply will be shut off for the duration of the cleaning.
+- On restoration, you may briefly notice slightly discoloured water -- please run taps for a minute to clear the lines.
+
+**We request that you**
+- Store sufficient water in advance for essential use during the shutdown.
+- Keep taps closed while the supply is off to avoid air locks.
+
+We apologise for the inconvenience and appreciate your cooperation in keeping the building's water systems clean and safe. For any concerns, please contact the Facilities Helpdesk.
+
+Facilities Management Team""",
+    "How often should diesel generator (DG) sets be tested and serviced?": """## DG Set Testing & Service Intervals
+
+**Weekly**
+- **No-load / off-load test run** -- start the DG and run for ~15-30 minutes to circulate oil, charge batteries, and confirm it starts on demand. Check for leaks, alarms, and abnormal noise.
+
+**Monthly**
+- **On-load test** -- run the DG under load (via load bank or actual transfer) to prevent wet-stacking and confirm it can carry the building load. Check coolant, oil, and battery electrolyte levels.
+
+**Quarterly**
+- Inspect fuel quality/filters, tighten electrical connections, test the auto-changeover (AMF) panel, and verify exhaust and silencer condition.
+
+**Semi-annual / Annual**
+- Full service: change engine oil and filters, replace air/fuel filters as needed, service the cooling system, test/replace batteries, and calibrate protection relays.
+
+**Ongoing**
+- Keep fuel topped up and treated (fuel degrades over time), log every run and its parameters, and periodically **load-bank test** standby sets that rarely see real load to burn off carbon build-up.""",
+    "What should a facility shift handover report include?": """## Facility Shift Handover Report -- Contents
+
+- **Shift details** -- date, outgoing/incoming shift, and personnel on duty.
+- **Open issues / active tickets** -- ongoing breakdowns or complaints, their status, and what the next shift must follow up on.
+- **Critical system status** -- HVAC, DG, fire, lifts, BMS, water, and power: normal or any faults/alarms currently active.
+- **Utility readings** -- key meter readings (power, water, fuel level in DG tank) at handover.
+- **Incidents** -- any safety, security, or operational incident during the shift and actions taken.
+- **Vendor / contractor activity** -- who was on site, what work was done or is pending, and any permits still open.
+- **Pending tasks** -- scheduled PM, inspections, or deliveries expected in the next shift.
+- **Keys / access / assets** -- handover of keys, radios, or access cards, and any discrepancies.
+
+The outgoing supervisor and incoming supervisor should both **sign off** on the report, so accountability transfers cleanly and nothing critical is dropped between shifts.""",
+    "What's the checklist for an annual lift/elevator inspection?": """## Annual Lift / Elevator Inspection Checklist
+
+- **Statutory certificate** -- confirm the lift licence/fitness certificate is valid and schedule renewal via the competent authority.
+- **Ropes and traction** -- inspect hoist ropes for wear, corrosion, and correct tension; check the traction sheave and governor rope.
+- **Brakes** -- test the machine brake holding capacity and the emergency/safety brake operation.
+- **Safety gear and buffers** -- verify overspeed governor trip, car safety gear engagement, and buffer condition.
+- **Door systems** -- test door interlocks, sensors/light curtains, and re-levelling; doors must not open outside the landing zone.
+- **Emergency features** -- alarm bell, intercom/phone, emergency lighting, and Automatic Rescue Device (ARD) if fitted.
+- **Controls and levelling** -- check floor-levelling accuracy, ride quality, and control-panel function.
+- **Pit and machine room** -- inspect for water ingress, cleanliness, lubrication, and clearance; verify machine-room ventilation.
+- **Load test** -- perform full-load/overload test per code where required.
+
+Any safety-critical failure (brakes, interlocks, safety gear) should take the lift **out of service** until rectified. File the signed inspection report for the compliance record.""",
+    "What's the standard procedure for handling a fire alarm false trigger?": """## Handling a Fire Alarm False Trigger
+
+1. **Do not assume it's false** -- treat every activation as real until confirmed otherwise. Dispatch security/floor wardens to the triggered zone immediately.
+2. **Identify the zone** -- read the fire alarm panel to locate the exact detector/zone in alarm.
+3. **Physically verify** -- confirm there is no smoke, heat, or fire at that location before standing anyone down.
+4. **If confirmed false** -- silence the alarm at the panel (authorised personnel only), then investigate the cause: dust, steam, cooking fumes, aerosol, a faulty/dirty detector, or accidental call-point activation.
+5. **Reset** -- clear the fault and reset the panel only after the cause is understood and the zone is safe. A call point that was broken must be replaced/re-keyed.
+6. **Log it** -- record the activation, zone, cause, and corrective action in the fire log. Recurring false alarms from the same detector warrant cleaning, relocation, or replacement.
+7. **Notify** -- inform the fire alarm maintenance vendor if it's a device fault, and advise the monitoring station/fire brigade liaison if the signal was transmitted externally.
+
+Frequent false alarms erode occupant trust in the system -- track them and address root causes so a real alarm is never ignored.""",
+    "How can I reduce energy consumption during peak load hours?": """## Reducing Energy Use During Peak Load Hours
+
+**Shift and shed load**
+- Pre-cool the building before the peak tariff window, then let temperatures drift up slightly during the peak (thermal coasting).
+- Stagger start-up of chillers, pumps, and large motors to avoid coincident demand spikes.
+- Defer non-critical loads (water heating, EV charging, certain pumps) to off-peak hours.
+
+**Optimise the big consumers**
+- Raise cooling setpoints 1-2 degC during peak; each degree typically saves 3-5% HVAC energy.
+- Use chiller sequencing and variable-speed drives so plant runs at its most efficient point, not full blast.
+- Dim or zone lighting in low-occupancy areas; use daylight harvesting near windows.
+
+**Manage demand**
+- Watch the **maximum demand (MD)** meter -- peak-demand charges often cost more than the energy itself. Set BMS alarms as you approach your MD threshold.
+- Use on-site DG or battery/solar (if available) to shave the very top of the peak.
+
+**Track it**
+- Trend the load curve to see exactly when peaks occur, then target those intervals. Sub-metering makes it obvious which systems to act on first.""",
+    "What should a monthly water consumption report track?": """## Monthly Water Consumption Report -- What to Track
+
+- **Total consumption** -- overall metered usage for the month, with month-on-month and year-on-year comparison.
+- **Breakdown by source** -- municipal supply, borewell, and tanker water separately, so you can see dependence on each.
+- **Breakdown by use** -- domestic/restrooms, cooling-tower make-up, landscaping/irrigation, and flushing (if sub-metered).
+- **Recycled/treated water** -- STP output reused for flushing or landscaping, and the resulting freshwater saved.
+- **Per-capita / per-sq-ft intensity** -- litres per occupant per day or per sq ft, benchmarked against target.
+- **Anomalies** -- unexpected spikes that may indicate a leak, a running overflow, or a stuck valve, with the likely cause.
+- **Tanker water cost** -- number of tankers and spend, highlighting any rise.
+- **Recommendations** -- leak repairs, fixture retrofits (aerators, dual-flush), or cooling-tower cycle optimisation for the coming month.
+
+Attach raw meter readings and STP logs as appendices. A sudden unexplained rise in consumption is almost always a leak -- investigate promptly before it inflates both the water bill and any damage.""",
 }

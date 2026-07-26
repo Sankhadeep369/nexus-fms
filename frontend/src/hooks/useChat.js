@@ -200,7 +200,15 @@ export function useChat() {
         if (err.name === "AbortError") {
           applyUpdate((msg) => ({ ...msg, isStreaming: false, stopped: true }));
         } else {
-          applyUpdate((msg) => ({ ...msg, isStreaming: false, error: err.message }));
+          // A failed fetch (network error / server unreachable) is almost always
+          // the free-tier backend cold-starting from sleep, which can take up to
+          // ~90s. Surface that instead of a cryptic "Failed to fetch".
+          const isNetwork =
+            err.name === "TypeError" || /failed to fetch|networkerror|load failed/i.test(err.message || "");
+          const friendly = isNetwork
+            ? "I couldn't reach the NEXUS backend. On the free tier it may be waking up from sleep — this can take up to ~90 seconds. Please wait a moment and try again."
+            : `Something went wrong while answering. Please try again. (${err.message})`;
+          applyUpdate((msg) => ({ ...msg, isStreaming: false, error: friendly }));
         }
       } finally {
         abortControllerRef.current = null;
