@@ -6,12 +6,18 @@ create table if not exists reminders (
   title text not null,
   notes text,
   due_date date not null,
+  due_time text,            -- optional "HH:MM" (informational; cron granularity is daily)
+  system text,              -- facility system/category, e.g. "HVAC" or "General"
   recipient_email text not null,
   related_vendor text,
   status text not null default 'pending' check (status in ('pending', 'sent', 'cancelled')),
   created_at timestamptz not null default now(),
   sent_at timestamptz
 );
+
+-- Migration for tables created before due_time/system existed. Safe to re-run.
+alter table reminders add column if not exists due_time text;
+alter table reminders add column if not exists system text;
 
 -- Speeds up the daily cron check ("find pending reminders due today or earlier")
 create index if not exists idx_reminders_status_due on reminders (status, due_date);

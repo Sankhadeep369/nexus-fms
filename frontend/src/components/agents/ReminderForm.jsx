@@ -1,10 +1,37 @@
 import { useState } from "react";
 import { PlusIcon } from "../icons";
 
+// Facility systems/categories for the dropdown. "General" is the default for
+// reminders that aren't tied to a specific system.
+const SYSTEM_OPTIONS = [
+  "General",
+  "HVAC",
+  "Electrical",
+  "Fire & Life Safety",
+  "Plumbing",
+  "Lifts & Escalators",
+  "Security & CCTV",
+  "Access Control",
+  "Housekeeping",
+  "Landscaping",
+  "Pest Control",
+  "Waste Management",
+  "Generator & UPS",
+  "Building Automation (BMS)",
+  "Water Systems",
+  "Parking",
+  "Vendor Contracts",
+];
+
+const FIELD_CLASS =
+  "rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none";
+
 export default function ReminderForm({ onCreate }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
+  const [system, setSystem] = useState("General");
   const [notes, setNotes] = useState("");
   const [relatedVendor, setRelatedVendor] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -13,6 +40,8 @@ export default function ReminderForm({ onCreate }) {
   const reset = () => {
     setTitle("");
     setDueDate("");
+    setDueTime("");
+    setSystem("General");
     setNotes("");
     setRelatedVendor("");
   };
@@ -22,7 +51,14 @@ export default function ReminderForm({ onCreate }) {
     setSubmitting(true);
     setError(null);
     try {
-      await onCreate({ title: title.trim(), dueDate, notes: notes.trim(), relatedVendor: relatedVendor.trim() });
+      await onCreate({
+        title: title.trim(),
+        dueDate,
+        dueTime: dueTime || null,
+        system,
+        notes: notes.trim(),
+        relatedVendor: relatedVendor.trim(),
+      });
       reset();
       setOpen(false);
     } catch {
@@ -53,27 +89,45 @@ export default function ReminderForm({ onCreate }) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Reminder title, e.g. Summit Lift AMC renewal"
-          className="sm:col-span-2 rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none"
+          className={`sm:col-span-2 ${FIELD_CLASS}`}
         />
-        <input
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text focus:border-nexus-accent/60 focus:outline-none"
-        />
-        <input
-          type="text"
-          value={relatedVendor}
-          onChange={(e) => setRelatedVendor(e.target.value)}
-          placeholder="Related vendor (optional)"
-          className="rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none"
-        />
+
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-nexus-muted">
+          Due date
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={FIELD_CLASS} />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-nexus-muted">
+          Time <span className="text-nexus-muted/70">(optional)</span>
+          <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className={FIELD_CLASS} />
+        </label>
+
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-nexus-muted">
+          System
+          <select value={system} onChange={(e) => setSystem(e.target.value)} className={FIELD_CLASS}>
+            {SYSTEM_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] font-medium text-nexus-muted">
+          Related vendor <span className="text-nexus-muted/70">(optional)</span>
+          <input
+            type="text"
+            value={relatedVendor}
+            onChange={(e) => setRelatedVendor(e.target.value)}
+            placeholder="e.g. Summit Lifts"
+            className={FIELD_CLASS}
+          />
+        </label>
+
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Notes (optional)"
           rows={2}
-          className="sm:col-span-2 resize-none rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none"
+          className={`sm:col-span-2 resize-none ${FIELD_CLASS}`}
         />
       </div>
 

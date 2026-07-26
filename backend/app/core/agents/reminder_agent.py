@@ -36,6 +36,8 @@ def check_and_send_due_reminders(
             notes=reminder.get("notes"),
             due_date=reminder["due_date"],
             related_vendor=reminder.get("related_vendor"),
+            due_time=reminder.get("due_time"),
+            system=reminder.get("system"),
         )
         if ok:
             store.mark_sent(reminder["id"])

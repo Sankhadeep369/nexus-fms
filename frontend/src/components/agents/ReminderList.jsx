@@ -32,14 +32,20 @@ export default function ReminderList({ reminders, onCancel }) {
           className="flex items-start justify-between gap-3 rounded-xl border border-nexus-border bg-nexus-panel px-3.5 py-3"
         >
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="truncate text-sm font-medium text-nexus-text">{r.title}</span>
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLES[r.status]}`}>
                 {r.status}
               </span>
+              {r.system && r.system !== "General" && (
+                <span className="shrink-0 rounded-full bg-nexus-violet/10 px-2 py-0.5 text-[10px] font-medium text-nexus-violet">
+                  {r.system}
+                </span>
+              )}
             </div>
             <p className="mt-0.5 text-xs text-nexus-muted">
-              {r.due_date} · {daysUntil(r.due_date)}
+              {r.due_date}
+              {r.due_time ? ` at ${r.due_time}` : ""} · {daysUntil(r.due_date)}
               {r.related_vendor ? ` · ${r.related_vendor}` : ""}
             </p>
             {r.notes && <p className="mt-1 text-xs text-nexus-muted">{r.notes}</p>}

@@ -23,13 +23,15 @@ export function useReminders(email) {
   }, [refresh]);
 
   const createReminder = useCallback(
-    async ({ title, dueDate, notes, relatedVendor }) => {
+    async ({ title, dueDate, dueTime, system, notes, relatedVendor }) => {
       const res = await fetch(`${API_BASE}/agents/reminders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           due_date: dueDate,
+          due_time: dueTime || null,
+          system: system || null,
           recipient_email: email,
           notes: notes || null,
           related_vendor: relatedVendor || null,

@@ -28,6 +28,8 @@ def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks)
         recipient_email=reminder.recipient_email,
         notes=reminder.notes,
         related_vendor=reminder.related_vendor,
+        due_time=reminder.due_time,
+        system=reminder.system,
     )
     # Best-effort confirmation email so the user immediately knows the reminder is
     # set and that email delivery works (the due-date reminder itself is sent later
@@ -42,6 +44,8 @@ def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks)
             title=created["title"],
             notes=created.get("notes"),
             due_date=created["due_date"],
+            due_time=created.get("due_time"),
+            system=created.get("system"),
             related_vendor=created.get("related_vendor"),
         )
     return created

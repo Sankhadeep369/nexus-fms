@@ -18,6 +18,17 @@ from typing import Any
 logger = logging.getLogger("nexus.reminder_store")
 
 
+def _is_missing_column_error(exc: Exception) -> bool:
+    """True if a PostgREST/Postgres error is about an unknown column (i.e. the
+    optional due_time/system columns haven't been migrated yet)."""
+    msg = str(exc).lower()
+    return (
+        "pgrst204" in msg
+        or "schema cache" in msg
+        or ("column" in msg and "does not exist" in msg)
+    )
+
+
 class ReminderStore:
     def __init__(self, url: str, key: str):
         from supabase import create_client
@@ -31,15 +42,31 @@ class ReminderStore:
         recipient_email: str,
         notes: str | None = None,
         related_vendor: str | None = None,
+        due_time: str | None = None,
+        system: str | None = None,
     ) -> dict[str, Any]:
-        payload = {
+        base = {
             "title": title,
             "due_date": due_date.isoformat(),
             "recipient_email": recipient_email,
             "notes": notes,
             "related_vendor": related_vendor,
         }
-        result = self._client.table("reminders").insert(payload).execute()
+        payload = {**base, "due_time": due_time, "system": system}
+        try:
+            result = self._client.table("reminders").insert(payload).execute()
+        except Exception as exc:
+            # If the optional columns haven't been migrated yet, fall back to the
+            # base insert so reminder creation never breaks on a stale schema.
+            if _is_missing_column_error(exc):
+                logger.warning(
+                    "reminders: due_time/system columns missing — inserting base fields only. "
+                    "Run the ALTER statements in sql/reminders_schema.sql. (%s)",
+                    exc,
+                )
+                result = self._client.table("reminders").insert(base).execute()
+            else:
+                raise
         return result.data[0]
 
     def list_for_email(self, recipient_email: str) -> list[dict[str, Any]]:
