@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
+from app.core.agents.email_sender import send_reminder_confirmation_email
 from app.core.agents.reminder_agent import check_and_send_due_reminders
 from app.core.agents.reminder_store import get_reminder_store
 from app.core.config import settings
@@ -19,15 +20,31 @@ def _require_store():
 
 
 @router.post("", response_model=ReminderResponse)
-def create_reminder(reminder: ReminderCreate) -> dict:
+def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks) -> dict:
     store = _require_store()
-    return store.create(
+    created = store.create(
         title=reminder.title,
         due_date=reminder.due_date,
         recipient_email=reminder.recipient_email,
         notes=reminder.notes,
         related_vendor=reminder.related_vendor,
     )
+    # Best-effort confirmation email so the user immediately knows the reminder is
+    # set and that email delivery works (the due-date reminder itself is sent later
+    # by the daily cron). Runs in the background so it never delays or fails the
+    # create response; delivery errors are logged inside the sender.
+    if settings.resend_api_key:
+        background_tasks.add_task(
+            send_reminder_confirmation_email,
+            api_key=settings.resend_api_key,
+            from_email=settings.reminder_from_email,
+            to_email=created["recipient_email"],
+            title=created["title"],
+            notes=created.get("notes"),
+            due_date=created["due_date"],
+            related_vendor=created.get("related_vendor"),
+        )
+    return created
 
 
 @router.get("", response_model=list[ReminderResponse])
