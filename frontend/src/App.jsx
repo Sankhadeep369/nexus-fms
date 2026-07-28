@@ -97,7 +97,11 @@ function Chat({ prefill }) {
 }
 
 export default function App() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // Start collapsed on phones so the sidebar (an overlay drawer there) doesn't
+  // cover the chat on first load; expanded on desktop where it sits inline.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [chatPrefill, setChatPrefill] = useState(null);
@@ -119,7 +123,7 @@ export default function App() {
             onTabChange={setActiveTab}
           />
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar collapsed={sidebarCollapsed} />
+            <Sidebar collapsed={sidebarCollapsed} onClose={() => setSidebarCollapsed(true)} />
             {activeTab === "chat" ? (
               <Chat prefill={chatPrefill} />
             ) : (

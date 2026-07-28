@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
 import { HistoryIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon } from "./icons";
@@ -37,7 +36,7 @@ function groupByDate(conversations) {
   return buckets.filter((b) => b.items.length > 0);
 }
 
-export default function Sidebar({ collapsed }) {
+export default function Sidebar({ collapsed, onClose }) {
   const { conversations, activeId, createConversation, selectConversation, deleteConversation } = useChatHistory();
   const [query, setQuery] = useState("");
 
@@ -49,16 +48,40 @@ export default function Sidebar({ collapsed }) {
 
   const groups = useMemo(() => groupByDate(filtered), [filtered]);
 
+  // On mobile the sidebar is an overlay drawer, so navigating should dismiss it.
+  const closeOnMobile = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+      onClose?.();
+    }
+  };
+  const handleCreate = () => {
+    createConversation();
+    closeOnMobile();
+  };
+  const handleSelect = (id) => {
+    selectConversation(id);
+    closeOnMobile();
+  };
+
   return (
-    <motion.aside
-      animate={{ width: collapsed ? 56 : 256 }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="flex shrink-0 flex-col overflow-hidden border-r border-nexus-border bg-nexus-panel"
-    >
+    <>
+      {/* Mobile-only backdrop behind the drawer. */}
+      <div
+        aria-hidden="true"
+        onClick={onClose}
+        className={`fixed inset-0 z-30 bg-black/50 transition-opacity duration-200 md:hidden ${
+          collapsed ? "pointer-events-none opacity-0" : "opacity-100"
+        }`}
+      />
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden border-r border-nexus-border bg-nexus-panel transition-[transform,width] duration-200 ease-in-out md:static md:z-auto md:translate-x-0 ${
+          collapsed ? "-translate-x-full md:w-14" : "translate-x-0 md:w-64"
+        }`}
+      >
       <div className="p-2">
         <button
           type="button"
-          onClick={createConversation}
+          onClick={handleCreate}
           className={`flex w-full items-center gap-2 rounded-xl border border-nexus-border bg-nexus-panel2 px-3 py-2 text-sm font-medium text-nexus-text transition-colors hover:border-nexus-accent2/50 hover:text-nexus-accent2 ${
             collapsed ? "justify-center" : ""
           }`}
@@ -100,7 +123,7 @@ export default function Sidebar({ collapsed }) {
                 <li key={c.id}>
                   <button
                     type="button"
-                    onClick={() => selectConversation(c.id)}
+                    onClick={() => handleSelect(c.id)}
                     className={`group flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
                       c.id === activeId
                         ? "bg-nexus-accent2/15 text-nexus-text"
@@ -149,6 +172,7 @@ export default function Sidebar({ collapsed }) {
           </div>
         )}
       </div>
-    </motion.aside>
+      </aside>
+    </>
   );
 }

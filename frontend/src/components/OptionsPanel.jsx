@@ -36,7 +36,7 @@ export default function OptionsPanel({ open, onClose }) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="fixed right-0 top-0 z-40 h-full w-80 border-l border-nexus-border bg-nexus-panel p-4 shadow-2xl"
+            className="fixed right-0 top-0 z-40 h-full w-80 max-w-[85vw] border-l border-nexus-border bg-nexus-panel p-4 shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-nexus-text">Options</h2>

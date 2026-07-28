@@ -84,7 +84,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
-            {label}
+            <span className="hidden sm:inline">{label}</span>
           </button>
         ))}
       </div>
