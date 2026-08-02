@@ -69,6 +69,33 @@ class ReminderStore:
                 raise
         return result.data[0]
 
+    def update(self, reminder_id: str, fields: dict[str, Any]) -> dict[str, Any] | None:
+        """Update a still-pending reminder. Returns the updated row, or None if it
+        doesn't exist or is no longer pending (sent/cancelled reminders are frozen)."""
+        if not fields:
+            result = self._client.table("reminders").select("*").eq("id", reminder_id).execute()
+            return result.data[0] if result.data else None
+
+        def _do(payload: dict[str, Any]):
+            return (
+                self._client.table("reminders")
+                .update(payload)
+                .eq("id", reminder_id)
+                .eq("status", "pending")
+                .execute()
+            )
+
+        try:
+            result = _do(fields)
+        except Exception as exc:
+            # Fall back if the optional columns haven't been migrated yet.
+            if _is_missing_column_error(exc):
+                base = {k: v for k, v in fields.items() if k not in ("due_time", "system")}
+                result = _do(base)
+            else:
+                raise
+        return result.data[0] if result.data else None
+
     def list_for_email(self, recipient_email: str) -> list[dict[str, Any]]:
         result = (
             self._client.table("reminders")

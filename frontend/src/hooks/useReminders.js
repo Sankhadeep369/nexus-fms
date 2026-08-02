@@ -43,6 +43,26 @@ export function useReminders(email) {
     [email, refresh]
   );
 
+  const updateReminder = useCallback(
+    async (id, { title, dueDate, dueTime, system, notes, relatedVendor }) => {
+      const res = await fetch(`${API_BASE}/agents/reminders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          due_date: dueDate,
+          due_time: dueTime || null,
+          system: system || null,
+          notes: notes || null,
+          related_vendor: relatedVendor || null,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update reminder");
+      refresh();
+    },
+    [refresh]
+  );
+
   const cancelReminder = useCallback(
     async (id) => {
       const res = await fetch(`${API_BASE}/agents/reminders/${id}`, { method: "DELETE" });
@@ -52,5 +72,5 @@ export function useReminders(email) {
     [refresh]
   );
 
-  return { reminders, loading, error, createReminder, cancelReminder, refresh };
+  return { reminders, loading, error, createReminder, updateReminder, cancelReminder, refresh };
 }

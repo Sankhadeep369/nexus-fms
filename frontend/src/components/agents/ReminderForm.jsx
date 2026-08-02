@@ -26,14 +26,17 @@ const SYSTEM_OPTIONS = [
 const FIELD_CLASS =
   "rounded-lg border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none";
 
-export default function ReminderForm({ onCreate }) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("");
-  const [system, setSystem] = useState("General");
-  const [notes, setNotes] = useState("");
-  const [relatedVendor, setRelatedVendor] = useState("");
+// `initial` (a reminder) puts the form in edit mode: always open, prefilled,
+// with a "Save changes" button and a Cancel that calls onCancel.
+export default function ReminderForm({ onSubmit, initial = null, onCancel, submitLabel }) {
+  const isEdit = Boolean(initial);
+  const [open, setOpen] = useState(isEdit);
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [dueDate, setDueDate] = useState(initial?.due_date ?? "");
+  const [dueTime, setDueTime] = useState(initial?.due_time ?? "");
+  const [system, setSystem] = useState(initial?.system ?? "General");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [relatedVendor, setRelatedVendor] = useState(initial?.related_vendor ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -51,7 +54,7 @@ export default function ReminderForm({ onCreate }) {
     setSubmitting(true);
     setError(null);
     try {
-      await onCreate({
+      await onSubmit({
         title: title.trim(),
         dueDate,
         dueTime: dueTime || null,
@@ -59,12 +62,25 @@ export default function ReminderForm({ onCreate }) {
         notes: notes.trim(),
         relatedVendor: relatedVendor.trim(),
       });
-      reset();
-      setOpen(false);
+      if (isEdit) {
+        onCancel?.();
+      } else {
+        reset();
+        setOpen(false);
+      }
     } catch {
-      setError("Couldn't create reminder. Please try again.");
+      setError(`Couldn't ${isEdit ? "save" : "create"} reminder. Please try again.`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (isEdit) {
+      onCancel?.();
+    } else {
+      setOpen(false);
+      reset();
     }
   };
 
@@ -136,10 +152,7 @@ export default function ReminderForm({ onCreate }) {
       <div className="mt-3 flex justify-end gap-2">
         <button
           type="button"
-          onClick={() => {
-            setOpen(false);
-            reset();
-          }}
+          onClick={handleCancel}
           className="rounded-lg px-3 py-1.5 text-xs font-medium text-nexus-muted hover:bg-nexus-panel2"
         >
           Cancel
@@ -150,7 +163,7 @@ export default function ReminderForm({ onCreate }) {
           disabled={!title.trim() || !dueDate || submitting}
           className="rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-3.5 py-1.5 text-xs font-medium text-nexus-bg disabled:opacity-30"
         >
-          {submitting ? "Creating..." : "Create reminder"}
+          {submitting ? "Saving..." : submitLabel ?? "Create reminder"}
         </button>
       </div>
     </div>

@@ -4,7 +4,7 @@ from app.core.agents.email_sender import send_reminder_confirmation_email
 from app.core.agents.reminder_agent import check_and_send_due_reminders
 from app.core.agents.reminder_store import get_reminder_store
 from app.core.config import settings
-from app.schemas.reminders import ReminderCreate, ReminderResponse
+from app.schemas.reminders import ReminderCreate, ReminderResponse, ReminderUpdate
 
 router = APIRouter(prefix="/agents/reminders", tags=["reminders"])
 
@@ -55,6 +55,19 @@ def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks)
 def list_reminders(email: str = Query(..., description="Recipient email to list reminders for")) -> list[dict]:
     store = _require_store()
     return store.list_for_email(email)
+
+
+@router.patch("/{reminder_id}", response_model=ReminderResponse)
+def update_reminder(reminder_id: str, patch: ReminderUpdate) -> dict:
+    store = _require_store()
+    fields = patch.model_dump(exclude_unset=True, mode="json")
+    updated = store.update(reminder_id, fields)
+    if updated is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Reminder not found or not editable (only pending reminders can be edited).",
+        )
+    return updated
 
 
 @router.delete("/{reminder_id}")

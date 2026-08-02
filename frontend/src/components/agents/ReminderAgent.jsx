@@ -9,7 +9,7 @@ const STORAGE_KEY = "nexus-reminder-email";
 export default function ReminderAgent() {
   const [email, setEmail] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [emailInput, setEmailInput] = useState("");
-  const { reminders, error, createReminder, cancelReminder } = useReminders(email);
+  const { reminders, error, createReminder, updateReminder, cancelReminder } = useReminders(email);
 
   const saveEmail = () => {
     const trimmed = emailInput.trim();
@@ -87,11 +87,11 @@ export default function ReminderAgent() {
       )}
 
       <div className="mt-4">
-        <ReminderForm onCreate={createReminder} />
+        <ReminderForm onSubmit={createReminder} />
       </div>
 
       <div className="mt-3">
-        <ReminderList reminders={reminders} onCancel={cancelReminder} />
+        <ReminderList reminders={reminders} onCancel={cancelReminder} onUpdate={updateReminder} />
       </div>
     </div>
   );

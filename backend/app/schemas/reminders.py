@@ -14,6 +14,18 @@ class ReminderCreate(BaseModel):
     related_vendor: str | None = Field(None, max_length=200)
 
 
+class ReminderUpdate(BaseModel):
+    """All fields optional — only the ones sent are updated. Editing is allowed
+    only while a reminder is still pending."""
+
+    title: str | None = Field(None, min_length=1, max_length=200)
+    notes: str | None = Field(None, max_length=2000)
+    due_date: date | None = None
+    due_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    system: str | None = Field(None, max_length=100)
+    related_vendor: str | None = Field(None, max_length=200)
+
+
 class ReminderResponse(BaseModel):
     id: str
     title: str
