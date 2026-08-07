@@ -344,6 +344,20 @@ class ChatPipeline:
             return
         yield {"type": "step", "name": "cache_lookup", "status": "done", "detail": {"hit": False}}
 
+        # ── 1b. Incident immediate-actions fast path ─────────────────────────
+        # "What do we do while we wait / before the vendor arrives?" about a live
+        # hazard must return occupant SAFETY actions — not the vendor/SLA content
+        # the incident agent or contract-heavy retrieval would produce. A
+        # deterministic detector routes these to a curated (instant) or Groq-backed
+        # safety checklist. A *report* ("elevator stuck, passengers inside") is not
+        # action-intent, so it still falls through to the triage agent below.
+        from app.core.agents.immediate_actions import detect_incident_action
+
+        hazard = detect_incident_action(query, history)
+        if hazard is not None:
+            yield from self._respond_immediate_actions(query, mode, hazard, t_start, bypass_cache)
+            return
+
         # ── 2. Query analysis (Groq pre-processor) ───────────────────────────
         processed: ProcessedQuery
         if settings.query_preprocessor_enabled and settings.groq_api_key:
@@ -642,6 +656,31 @@ class ChatPipeline:
     # Registered in _AGENT_METHODS by capability agent id.
     # ─────────────────────────────────────────────────────────────────────────
 
+    def _respond_immediate_actions(
+        self, query: str, mode: str, hazard: str, t_start: float, bypass_cache: bool = False,
+    ) -> Iterator[dict[str, Any]]:
+        """Fast lane: return occupant safety actions for a live-incident follow-up
+        ("what do we do before the vendor arrives?"). Curated = instant; otherwise
+        one Groq safety call. No SLM generation."""
+        from app.core.agents.immediate_actions import build_immediate_actions
+
+        yield {"type": "step", "name": "immediate_actions", "status": "start"}
+        answer = build_immediate_actions(
+            query, hazard, settings.groq_api_key, settings.groq_model, allow_llm=True,
+        )
+        yield {"type": "step", "name": "immediate_actions", "status": "done", "detail": {"hazard": hazard}}
+        if not bypass_cache:
+            self.cache.set(query, mode, {"answer": answer, "retrieved_sources": []})
+        yield {"type": "token", "text": answer}
+        yield {
+            "type": "done",
+            "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+            "cache_hit": None,
+            "retrieved_sources": [],
+            "valid": True,
+            "final_answer": answer,
+        }
+
     def _agent_incident_triage(
         self, query: str, mode: str, retrieval_query: str, t_start: float,
         bypass_cache: bool = False,
@@ -680,6 +719,12 @@ class ChatPipeline:
                 f"{triage.duration_hours:.0f}h reported, {sla_label}"
                 if triage.duration_hours else sla_label
             )
+            # Lead with occupant safety actions (curated, instant — no extra Groq
+            # call on the report path), then the vendor escalation email.
+            from app.core.agents.immediate_actions import build_immediate_actions, hazard_for_incident
+
+            hz = hazard_for_incident(triage.summary or retrieval_query, triage.domain)
+            actions = build_immediate_actions("", hz, None, None, allow_llm=False)
             final_answer = (
                 f"## Incident Summary\n\n"
                 f"**Domain:** {triage.domain.replace('_', ' ').title()}  \n"
@@ -687,6 +732,8 @@ class ChatPipeline:
                 f"**Responsible vendor:** {triage.vendor} ({triage.site})  \n"
                 f"**SLA:** {triage.sla_hours and f'{triage.sla_hours:.0f}h response' or 'Not specified'}  \n"
                 f"**Status:** {hours_label}\n\n"
+                f"---\n\n"
+                f"{actions}\n\n"
                 f"---\n\n"
                 f"## Escalation Email\n\n"
                 f"{triage.escalation_email}"

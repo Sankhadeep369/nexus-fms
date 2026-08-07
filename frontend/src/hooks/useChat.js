@@ -29,6 +29,7 @@ export const STEP_LABELS = {
   retrieval: "Searching documents",
   agent_research: "Researching vendor & market data",
   incident_triage: "Triaging incident — classifying, finding vendor, checking SLA",
+  immediate_actions: "Preparing immediate safety actions",
   synthesis: "Synthesising comparison",
   verification: "Verifying answer",
   generation: "Generating answer",
