@@ -144,50 +144,70 @@ _HAZARD_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "entrapment",
         re.compile(
-            r"\b(person|someone|somebody|man|woman|child|kid|user|occupant|patient|visitor|staff|guest|colleague|resident)\b.{0,40}\b(stuck|trapped|locked\s+in|jammed\s+in)"
-            r"|\b(stuck|trapped|locked|jammed)\b.{0,40}\b(behind|inside|in)\b.{0,25}\b(door|washroom|restroom|toilet|bathroom|room|cabin|cubicle|stall|office|chamber)"
-            r"|\b(door|washroom|restroom|toilet|bathroom|cubicle|gate)\b.{0,25}\b(malfunction\w*|jam\w*|stuck|won'?t\s+open|not\s+open\w*|fault\w*)\b.{0,45}\b(person|someone|somebody|stuck|trapped|inside)",
+            r"\b(person|someone|somebody|man|woman|child|kid|user|occupant|patient|visitor|staff|guest|colleague|resident|lady|gentleman)\b.{0,45}\b(stuck|trapped|locked\s+in|jammed\s+in|confined|shut\s+in|can'?t\s+get\s+out|cannot\s+get\s+out|unable\s+to\s+(?:get\s+out|exit))"
+            r"|\b(stuck|trapped|locked|jammed|confined|shut)\b.{0,30}\b(behind|inside|in)\b.{0,25}\b(door|washroom|restroom|toilet|loo|bathroom|room|cabin|cubicle|stall|office|chamber|lavatory)"
+            r"|\b(door|washroom|restroom|toilet|loo|bathroom|cubicle|gate|shutter)\b.{0,25}\b(malfunction\w*|jam\w*|stuck|won'?t\s+open|not\s+open\w*|fault\w*|broke\w*)\b.{0,50}\b(person|someone|somebody|stuck|trapped|inside|in\s+there)",
             re.IGNORECASE | re.DOTALL,
         ),
     ),
-    ("gas", re.compile(r"\b(gas\s+leak|smell(?:l|ing)?\s+of\s+gas|gas\s+smell|lpg\s+leak)\b", re.IGNORECASE)),
-    ("fire", re.compile(r"\b(fire|smoke|flames?|burning\s+smell)\b", re.IGNORECASE)),
+    ("gas", re.compile(r"\b(gas\s+leak|leak\w*\s+gas|smell(?:l|ing)?\s+of\s+gas|gas\s+smell|smell\s+gas|lpg\s+leak|gas\s+is\s+leaking)\b", re.IGNORECASE)),
+    ("fire", re.compile(r"\b(fire|smoke|flames?|blaze|on\s+fire|something'?s?\s+burning|burning\s+smell)\b", re.IGNORECASE)),
     (
         "flood",
-        re.compile(r"\b(flood(?:ing|ed)?|burst\s+pipe|water\s+leak|major\s+leak|water\s+ingress|overflow(?:ing)?|inundat)\b", re.IGNORECASE),
+        re.compile(r"\b(flood(?:ing|ed)?|burst\s+pipe|water\s+leak|major\s+leak|water\s+ingress|overflow(?:ing)?|inundat|water\s+everywhere|waterlogged|submerged|gushing\s+water|pipe\s+burst)\b", re.IGNORECASE),
     ),
     (
         "power",
-        re.compile(r"\b(power\s+(?:cut|outage|failure|down|loss|off)|no\s+power|black\s?out|electricity\s+(?:out|down|failure|cut))\b", re.IGNORECASE),
+        re.compile(r"\b(power\s+(?:cut|outage|failure|down|loss|off|gone)|no\s+power|no\s+electricity|lost\s+power|black\s?out|electricity\s+(?:out|down|failure|cut|gone)|lights?\s+(?:are\s+)?(?:out|off|gone))\b", re.IGNORECASE),
     ),
     (
         "electrical",
-        re.compile(r"\b(electric\s+shock|electrocut\w*|sparks?|short\s+circuit|exposed\s+wire|live\s+wire|burning\s+smell\s+from\s+(?:the\s+)?(?:socket|panel|wiring|wire))\b", re.IGNORECASE),
+        re.compile(r"\b(electric\w*\s+shock|electrocut\w*|sparks?|sparking|short\s+circuit|exposed\s+wire|live\s+wire|wire\s+sparking|burning\s+smell\s+(?:from|near|at)\s+(?:the\s+)?(?:socket|plug|panel|board|wiring|wire|switch))\b", re.IGNORECASE),
     ),
     (
         "medical",
-        re.compile(r"\b(injur\w+|unconscious|collapsed|not\s+breathing|bleeding|heart\s+attack|first\s+aid|fainted|seizure|choking)\b", re.IGNORECASE),
+        re.compile(r"\b(injur\w+|hurt|unconscious|collapsed|passed\s+out|not\s+breathing|breathing\s+difficult\w*|can'?t\s+breathe|bleeding|heart\s+attack|chest\s+pain|first\s+aid|fainted|faint\w*|seizure|choking|fell\s+(?:down|over|and)|stroke)\b", re.IGNORECASE),
     ),
 ]
 
-# "What do we do?" style intent.
+# The families of incident follow-up questions we handle. Kept deliberately broad
+# (synonyms / paraphrases) because users phrase "what do we do now?" many ways; the
+# actual answer is then produced semantically — a curated hazard checklist, or a
+# context-grounded Groq safety answer — so novel wording still gets a relevant reply.
+#
+# Covered intents (examples):
+#   what do we do / what now / what next / what first / what to do
+#   what can we|staff|occupants|the user do   •   what (immediate/safety) actions|steps|measures
+#   how do we handle|respond|deal with|manage|proceed|cope   •   how do we keep them safe
+#   any advice|tips|guidance|suggestions|pointers   •   what do you suggest|recommend|advise
+#   what's the procedure|protocol|process|best way|right thing|next step
+#   should we <do X>   •   can we <do X>   •   is it safe|ok|advisable to <X>
+#   who do we call|contact|inform|notify   •   what should we tell them   •   what precautions
+#   meanwhile / in the meantime / until help arrives / while we wait / right now
 _ACTION_INTENT = re.compile(
-    r"\bwhat\s+(should|do|can|must|to|are|is)\b[\w\s]{0,25}\b(do|action|actions|steps|measures|next|first)\b"
-    r"|\bwhat\s+(immediate\s+)?(action|actions|steps|measures)\b"
-    r"|\bwhat\s+to\s+do\b"
-    r"|\b(action|actions|steps|measures)\s+(to\s+(take|do)|before|while|until|needed|required)\b"
-    r"|\bhow\s+(do|should|to|can)\b[\w\s]{0,20}\b(respond|react|handle|deal|proceed|stay\s+safe)\b"
-    r"|\bis\s+it\s+safe\b"
-    r"|\bwhat\s+should\s+(occupants|people|staff|passengers|we|i)\b",
+    r"\bwhat\s+(?:should|shall|do|does|can|could|must|are|is|to)\b[\w\s'’]{0,30}\b(do|action|actions|steps|measures|next|first|now|handle|respond|precaution|precautions)\b"
+    r"|\bwhat\s+(?:to\s+do|now|next|first)\b"
+    r"|\bwhat\s+(?:immediate\s+|safety\s+)?(action|actions|steps|measures|precautions)\b"
+    r"|\bwhat\s+can\s+(?:we|i|they|you|the\s+\w+|staff|occupants?|people|users?|passengers?|residents?)\b[\w\s'’]{0,20}\bdo\b"
+    r"|\b(?:action|actions|steps|measures)\s+(?:to\s+(?:take|do)|before|while|until|needed|required|now)\b"
+    r"|\bhow\s+(?:do|should|to|can|would|might)\b[\w\s'’]{0,30}\b(handle|respond|react|deal|proceed|manage|cope|help|keep\s+\w+\s+safe|stay\s+safe)\b"
+    r"|\b(?:any|some|got\s+any|need\s+(?:any\s+)?)\s*(advice|tips|guidance|suggestions?|recommendations?|pointers?|precautions?)\b"
+    r"|\bwhat\s+(?:do|would|can)\s+you\s+(suggest|recommend|advise)\b"
+    r"|\bwhat['’]?s?\s+(?:the\s+)?(procedure|protocol|process|best\s+way|right\s+thing|next\s+step)\b"
+    r"|\b(?:should|shall|can|could|ought)\s+(?:we|i|they)\s+\w+"
+    r"|\bis\s+it\s+(safe|ok|okay|advisable|wise|alright|all\s+right)\b"
+    r"|\bwho\s+(?:do|should|to|can)\s+(?:we|i)?\s*(call|contact|inform|notify|reach|ring)\b"
+    r"|\bwhat\s+should\s+(?:we|i|occupants?|people|staff|passengers?|residents?|the\s+\w+)\b"
+    r"|\bwhat\s+(precautions?|safety\s+measures?)\b",
     re.IGNORECASE,
 )
 
 # Marks a query as being about a live/emergent situation (vs a general how-to).
 _INCIDENT_CONTEXT = re.compile(
-    r"\b(before|until|till)\b[\w\s]{0,25}\b(vendor|technician|engineer|help|team|someone|maintenance|service|fitter|electrician|plumber)\b[\w\s]{0,12}\b(arrive|arrives|arriving|come|comes|coming|get|gets|reach|reaches)"
-    r"|\bwhile\s+(we|they|you|i)\s+(wait|await)\b"
-    r"|\b(meanwhile|in\s+the\s+meantime|right\s+now|straight\s+away)\b"
-    r"|\b(trapped|stuck|stranded)\b",
+    r"\b(before|until|till|whilst|while)\b[\w\s'’]{0,30}\b(vendor|technician|engineer|contractor|help|rescue|team|someone|maintenance|service|fitter|electrician|plumber|fire\s+brigade|ambulance|paramedics?|security|guard)\b[\w\s'’]{0,15}\b(arrive|arrives|arriving|come|comes|coming|get|gets|reach|reaches|here|turn\s+up)"
+    r"|\bwhile\s+(we|they|you|i)\s+(wait|await|hold)\b"
+    r"|\b(meanwhile|in\s+the\s+meantime|right\s+now|straight\s+away|immediately|on\s+the\s+spot|on[-\s]?site)\b"
+    r"|\b(trapped|stuck|stranded|confined)\b",
     re.IGNORECASE,
 )
 
@@ -225,25 +245,56 @@ def _hazard_from_history(history: list[dict] | None) -> str | None:
 # Words that mark a message as describing an incident (broader than the hazard
 # patterns — used to pull the original incident description as context).
 _INCIDENT_HINT = re.compile(
-    r"\b(stuck|trapped|locked|jammed|malfunction\w*|broken|not\s+working|won'?t\s+open|"
-    r"leak\w*|flood\w*|fire|smoke|gas|outage|black\s?out|power\s+(?:cut|down|failure|loss)|"
-    r"shock|spark\w*|injur\w*|unconscious|collapsed|fault\w*|breakdown|emergency|fail\w*|down)\b",
+    r"\b(stuck|trapped|locked|jammed|confined|can'?t\s+get\s+out|won'?t\s+open|malfunction\w*|"
+    r"broken|broke\s+down|not\s+working|out\s+of\s+order|leak\w*|flood\w*|water\s+everywhere|"
+    r"fire|smoke|blaze|gas|outage|black\s?out|no\s+power|no\s+electricity|lost\s+power|"
+    r"power\s+(?:cut|down|failure|loss|gone)|lights?\s+(?:out|off)|shock|spark\w*|burning\s+smell|"
+    r"injur\w*|hurt|unconscious|collapsed|fainted|bleeding|choking|chest\s+pain|fault\w*|"
+    r"breakdown|emergency|fail\w*|down|tripped|not\s+responding)\b",
     re.IGNORECASE,
 )
+
+# A prior assistant turn that produced an incident triage / immediate-actions answer
+# is a strong, vocabulary-independent signal that we're in an incident context — so a
+# follow-up in ANY wording afterwards is treated as an incident follow-up.
+_INCIDENT_MARKER = re.compile(
+    r"##\s*Incident\s+Summary|##\s*Escalation\s+Email|##\s*Immediate\s+Actions|Responsible\s+vendor|SLA\s+status",
+    re.IGNORECASE,
+)
+
+
+def _recent_incident_in_history(history: list[dict] | None) -> bool:
+    """True if the last few turns are about a live incident, regardless of wording."""
+    for msg in reversed((history or [])[-4:]):
+        c = msg.get("content") or ""
+        if _INCIDENT_MARKER.search(c) or detect_hazard(c) or _INCIDENT_HINT.search(c):
+            return True
+    return False
 
 
 def incident_context_from_history(history: list[dict] | None) -> str:
     """Pull the original incident description from the conversation so a follow-up
     ("what do we do now?") can be answered about the ACTUAL incident, not generically.
-    Prefers the user's own report."""
+    Prefers a user message that clearly describes an incident, then falls back to the
+    most recent user message (almost always the report)."""
     hist = (history or [])[-8:]
-    for want_user in (True, False):
-        for msg in reversed(hist):
-            if want_user and msg.get("role") != "user":
-                continue
+    # 1. a user message that clearly describes an incident
+    for msg in reversed(hist):
+        if msg.get("role") == "user":
             c = (msg.get("content") or "").strip()
             if c and _INCIDENT_HINT.search(c):
                 return c[:400]
+    # 2. fallback: the most recent user message (the report usually precedes the follow-up)
+    for msg in reversed(hist):
+        if msg.get("role") == "user":
+            c = (msg.get("content") or "").strip()
+            if c:
+                return c[:400]
+    # 3. last resort: any incident-ish message
+    for msg in reversed(hist):
+        c = (msg.get("content") or "").strip()
+        if c and _INCIDENT_HINT.search(c):
+            return c[:400]
     return ""
 
 
@@ -261,9 +312,12 @@ def detect_incident_action(query: str, history: list[dict] | None = None) -> str
     hz = detect_hazard(query)
     if hz:
         return hz
-    # Action-intent but no hazard named: only treat as an incident follow-up when
-    # there's clear live-incident context or a recent incident in the conversation.
-    if _INCIDENT_CONTEXT.search(query) or _hazard_from_history(history):
+    # Action-intent but no hazard named: treat as an incident follow-up when there's
+    # clear live-incident context in the query, or a recent incident in the chat
+    # (the latter is vocabulary-independent — a prior triage answer counts). The
+    # hazard is then best-effort from history; anything unmatched falls to "general",
+    # which the Groq fallback answers semantically using the incident context.
+    if _INCIDENT_CONTEXT.search(query) or _recent_incident_in_history(history):
         return _hazard_from_history(history) or "general"
     return None
 
