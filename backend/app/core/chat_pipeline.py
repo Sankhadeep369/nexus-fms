@@ -355,7 +355,7 @@ class ChatPipeline:
 
         hazard = detect_incident_action(query, history)
         if hazard is not None:
-            yield from self._respond_immediate_actions(query, mode, hazard, t_start, bypass_cache)
+            yield from self._respond_immediate_actions(query, mode, hazard, history, t_start, bypass_cache)
             return
 
         # ── 2. Query analysis (Groq pre-processor) ───────────────────────────
@@ -657,20 +657,23 @@ class ChatPipeline:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _respond_immediate_actions(
-        self, query: str, mode: str, hazard: str, t_start: float, bypass_cache: bool = False,
+        self, query: str, mode: str, hazard: str, history: list[dict], t_start: float,
+        bypass_cache: bool = False,
     ) -> Iterator[dict[str, Any]]:
         """Fast lane: return occupant safety actions for a live-incident follow-up
         ("what do we do before the vendor arrives?"). Curated = instant; otherwise
-        one Groq safety call. No SLM generation."""
-        from app.core.agents.immediate_actions import build_immediate_actions
+        one Groq safety call grounded in the incident described earlier in the chat.
+        No SLM generation."""
+        from app.core.agents.immediate_actions import build_immediate_actions, incident_context_from_history
 
         yield {"type": "step", "name": "immediate_actions", "status": "start"}
+        context = incident_context_from_history(history)
         answer = build_immediate_actions(
-            query, hazard, settings.groq_api_key, settings.groq_model, allow_llm=True,
+            query, hazard, settings.groq_api_key, settings.groq_model, allow_llm=True, context=context,
         )
         yield {"type": "step", "name": "immediate_actions", "status": "done", "detail": {"hazard": hazard}}
-        if not bypass_cache:
-            self.cache.set(query, mode, {"answer": answer, "retrieved_sources": []})
+        # Deliberately NOT cached: the same follow-up ("what do we do now?") maps to
+        # different incidents across conversations, so a cached answer would go stale.
         yield {"type": "token", "text": answer}
         yield {
             "type": "done",
@@ -713,12 +716,11 @@ class ChatPipeline:
                 "BREACHED": "SLA breached",
                 "AT_RISK": "SLA at risk",
                 "WITHIN_SLA": "within SLA",
-                "UNKNOWN": "SLA unknown",
             }.get(triage.sla_status, "")
-            hours_label = (
-                f"{triage.duration_hours:.0f}h reported, {sla_label}"
-                if triage.duration_hours else sla_label
-            )
+            if triage.duration_hours:
+                hours_label = f"{triage.duration_hours:.0f}h reported" + (f", {sla_label}" if sla_label else "")
+            else:
+                hours_label = sla_label or "Recently reported"
             # Lead with occupant safety actions (curated, instant — no extra Groq
             # call on the report path), then the vendor escalation email.
             from app.core.agents.immediate_actions import build_immediate_actions, hazard_for_incident

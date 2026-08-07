@@ -53,13 +53,13 @@ Incident: {summary}
 Vendor: {vendor}
 Site: {site}
 SLA response time: {sla}
-Hours since reported: {hours}
-SLA status: {sla_status}
+{timing}
 
 Write a complete email (Subject, Greeting, Body, Sign-off) to the vendor.
-- If SLA is BREACHED: formal tone, cite the breach, request immediate attendance
-- If within SLA: professional but urgent tone, reference the committed response time
-- Do not invent any figures, names, or clauses not provided above
+- Convey urgency appropriate to the incident.
+- If a specific SLA response time is given and it has been breached, cite the breach and request immediate attendance; otherwise reference the committed response time only if one is given.
+- Do NOT state any duration, number of hours, or SLA status that is not provided above. If the timing is not specified, refer to the issue as "recently reported" — never write the word "unknown" and never leave a blank or placeholder.
+- Do not invent any figures, names, or clauses not provided above.
 - Close as "Facilities Management Team"
 
 Return ONLY the email text, no other commentary."""
@@ -211,8 +211,17 @@ def run_incident_triage(
         sla_hours = _parse_sla_hours(sla_text)
         sla_status = _sla_status(duration_hours, sla_hours)
 
-        # Step 4: draft escalation email
+        # Step 4: draft escalation email. When the report time isn't known we pass a
+        # natural-language instruction instead of literal "Unknown" so it never leaks
+        # into the email body.
         context_str = "\n\n".join(c["text"][:600] for c in chunks[:2]) if chunks else "No contract found."
+        if duration_hours:
+            timing_block = f"Hours since reported: {duration_hours:.0f}\nSLA status: {sla_status}"
+        else:
+            timing_block = (
+                "Timing: not specified — refer to the issue as recently reported; "
+                "do not state a specific duration or SLA status."
+            )
         draft_r = client.chat.completions.create(
             model=model,
             messages=[{
@@ -222,8 +231,7 @@ def run_incident_triage(
                     vendor=vendor,
                     site=site,
                     sla=sla_text,
-                    hours=f"{duration_hours:.1f}" if duration_hours else "Unknown",
-                    sla_status=sla_status,
+                    timing=timing_block,
                 ) + f"\n\nRelevant contract context:\n{context_str}",
             }],
             max_tokens=600, temperature=0.2,

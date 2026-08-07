@@ -34,6 +34,18 @@ _CURATED: dict[str, tuple[str, list[str]]] = {
             "**Do not attempt a manual rescue** (winding/brake release) unless you are trained and authorised — it must be done by a competent lift technician.",
         ],
     ),
+    "entrapment": (
+        "A person stuck behind a malfunctioning door",
+        [
+            "Stay with the person and **keep them calm** — reassure them help is on the way.",
+            "**Check for a manual release or override** — accessible/powered doors usually have an emergency release or can be unlocked from the outside; try it gently.",
+            "Make sure the person has **air and is comfortable**, and keep talking to them.",
+            "If the facility has an **emergency assist alarm / pull-cord** (common in accessible washrooms), confirm it has been triggered.",
+            "If the person is **unwell, panicking, elderly, disabled, or otherwise at risk**, treat it as urgent and **call emergency services**.",
+            "**Do not force the door** in a way that could injure the person or jam it further.",
+            "Call building **security/facilities control** and note the exact door/location for the technician.",
+        ],
+    ),
     "fire": (
         "Fire or smoke",
         [
@@ -129,6 +141,15 @@ _HAZARD_PATTERNS: list[tuple[str, re.Pattern]] = [
             re.IGNORECASE | re.DOTALL,
         ),
     ),
+    (
+        "entrapment",
+        re.compile(
+            r"\b(person|someone|somebody|man|woman|child|kid|user|occupant|patient|visitor|staff|guest|colleague|resident)\b.{0,40}\b(stuck|trapped|locked\s+in|jammed\s+in)"
+            r"|\b(stuck|trapped|locked|jammed)\b.{0,40}\b(behind|inside|in)\b.{0,25}\b(door|washroom|restroom|toilet|bathroom|room|cabin|cubicle|stall|office|chamber)"
+            r"|\b(door|washroom|restroom|toilet|bathroom|cubicle|gate)\b.{0,25}\b(malfunction\w*|jam\w*|stuck|won'?t\s+open|not\s+open\w*|fault\w*)\b.{0,45}\b(person|someone|somebody|stuck|trapped|inside)",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
     ("gas", re.compile(r"\b(gas\s+leak|smell(?:l|ing)?\s+of\s+gas|gas\s+smell|lpg\s+leak)\b", re.IGNORECASE)),
     ("fire", re.compile(r"\b(fire|smoke|flames?|burning\s+smell)\b", re.IGNORECASE)),
     (
@@ -201,6 +222,31 @@ def _hazard_from_history(history: list[dict] | None) -> str | None:
     return None
 
 
+# Words that mark a message as describing an incident (broader than the hazard
+# patterns — used to pull the original incident description as context).
+_INCIDENT_HINT = re.compile(
+    r"\b(stuck|trapped|locked|jammed|malfunction\w*|broken|not\s+working|won'?t\s+open|"
+    r"leak\w*|flood\w*|fire|smoke|gas|outage|black\s?out|power\s+(?:cut|down|failure|loss)|"
+    r"shock|spark\w*|injur\w*|unconscious|collapsed|fault\w*|breakdown|emergency|fail\w*|down)\b",
+    re.IGNORECASE,
+)
+
+
+def incident_context_from_history(history: list[dict] | None) -> str:
+    """Pull the original incident description from the conversation so a follow-up
+    ("what do we do now?") can be answered about the ACTUAL incident, not generically.
+    Prefers the user's own report."""
+    hist = (history or [])[-8:]
+    for want_user in (True, False):
+        for msg in reversed(hist):
+            if want_user and msg.get("role") != "user":
+                continue
+            c = (msg.get("content") or "").strip()
+            if c and _INCIDENT_HINT.search(c):
+                return c[:400]
+    return ""
+
+
 def detect_incident_action(query: str, history: list[dict] | None = None) -> str | None:
     """Return a hazard key if `query` is a "what do we do about this incident?"
     question (so it should get safety actions, not vendor content), else None.
@@ -251,29 +297,32 @@ def curated_for(hazard: str | None) -> str:
 
 _SAFETY_PROMPT = """\
 A facilities incident is happening now and the user is asking what to do about it.
-List the IMMEDIATE on-site safety actions the people there should take RIGHT NOW,
-before any technician or vendor arrives.
+{context_block}List the IMMEDIATE on-site safety actions the people there should take
+RIGHT NOW, before any technician or vendor arrives. Your actions MUST be specific to
+THIS incident — do not give generic fire-evacuation steps unless the incident is a fire.
 
 Rules:
-- Focus ONLY on immediate occupant/staff safety and containment.
+- Focus ONLY on immediate occupant/staff safety and containment for this specific incident.
 - Do NOT mention vendors, contracts, SLAs, escalation emails, or who is responsible.
 - Put life safety first; if there is any risk to life, tell them to call emergency services.
 - Be specific, practical, and brief — short bullet points, safest action first.
 - Never advise anything unsafe or anything that needs trained/authorised personnel; instead say to wait for trained help.
 
-Situation: {query}
+User's question: {query}
 
 Reply with a short markdown answer that begins with a heading "## Immediate Actions" followed by a bullet list."""
 
 
-def _groq_safety(query: str, api_key: str, model: str) -> str | None:
+def _groq_safety(query: str, context: str, api_key: str, model: str) -> str | None:
     try:
         from groq import Groq
 
         client = Groq(api_key=api_key)
+        context_block = f"The incident being dealt with: {context}\n" if context else ""
+        prompt = _SAFETY_PROMPT.format(context_block=context_block, query=query[:500])
         r = client.chat.completions.create(
             model=model,
-            messages=[{"role": "user", "content": _SAFETY_PROMPT.format(query=query[:500])}],
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=380,
             temperature=0.2,
         )
@@ -289,13 +338,15 @@ def build_immediate_actions(
     api_key: str | None,
     model: str | None,
     allow_llm: bool = True,
+    context: str = "",
 ) -> str:
     """Curated checklist for a known hazard (instant); otherwise a Groq safety answer
-    (hybrid), falling back to the generic curated checklist if the LLM is unavailable."""
+    grounded in the incident `context` (hybrid), falling back to the generic curated
+    checklist if the LLM is unavailable."""
     if hazard in _CURATED and hazard != "general":
         return curated_for(hazard)
     if allow_llm and api_key:
-        llm = _groq_safety(query, api_key, model or "")
+        llm = _groq_safety(query, context, api_key, model or "")
         if llm:
             return llm
     return curated_for("general")

@@ -10,12 +10,15 @@ const SEVERITY_EXAMPLES = [
 
 export default function IncidentTriageCard({ onAsk }) {
   const [incident, setIncident] = useState("");
+  const [startedAt, setStartedAt] = useState("");
 
   const submit = () => {
     const text = incident.trim();
     if (!text) return;
-    onAsk(text);
+    const when = startedAt.trim();
+    onAsk(when ? `${text} (started ${when})` : text);
     setIncident("");
+    setStartedAt("");
   };
 
   return (
@@ -47,6 +50,19 @@ export default function IncidentTriageCard({ onAsk }) {
           placeholder="Describe the issue, e.g. AC not cooling on floor 3 since 8am"
           rows={2}
           className="w-full resize-none rounded-xl border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-violet/60 focus:outline-none"
+        />
+        <input
+          type="text"
+          value={startedAt}
+          onChange={(e) => setStartedAt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          placeholder="When did it start? (optional, e.g. 2 hours ago, since 8am)"
+          className="mt-2 w-full rounded-xl border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-violet/60 focus:outline-none"
         />
         <div className="mt-2 flex items-center justify-between">
           <div className="flex flex-wrap gap-1.5">
