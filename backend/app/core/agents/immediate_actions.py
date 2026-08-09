@@ -350,30 +350,38 @@ def curated_for(hazard: str | None) -> str:
 
 
 _SAFETY_PROMPT = """\
-A facilities incident is happening now and the user is asking what to do about it.
-{context_block}List the IMMEDIATE on-site safety actions the people there should take
-RIGHT NOW, before any technician or vendor arrives. Your actions MUST be specific to
-THIS incident — do not give generic fire-evacuation steps unless the incident is a fire.
+A facilities incident has been reported. Give the practical on-site actions the people \
+there should take right now, before a technician/vendor arrives.
 
-Rules:
-- Focus ONLY on immediate occupant/staff safety and containment for this specific incident.
-- Do NOT mention vendors, contracts, SLAs, escalation emails, or who is responsible.
-- Put life safety first; if there is any risk to life, tell them to call emergency services.
-- Be specific, practical, and brief — short bullet points, safest action first.
-- Never advise anything unsafe or anything that needs trained/authorised personnel; instead say to wait for trained help.
+Incident: {incident}
+{question_line}
+How to answer:
+- First WORK OUT what this specific incident actually is, then give steps that fit it.
+- Where it helps, start with quick diagnosis/observation — e.g. check the source, look \
+for visible damage, check the supply/breaker, note whether it's intermittent or total.
+- Make the response PROPORTIONATE to the real severity. A minor fault (e.g. a light \
+flickering or not working) is NOT a life-threatening emergency — do not give alarmist \
+or unrelated advice. Do NOT mention fire extinguishers, evacuation, or calling \
+emergency services UNLESS there is a genuine fire, injury, or threat to life.
+- Keep occupants safe and contain the problem; isolate power/water/gas only when that \
+is clearly warranted and can be done safely.
+- Do NOT advise anything that needs trained/authorised personnel — say to wait for them.
+- Do NOT mention vendors, contracts, SLAs, or escalation emails.
+- Be specific to THIS incident, short bullet points, most useful/safest first.
 
-User's question: {query}
-
-Reply with a short markdown answer that begins with a heading "## Immediate Actions" followed by a bullet list."""
+Reply with a markdown answer beginning with a heading "## Immediate Actions" followed by a short bullet list."""
 
 
 def _groq_safety(query: str, context: str, api_key: str, model: str) -> str | None:
     try:
         from groq import Groq
 
-        client = Groq(api_key=api_key)
-        context_block = f"The incident being dealt with: {context}\n" if context else ""
-        prompt = _SAFETY_PROMPT.format(context_block=context_block, query=query[:500])
+        # Bounded retries: under a rate limit, fail fast to the curated fallback
+        # rather than stacking long backoff onto the incident response.
+        client = Groq(api_key=api_key, max_retries=1)
+        incident = context.strip() or query.strip() or "an unspecified facilities incident"
+        question_line = f"The user asks: {query.strip()}\n" if query.strip() else ""
+        prompt = _SAFETY_PROMPT.format(incident=incident[:600], question_line=question_line)
         r = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
@@ -382,7 +390,7 @@ def _groq_safety(query: str, context: str, api_key: str, model: str) -> str | No
         )
         return (r.choices[0].message.content or "").strip() or None
     except Exception as exc:
-        logger.warning("immediate-actions Groq fallback failed (%s)", exc)
+        logger.warning("immediate-actions Groq generation failed (%s)", exc)
         return None
 
 
@@ -394,13 +402,13 @@ def build_immediate_actions(
     allow_llm: bool = True,
     context: str = "",
 ) -> str:
-    """Curated checklist for a known hazard (instant); otherwise a Groq safety answer
-    grounded in the incident `context` (hybrid), falling back to the generic curated
-    checklist if the LLM is unavailable."""
-    if hazard in _CURATED and hazard != "general":
-        return curated_for(hazard)
+    """LLM-first: understand the actual incident and give proportionate, specific
+    actions. Curated checklists are only an OFFLINE fallback (LLM unavailable) — a
+    hazard-specific one when the wording clearly indicates a high-risk hazard,
+    otherwise the generic one. This avoids forcing every incident into a hardcoded
+    (and often over-escalated) bucket."""
     if allow_llm and api_key:
         llm = _groq_safety(query, context, api_key, model or "")
         if llm:
             return llm
-    return curated_for("general")
+    return curated_for(hazard if hazard in _CURATED else "general")
