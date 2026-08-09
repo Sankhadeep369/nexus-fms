@@ -1,6 +1,5 @@
 ---
 title: NEXUS FMS
-emoji: 🏗️
 colorFrom: blue
 colorTo: indigo
 sdk: docker
@@ -10,7 +9,7 @@ pinned: false
 
 # NEXUS — Facilities Management AI Assistant
 
-NEXUS is a domain-specific AI assistant built for facilities management teams. It answers operational questions — maintenance schedules, compliance checklists, vendor contract comparisons, SLA benchmarks, safety drills — the kind of thing that usually means digging through binders or chasing down the right person.
+NEXUS is a domain-specific AI assistant built for facilities management teams. It answers operational questions — maintenance schedules, compliance checklists, vendor contract comparisons, SLA benchmarks, safety drills — that would otherwise require digging through binders or tracking down the right person.
 
 The model is a fine-tuned **Gemma 3 4B**, trained on facilities-domain instruction pairs drawn from real documents: AMC contracts, HSE SOPs, HVAC maintenance records, fire safety NOCs, and more. It's not a generic chatbot pointed at a knowledge base — the domain knowledge is baked into the weights, and a retrieval + grounding pipeline keeps answers tied to the actual corpus.
 
@@ -186,7 +185,7 @@ Proof-of-concept built during dissertation research.
 - **Phase 2 — app + deployment:** complete; the deployed backend runs the actual fine-tuned GGUF (or Groq), not a stand-in.
 - **Phase 3 — agentic workflows:** underway; Incident Triage, Vendor Comparison, and Reminder agents are live, with deterministic compute agents for budget/portfolio/timeline.
 
-It's not production-hardened — no user auth, no multi-tenancy. The point is to demonstrate the domain capability, not scale it.
+This is a proof-of-concept rather than a production-hardened system: it has no user authentication and no multi-tenancy. Its purpose is to demonstrate domain capability, not to scale.
 
 ---
 
