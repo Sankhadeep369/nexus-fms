@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useProfile } from "../../context/ProfileContext";
 import { useReminders } from "../../hooks/useReminders";
 import { BellIcon } from "../icons";
 import ReminderForm from "./ReminderForm";
@@ -7,8 +8,18 @@ import ReminderList from "./ReminderList";
 const STORAGE_KEY = "nexus-reminder-email";
 
 export default function ReminderAgent() {
+  const { profile } = useProfile();
   const [email, setEmail] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [emailInput, setEmailInput] = useState("");
+
+  // If the user set a profile email and hasn't picked a reminder email yet,
+  // adopt it so they don't have to type it again.
+  useEffect(() => {
+    if (!email && profile?.email) {
+      localStorage.setItem(STORAGE_KEY, profile.email);
+      setEmail(profile.email);
+    }
+  }, [profile, email]);
   const { reminders, error, createReminder, updateReminder, cancelReminder } = useReminders(email);
 
   const saveEmail = () => {

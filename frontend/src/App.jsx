@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import AgentsPage from "./components/AgentsPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
+import GuideModal from "./components/GuideModal";
 import Header from "./components/Header";
 import OptionsPanel from "./components/OptionsPanel";
+import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
 import { PaperclipIcon } from "./components/icons";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
+import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useChat } from "./hooks/useChat";
+
+const GUIDE_SEEN_KEY = "nexus-guide-seen";
 
 const DOC_EXT = /\.(pdf|docx?)$/i;
 
@@ -22,7 +27,7 @@ function toAttachments(fileList, existing) {
     .filter((a) => !seen.has(a.id));
 }
 
-function Chat({ prefill }) {
+function Chat({ prefill, onOpenGuide }) {
   const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
   const [attachments, setAttachments] = useState([]);
@@ -69,6 +74,7 @@ function Chat({ prefill }) {
         onClarify={clarify}
         onRegenerate={regenerate}
         onEditResend={editAndResend}
+        onOpenGuide={onOpenGuide}
         disabled={isStreaming}
       />
       <ChatInput
@@ -103,8 +109,18 @@ export default function App() {
     () => typeof window !== "undefined" && window.innerWidth < 768
   );
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [chatPrefill, setChatPrefill] = useState(null);
+
+  // Show the guide once, automatically, on a user's first visit.
+  useEffect(() => {
+    if (!localStorage.getItem(GUIDE_SEEN_KEY)) {
+      setGuideOpen(true);
+      localStorage.setItem(GUIDE_SEEN_KEY, "1");
+    }
+  }, []);
 
   const askInChat = (text) => {
     setChatPrefill({ text, nonce: Date.now() });
@@ -113,26 +129,35 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <ChatHistoryProvider>
-        <div className="relative flex h-screen flex-col">
-          <div className="aurora" aria-hidden="true" />
-          <Header
-            onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
-            onToggleOptions={() => setOptionsOpen(true)}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-          <div className="flex flex-1 overflow-hidden">
-            <Sidebar collapsed={sidebarCollapsed} onClose={() => setSidebarCollapsed(true)} />
-            {activeTab === "chat" ? (
-              <Chat prefill={chatPrefill} />
-            ) : (
-              <AgentsPage onAskVendorQuestion={askInChat} />
-            )}
+      <ProfileProvider>
+        <ChatHistoryProvider>
+          <div className="relative flex h-screen flex-col">
+            <div className="aurora" aria-hidden="true" />
+            <Header
+              onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+              onToggleOptions={() => setOptionsOpen(true)}
+              onOpenGuide={() => setGuideOpen(true)}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+            <div className="flex flex-1 overflow-hidden">
+              <Sidebar
+                collapsed={sidebarCollapsed}
+                onClose={() => setSidebarCollapsed(true)}
+                onOpenProfile={() => setProfileOpen(true)}
+              />
+              {activeTab === "chat" ? (
+                <Chat prefill={chatPrefill} onOpenGuide={() => setGuideOpen(true)} />
+              ) : (
+                <AgentsPage onAskVendorQuestion={askInChat} />
+              )}
+            </div>
+            <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} />
+            <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+            <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
           </div>
-          <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} />
-        </div>
-      </ChatHistoryProvider>
+        </ChatHistoryProvider>
+      </ProfileProvider>
     </ThemeProvider>
   );
 }

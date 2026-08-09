@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import { BotIcon, CircleDotIcon, HelpCircleIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -9,7 +9,7 @@ const TABS = [
   { id: "agents", label: "Agents", icon: BotIcon },
 ];
 
-export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
+export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const [status, setStatus] = useState({ online: null, model: null });
 
@@ -90,6 +90,15 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onOpenGuide}
+          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
+          aria-label="How it works"
+          title="How it works"
+        >
+          <HelpCircleIcon className="h-4 w-4" />
+        </button>
         <button
           type="button"
           onClick={onToggleOptions}

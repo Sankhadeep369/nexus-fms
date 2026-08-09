@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
+import { initials, useProfile } from "../context/ProfileContext";
 import { HistoryIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon } from "./icons";
 
 function relativeTime(ts) {
@@ -36,8 +37,9 @@ function groupByDate(conversations) {
   return buckets.filter((b) => b.items.length > 0);
 }
 
-export default function Sidebar({ collapsed, onClose }) {
+export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
   const { conversations, activeId, createConversation, selectConversation, deleteConversation } = useChatHistory();
+  const { profile } = useProfile();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -161,17 +163,32 @@ export default function Sidebar({ collapsed, onClose }) {
         ))}
       </div>
 
-      <div className={`flex items-center gap-2 border-t border-nexus-border p-3 ${collapsed ? "justify-center" : ""}`}>
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nexus-panel2 text-nexus-muted">
-          <UserIcon className="h-4 w-4" />
+      <button
+        type="button"
+        onClick={onOpenProfile}
+        title={profile ? "Your profile" : "Sign in / create a profile"}
+        className={`flex items-center gap-2 border-t border-nexus-border p-3 text-left transition-colors hover:bg-nexus-panel2 ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+            profile
+              ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg"
+              : "bg-nexus-panel2 text-nexus-muted"
+          }`}
+        >
+          {profile ? initials(profile.name) : <UserIcon className="h-4 w-4" />}
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm text-nexus-text">Guest</p>
-            <p className="truncate text-[11px] text-nexus-muted">Local session</p>
+            <p className="truncate text-sm text-nexus-text">{profile ? profile.name : "Sign in"}</p>
+            <p className="truncate text-[11px] text-nexus-muted">
+              {profile ? profile.email || "Local account" : "Optional — personalise NEXUS"}
+            </p>
           </div>
         )}
-      </div>
+      </button>
       </aside>
     </>
   );

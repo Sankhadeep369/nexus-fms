@@ -24,7 +24,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, disabled }) {
+export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, onOpenGuide, disabled }) {
   const endRef = useRef(null);
   const scrollRef = useRef(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -91,6 +91,15 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
               Tip: type <span className="rounded bg-nexus-panel2 px-1 py-0.5 font-mono">/</span> or press{" "}
               <span className="rounded bg-nexus-panel2 px-1 py-0.5 font-mono">⌘K</span> for more suggested questions.
             </p>
+            {onOpenGuide && (
+              <button
+                type="button"
+                onClick={onOpenGuide}
+                className="mt-1.5 text-[11px] font-medium text-nexus-accent underline decoration-dotted underline-offset-2 transition-colors hover:text-nexus-accent2"
+              >
+                New here? See how it works
+              </button>
+            )}
           </div>
         )}
         {messages.map((m) => (
