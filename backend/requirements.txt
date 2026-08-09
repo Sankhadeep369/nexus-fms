@@ -20,6 +20,15 @@ supabase==2.31.0
 resend==2.32.2
 email-validator==2.3.0
 
+# Self-serve document ingestion: PDF/DOCX text extraction + OCR (Tesseract via
+# pdf2image/poppler) for scanned PDFs. Needs the tesseract-ocr + poppler-utils
+# system packages (installed in the Dockerfile).
+pypdf==5.1.0
+python-docx==1.1.2
+pytesseract==0.3.13
+pdf2image==1.17.0
+Pillow==11.0.0
+
 # llama-cpp-python is installed separately from a prebuilt CPU wheel index because
 # building it from source requires a C++ toolchain (MSVC/nmake) that isn't installed:
 #   pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu

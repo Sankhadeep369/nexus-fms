@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import calendar, chat, feedback, reminders, suggestions
+from app.api import calendar, chat, documents, feedback, reminders, suggestions
 from app.core.chat_pipeline import get_chat_pipeline
 from app.core.config import settings
 from app.core.llm import get_llm
@@ -64,6 +64,7 @@ app.include_router(suggestions.router)
 app.include_router(reminders.router)
 app.include_router(feedback.router)
 app.include_router(calendar.router)
+app.include_router(documents.router)
 
 
 @app.get("/health")

@@ -269,6 +269,15 @@ class Retriever:
 
 
 @lru_cache(maxsize=1)
+def get_embedder():
+    """Shared sentence-transformers embedder (bge-small-en), so document ingestion
+    reuses the same model instance the retriever loads rather than loading a second."""
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(settings.retrieval_embedding_model)
+
+
+@lru_cache(maxsize=1)
 def get_retriever() -> Retriever:
     return Retriever()
 

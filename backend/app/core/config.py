@@ -172,6 +172,14 @@ class Settings(BaseSettings):
     # endpoint so public internet traffic can't spam-trigger reminder checks.
     reminder_check_secret: str | None = None
 
+    # --- Self-serve document ingestion ---
+    document_max_mb: int = 10          # reject uploads larger than this
+    document_max_pages: int = 50       # cap pages parsed / OCR'd per doc
+    document_max_chunks: int = 300     # cap chunks stored per doc (bounds RAM/startup)
+    document_chunk_chars: int = 1500   # target chunk size (matches corpus chunk cap)
+    document_chunk_overlap: int = 150  # char overlap between adjacent chunks
+    document_enrich_batch: int = 16    # chunks per batched SLM-enrichment call
+
     # --- Cache ---
     cache_ttl_seconds: int = 60 * 60 * 24 * 7
 
