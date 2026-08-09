@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
+import { useLanguage } from "../context/LanguageContext";
 import { initials, useProfile } from "../context/ProfileContext";
 import { HistoryIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon } from "./icons";
 
@@ -40,6 +41,7 @@ function groupByDate(conversations) {
 export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
   const { conversations, activeId, createConversation, selectConversation, deleteConversation } = useChatHistory();
   const { profile } = useProfile();
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -87,10 +89,10 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
           className={`flex w-full items-center gap-2 rounded-xl border border-nexus-border bg-nexus-panel2 px-3 py-2 text-sm font-medium text-nexus-text transition-colors hover:border-nexus-accent2/50 hover:text-nexus-accent2 ${
             collapsed ? "justify-center" : ""
           }`}
-          title="New chat"
+          title={t("new_chat")}
         >
           <PlusIcon className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="whitespace-nowrap">New chat</span>}
+          {!collapsed && <span className="whitespace-nowrap">{t("new_chat")}</span>}
         </button>
       </div>
 
@@ -102,7 +104,7 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search chats"
+              placeholder={t("search_chats")}
               className="w-full rounded-lg border border-nexus-border bg-nexus-panel2 py-1.5 pl-8 pr-2.5 text-sm text-nexus-text placeholder:text-nexus-muted transition-colors focus:border-nexus-accent/50 focus:outline-none"
             />
           </div>
@@ -182,7 +184,7 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm text-nexus-text">{profile ? profile.name : "Sign in"}</p>
+            <p className="truncate text-sm text-nexus-text">{profile ? profile.name : t("sign_in")}</p>
             <p className="truncate text-[11px] text-nexus-muted">
               {profile ? profile.email || "Local account" : "Optional — personalise NEXUS"}
             </p>

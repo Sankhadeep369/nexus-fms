@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import { BotIcon, CircleDotIcon, HelpCircleIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import LanguageMenu from "./LanguageMenu";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -9,8 +11,11 @@ const TABS = [
   { id: "agents", label: "Agents", icon: BotIcon },
 ];
 
+const TAB_KEY = { chat: "tab_chat", agents: "tab_agents" };
+
 export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [status, setStatus] = useState({ online: null, model: null });
 
   useEffect(() => {
@@ -84,12 +89,13 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, 
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{label}</span>
+            <span className="hidden sm:inline">{t(TAB_KEY[id]) ?? label}</span>
           </button>
         ))}
       </div>
 
       <div className="flex items-center gap-1.5">
+        <LanguageMenu />
         <button
           type="button"
           onClick={onOpenGuide}

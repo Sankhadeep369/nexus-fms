@@ -177,6 +177,16 @@ export function CheckIcon(props) {
   );
 }
 
+export function GlobeIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z" />
+    </svg>
+  );
+}
+
 export function HelpCircleIcon(props) {
   return (
     <svg viewBox="0 0 24 24" {...base} {...props}>

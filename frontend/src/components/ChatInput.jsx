@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { useSuggestions } from "../hooks/useSuggestions";
 import {
   CommandIcon,
@@ -63,6 +64,7 @@ export default function ChatInput({
   const fileInputRef = useRef(null);
   const activeItemRef = useRef(null);
   const suggestions = useSuggestions();
+  const { t } = useLanguage();
 
   // Cmd/Ctrl+K opens the suggestion palette from anywhere (not just typing "/"),
   // matching modern command-palette conventions.
@@ -155,7 +157,7 @@ export default function ChatInput({
               }`}
             >
               <Icon className="h-3 w-3" />
-              {label}
+              {t(`mode_${id}`) ?? label}
             </button>
           ))}
         </div>
@@ -324,7 +326,7 @@ export default function ChatInput({
               }
             }}
             rows={1}
-            placeholder="Message NEXUS...  ( / or ⌘K for suggestions )"
+            placeholder={`${t("input_placeholder")}  ( / · ⌘K )`}
             role="combobox"
             aria-expanded={showSlashMenu}
             aria-controls="suggestion-listbox"

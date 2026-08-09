@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "../context/LanguageContext";
 import { useSuggestions } from "../hooks/useSuggestions";
 import { ChevronDownIcon, LogoIcon, SparkleIcon, ZapIcon } from "./icons";
 import MessageBubble from "./MessageBubble";
@@ -38,6 +39,7 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
   const [atBottom, setAtBottom] = useState(true);
   const suggestions = useSuggestions();
   const chips = pickChips(suggestions);
+  const { t } = useLanguage();
 
   const scrollToBottom = (behavior = "smooth") =>
     endRef.current?.scrollIntoView({ behavior, block: "end" });
@@ -105,14 +107,14 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
                 onClick={onOpenGuide}
                 className="mt-1.5 text-[11px] font-medium text-nexus-accent underline decoration-dotted underline-offset-2 transition-colors hover:text-nexus-accent2"
               >
-                New here? See how it works
+                {t("see_how")}
               </button>
             )}
 
             {onExample && (
               <div className="mt-6 w-full max-w-xl">
                 <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
-                  Not sure where to start? Try an example
+                  {t("try_example")}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {EXAMPLE_STARTERS.map((ex) => (

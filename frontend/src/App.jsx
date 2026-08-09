@@ -10,6 +10,7 @@ import Sidebar from "./components/Sidebar";
 import { PaperclipIcon } from "./components/icons";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
 import { DensityProvider } from "./context/DensityContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useChat } from "./hooks/useChat";
@@ -138,6 +139,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <DensityProvider>
       <ProfileProvider>
         <ChatHistoryProvider>
@@ -169,6 +171,7 @@ export default function App() {
         </ChatHistoryProvider>
       </ProfileProvider>
       </DensityProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
