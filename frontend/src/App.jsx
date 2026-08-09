@@ -30,7 +30,7 @@ function toAttachments(fileList, existing) {
 }
 
 function Chat({ prefill, onOpenGuide, onExample }) {
-  const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
+  const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, sendFeedback, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
   const [attachments, setAttachments] = useState([]);
   const [dragActive, setDragActive] = useState(false);
@@ -76,6 +76,7 @@ function Chat({ prefill, onOpenGuide, onExample }) {
         onClarify={clarify}
         onRegenerate={regenerate}
         onEditResend={editAndResend}
+        onFeedback={sendFeedback}
         onOpenGuide={onOpenGuide}
         onExample={onExample}
         mode={mode}

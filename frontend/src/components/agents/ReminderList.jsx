@@ -1,4 +1,5 @@
 import { useState } from "react";
+import CalendarMenu from "../CalendarMenu";
 import { BellIcon, ChevronDownIcon, EditIcon, TrashIcon } from "../icons";
 import ReminderForm from "./ReminderForm";
 
@@ -157,29 +158,42 @@ export default function ReminderList({ reminders, onCancel, onUpdate }) {
                     </p>
                   </button>
 
-                  {r.status === "pending" && (
-                    <div className="flex shrink-0 items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingId(r.id);
-                          setExpandedId(null);
-                        }}
-                        title="Edit reminder"
-                        className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent"
-                      >
-                        <EditIcon className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onCancel(r.id)}
-                        title="Cancel reminder"
-                        className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-red-400"
-                      >
-                        <TrashIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex shrink-0 items-center gap-1">
+                    <CalendarMenu
+                      getEvent={() =>
+                        Promise.resolve({
+                          title: r.title,
+                          date: r.due_date,
+                          time: r.due_time,
+                          notes: r.notes || r.related_vendor || "",
+                        })
+                      }
+                      triggerClassName="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent"
+                    />
+                    {r.status === "pending" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(r.id);
+                            setExpandedId(null);
+                          }}
+                          title="Edit reminder"
+                          className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent"
+                        >
+                          <EditIcon className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onCancel(r.id)}
+                          title="Cancel reminder"
+                          className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-red-400"
+                        >
+                          <TrashIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {expanded && (

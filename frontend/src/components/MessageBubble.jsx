@@ -2,7 +2,9 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { BookIcon, BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, UserIcon } from "./icons";
+import CalendarMenu from "./CalendarMenu";
+import { BookIcon, BotIcon, CheckIcon, ChevronDownIcon, CopyIcon, EditIcon, LogoIcon, RegenerateIcon, ThumbDownIcon, ThumbUpIcon, UserIcon } from "./icons";
+import { extractEvent } from "../lib/calendar";
 import ThinkingIndicator from "./ThinkingIndicator";
 import { WorkflowStepsDisclosure, WorkflowStepsLive } from "./WorkflowSteps";
 
@@ -159,9 +161,15 @@ const toolbarBtn =
 const labelBtn =
   "flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function MessageBubble({ message, disabled, mode, onRegenerate, onEditResend, onClarify }) {
+export default function MessageBubble({ message, disabled, mode, onRegenerate, onEditResend, onClarify, onFeedback }) {
   const otherMode = mode === "thinking" ? "simple" : "thinking";
   const otherModeLabel = otherMode === "thinking" ? "Thinking" : "Simple";
+  const [feedback, setFeedback] = useState(null); // null | "up" | "down"
+
+  const rate = (rating) => {
+    setFeedback(rating);
+    onFeedback?.(message.id, rating);
+  };
   const isUser = message.role === "user";
   const showThinking = !isUser && message.isStreaming && message.content === "";
   const showCursor = !isUser && message.isStreaming && message.content !== "";
@@ -382,6 +390,27 @@ export default function MessageBubble({ message, disabled, mode, onRegenerate, o
                   >
                     Try in {otherModeLabel}
                   </button>
+                  <CalendarMenu getEvent={() => extractEvent(message.content)} triggerClassName={labelBtn} />
+                  <span className="mx-0.5 h-4 w-px bg-nexus-border" />
+                  <button
+                    type="button"
+                    onClick={() => rate("up")}
+                    title="Good answer"
+                    aria-pressed={feedback === "up"}
+                    className={`${toolbarBtn} ${feedback === "up" ? "text-nexus-accent" : ""}`}
+                  >
+                    <ThumbUpIcon className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => rate("down")}
+                    title="Bad answer"
+                    aria-pressed={feedback === "down"}
+                    className={`${toolbarBtn} ${feedback === "down" ? "text-amber-400" : ""}`}
+                  >
+                    <ThumbDownIcon className="h-3.5 w-3.5" />
+                  </button>
+                  {feedback && <span className="ml-0.5 text-[11px] text-nexus-muted">Thanks!</span>}
                 </>
               )
             )}

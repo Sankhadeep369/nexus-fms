@@ -269,5 +269,22 @@ export function useChat() {
     [sendMessage]
   );
 
-  return { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode };
+  // Records 👍/👎 on an answer. Fire-and-forget, sent after the answer is shown,
+  // so it never affects response timing.
+  const sendFeedback = useCallback(
+    (assistantId, rating, comment) => {
+      const idx = messages.findIndex((m) => m.id === assistantId);
+      if (idx < 0) return;
+      const answer = messages[idx]?.content ?? "";
+      const query = idx > 0 && messages[idx - 1]?.role === "user" ? messages[idx - 1].content : "";
+      fetch(`${API_BASE}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, answer, rating, mode, comment: comment || null }),
+      }).catch(() => {});
+    },
+    [messages, mode]
+  );
+
+  return { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, sendFeedback, mode, setMode };
 }

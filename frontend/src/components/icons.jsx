@@ -177,6 +177,33 @@ export function CheckIcon(props) {
   );
 }
 
+export function ThumbUpIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M7 11v9H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3z" />
+      <path d="M7 11l4-8a2 2 0 0 1 2 2v3h5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7" />
+    </svg>
+  );
+}
+
+export function ThumbDownIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M17 13V4h3a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-3z" />
+      <path d="M17 13l-4 8a2 2 0 0 1-2-2v-3H6a2 2 0 0 1-2-2.3l1.2-6A2 2 0 0 1 7.2 4H17" />
+    </svg>
+  );
+}
+
+export function CalendarIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+
 export function GlobeIcon(props) {
   return (
     <svg viewBox="0 0 24 24" {...base} {...props}>

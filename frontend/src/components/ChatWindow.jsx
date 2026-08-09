@@ -33,7 +33,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, onOpenGuide, onExample, mode, disabled }) {
+export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, onFeedback, onOpenGuide, onExample, mode, disabled }) {
   const endRef = useRef(null);
   const scrollRef = useRef(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -142,6 +142,7 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
             onRegenerate={onRegenerate}
             onEditResend={onEditResend}
             onClarify={onClarify}
+            onFeedback={onFeedback}
           />
         ))}
         <div ref={endRef} />
