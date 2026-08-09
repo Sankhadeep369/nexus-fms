@@ -9,6 +9,7 @@ import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
 import { PaperclipIcon } from "./components/icons";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
+import { DensityProvider } from "./context/DensityContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useChat } from "./hooks/useChat";
@@ -27,7 +28,7 @@ function toAttachments(fileList, existing) {
     .filter((a) => !seen.has(a.id));
 }
 
-function Chat({ prefill, onOpenGuide }) {
+function Chat({ prefill, onOpenGuide, onExample }) {
   const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
   const [attachments, setAttachments] = useState([]);
@@ -75,6 +76,8 @@ function Chat({ prefill, onOpenGuide }) {
         onRegenerate={regenerate}
         onEditResend={editAndResend}
         onOpenGuide={onOpenGuide}
+        onExample={onExample}
+        mode={mode}
         disabled={isStreaming}
       />
       <ChatInput
@@ -127,8 +130,15 @@ export default function App() {
     setActiveTab("chat");
   };
 
+  // Example chips pre-fill the composer (same path Agents uses to hand off a draft).
+  const prefillChat = (text) => {
+    setChatPrefill({ text, nonce: Date.now() });
+    setActiveTab("chat");
+  };
+
   return (
     <ThemeProvider>
+      <DensityProvider>
       <ProfileProvider>
         <ChatHistoryProvider>
           <div className="relative flex h-screen flex-col">
@@ -147,7 +157,7 @@ export default function App() {
                 onOpenProfile={() => setProfileOpen(true)}
               />
               {activeTab === "chat" ? (
-                <Chat prefill={chatPrefill} onOpenGuide={() => setGuideOpen(true)} />
+                <Chat prefill={chatPrefill} onOpenGuide={() => setGuideOpen(true)} onExample={prefillChat} />
               ) : (
                 <AgentsPage onAskVendorQuestion={askInChat} />
               )}
@@ -158,6 +168,7 @@ export default function App() {
           </div>
         </ChatHistoryProvider>
       </ProfileProvider>
+      </DensityProvider>
     </ThemeProvider>
   );
 }

@@ -6,6 +6,14 @@ import MessageBubble from "./MessageBubble";
 // How close to the bottom (px) still counts as "following" the conversation.
 const NEAR_BOTTOM_PX = 120;
 
+// Starter prompts that PRE-FILL the input (so a first-timer can edit before
+// sending), distinct from the one-tap cached suggestion chips above.
+const EXAMPLE_STARTERS = [
+  "Draft an email to a vendor about an overdue AMC renewal",
+  "Compare a comprehensive vs non-comprehensive HVAC contract",
+  "What's our total facilities spend, broken down by site?",
+];
+
 const CHIP_COUNT = 4;
 
 // Surfaces already-cached suggestions first so the chips a user sees are most
@@ -24,7 +32,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, onOpenGuide, disabled }) {
+export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, onEditResend, onOpenGuide, onExample, mode, disabled }) {
   const endRef = useRef(null);
   const scrollRef = useRef(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -100,6 +108,27 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
                 New here? See how it works
               </button>
             )}
+
+            {onExample && (
+              <div className="mt-6 w-full max-w-xl">
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-nexus-muted">
+                  Not sure where to start? Try an example
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {EXAMPLE_STARTERS.map((ex) => (
+                    <button
+                      key={ex}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => onExample(ex)}
+                      className="rounded-full border border-nexus-border bg-nexus-panel px-3 py-1.5 text-xs text-nexus-muted transition-all hover:border-nexus-accent/50 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
         {messages.map((m) => (
@@ -107,6 +136,7 @@ export default function ChatWindow({ messages, onSend, onClarify, onRegenerate, 
             key={m.id}
             message={m}
             disabled={disabled}
+            mode={mode}
             onRegenerate={onRegenerate}
             onEditResend={onEditResend}
             onClarify={onClarify}

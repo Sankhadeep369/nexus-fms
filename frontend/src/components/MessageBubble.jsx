@@ -156,8 +156,12 @@ function SourcesPanel({ sources }) {
 
 const toolbarBtn =
   "rounded-md p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
+const labelBtn =
+  "flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text disabled:cursor-not-allowed disabled:opacity-40";
 
-export default function MessageBubble({ message, disabled, onRegenerate, onEditResend, onClarify }) {
+export default function MessageBubble({ message, disabled, mode, onRegenerate, onEditResend, onClarify }) {
+  const otherMode = mode === "thinking" ? "simple" : "thinking";
+  const otherModeLabel = otherMode === "thinking" ? "Thinking" : "Simple";
   const isUser = message.role === "user";
   const showThinking = !isUser && message.isStreaming && message.content === "";
   const showCursor = !isUser && message.isStreaming && message.content !== "";
@@ -335,8 +339,10 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
 
         {!editing && (
           <div
-            className={`mt-1 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${
-              isUser ? "justify-end" : "justify-start"
+            className={`mt-1 flex items-center gap-0.5 transition-opacity duration-150 ${
+              isUser
+                ? "justify-end opacity-0 group-hover:opacity-100"
+                : "justify-start opacity-100"
             }`}
           >
             {isUser ? (
@@ -347,17 +353,34 @@ export default function MessageBubble({ message, disabled, onRegenerate, onEditR
               !message.isStreaming &&
               message.content && (
                 <>
-                  <button type="button" onClick={handleCopy} title="Copy response" className={toolbarBtn}>
-                    {copied ? <CheckIcon className="h-3.5 w-3.5 text-emerald-400" /> : <CopyIcon className="h-3.5 w-3.5" />}
+                  <button type="button" onClick={handleCopy} title="Copy response" className={labelBtn}>
+                    {copied ? (
+                      <>
+                        <CheckIcon className="h-3.5 w-3.5 text-emerald-400" /> Copied
+                      </>
+                    ) : (
+                      <>
+                        <CopyIcon className="h-3.5 w-3.5" /> Copy
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => onRegenerate?.(message.id)}
                     disabled={disabled}
                     title="Regenerate response"
-                    className={toolbarBtn}
+                    className={labelBtn}
                   >
-                    <RegenerateIcon className="h-3.5 w-3.5" />
+                    <RegenerateIcon className="h-3.5 w-3.5" /> Regenerate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRegenerate?.(message.id, otherMode)}
+                    disabled={disabled}
+                    title={`Regenerate in ${otherModeLabel} mode`}
+                    className={labelBtn}
+                  >
+                    Try in {otherModeLabel}
                   </button>
                 </>
               )

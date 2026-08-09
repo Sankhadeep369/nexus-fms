@@ -82,8 +82,9 @@ export function useChat() {
   // Sends `userMsg` (already appended to `baseMessages`) and streams the response
   // into a fresh assistant message identified by `assistantId`.
   const runStream = useCallback(
-    async (baseMessages, userMsg, assistantId) => {
+    async (baseMessages, userMsg, assistantId, modeOverride) => {
       const conversationId = conversationIdRef.current;
+      const runMode = modeOverride ?? mode;
       const withUser = [...baseMessages, userMsg, freshAssistant(assistantId)];
       setMessages(withUser);
       commitMessages(conversationId, [...baseMessages, userMsg]);
@@ -112,7 +113,7 @@ export function useChat() {
         const response = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: userMsg.content, mode, history: historyMessages }),
+          body: JSON.stringify({ query: userMsg.content, mode: runMode, history: historyMessages }),
           signal: controller.signal,
         });
 
@@ -231,14 +232,15 @@ export function useChat() {
   );
 
   // Re-runs the user message that produced `assistantId`, replacing that answer.
+  // An optional `modeOverride` regenerates in the other mode ("try in Thinking").
   const regenerate = useCallback(
-    (assistantId) => {
+    (assistantId, modeOverride) => {
       if (isStreaming) return;
       const idx = messages.findIndex((m) => m.id === assistantId);
       if (idx <= 0) return;
       const userMsg = messages[idx - 1];
       if (userMsg.role !== "user") return;
-      runStream(messages.slice(0, idx - 1), userMsg, assistantId);
+      runStream(messages.slice(0, idx - 1), userMsg, assistantId, modeOverride);
     },
     [isStreaming, messages, runStream]
   );

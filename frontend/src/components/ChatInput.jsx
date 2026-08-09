@@ -162,7 +162,7 @@ export default function ChatInput({
       </div>
       {justArrived && (
         <p className="mx-auto mb-1.5 max-w-3xl px-1 text-[11px] font-medium text-nexus-violet">
-          Question ready from Agents — review and press Enter to send.
+          Ready to send — review or edit, then press Enter.
         </p>
       )}
       <div
