@@ -86,6 +86,33 @@ def _context_block(issue: str, grounded: bool, owner: str | None) -> str:
     )
 
 
+def _repair_json(frag: str) -> str:
+    """Best-effort fixes for the two ways model JSON breaks: trailing commas and a
+    reply truncated mid-structure (close any still-open brackets/braces)."""
+    frag = re.sub(r",\s*([}\]])", r"\1", frag)  # drop trailing commas
+    # Balance brackets, ignoring those inside strings.
+    stack, in_str, esc = [], False, False
+    for ch in frag:
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch in "}]" and stack:
+            stack.pop()
+    if in_str:
+        frag += '"'
+    frag += "".join("}" if c == "{" else "]" for c in reversed(stack))
+    return frag
+
+
 def _groq_json(prompt: str, max_tokens: int) -> dict:
     from groq import Groq
 
@@ -95,10 +122,23 @@ def _groq_json(prompt: str, max_tokens: int) -> dict:
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens,
         temperature=0.2,
+        # Constrain the model to emit strictly valid JSON — this is what stops the
+        # intermittent "Expecting ',' delimiter" failures (unescaped quotes etc.).
+        response_format={"type": "json_object"},
     )
-    raw = r.choices[0].message.content or ""
+    raw = (r.choices[0].message.content or "").strip()
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
     m = re.search(r"\{[\s\S]+\}", raw)
-    return json.loads(m.group()) if m else {}
+    frag = m.group() if m else raw
+    try:
+        return json.loads(frag)
+    except json.JSONDecodeError:
+        return json.loads(_repair_json(frag))  # last resort; may still raise
 
 
 def generate_analysis(method: str, issue: str, grounded: bool = False, owner: str | None = None) -> dict:
@@ -109,7 +149,7 @@ def generate_analysis(method: str, issue: str, grounded: bool = False, owner: st
     ctx = _context_block(issue, grounded, owner)
     prompt = _PROMPTS[method].format(context=ctx, issue=issue[:1200])
     try:
-        data = _groq_json(prompt, 900)
+        data = _groq_json(prompt, 1500)
         if not isinstance(data, dict) or not data:
             return {"error": "The analyzer returned no usable result — please try again."}
         data["method"] = method

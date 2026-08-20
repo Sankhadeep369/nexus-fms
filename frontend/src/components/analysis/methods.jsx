@@ -1,7 +1,31 @@
+import { useEffect, useRef } from "react";
 import { PlusIcon, XIcon } from "../icons";
 
 const field =
   "w-full rounded-lg border border-nexus-border bg-nexus-bg px-2.5 py-1.5 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none";
+
+// Textarea that grows to fit its content, so long text wraps and is fully visible
+// instead of scrolling horizontally inside a one-line input.
+export function AutoTextarea({ value, onChange, placeholder, className = "" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`${field} resize-none overflow-hidden ${className}`}
+    />
+  );
+}
 
 // ── Editable string list ────────────────────────────────────────────────────
 export function ListEditor({ items, onChange, placeholder }) {
@@ -11,9 +35,9 @@ export function ListEditor({ items, onChange, placeholder }) {
   return (
     <div className="space-y-1.5">
       {items.map((it, i) => (
-        <div key={i} className="flex items-center gap-1.5">
-          <input value={it} onChange={(e) => set(i, e.target.value)} placeholder={placeholder} className={field} />
-          <button type="button" onClick={() => del(i)} className="shrink-0 rounded p-1 text-nexus-muted hover:text-red-400" aria-label="Remove">
+        <div key={i} className="flex items-start gap-1.5">
+          <AutoTextarea value={it} onChange={(e) => set(i, e.target.value)} placeholder={placeholder} />
+          <button type="button" onClick={() => del(i)} className="mt-1.5 shrink-0 rounded p-1 text-nexus-muted hover:text-red-400" aria-label="Remove">
             <XIcon className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -46,8 +70,8 @@ export function FiveWhys({ data, onChange }) {
               <span className="text-[11px] font-semibold text-nexus-accent">Why {i + 1}?</span>
               <button type="button" onClick={() => delWhy(i)} className="rounded p-0.5 text-nexus-muted hover:text-red-400"><XIcon className="h-3 w-3" /></button>
             </div>
-            <input value={w.why} onChange={(e) => setWhy(i, "why", e.target.value)} className={`${field} mt-1`} placeholder="Why did it happen?" />
-            <textarea rows={2} value={w.cause} onChange={(e) => setWhy(i, "cause", e.target.value)} className={`${field} mt-1.5 resize-y`} placeholder="Because…" />
+            <div className="mt-1"><AutoTextarea value={w.why} onChange={(e) => setWhy(i, "why", e.target.value)} placeholder="Why did it happen?" /></div>
+            <div className="mt-1.5"><AutoTextarea value={w.cause} onChange={(e) => setWhy(i, "cause", e.target.value)} placeholder="Because…" /></div>
           </div>
         </div>
       ))}
