@@ -4,29 +4,19 @@ import { useSuggestions } from "../hooks/useSuggestions";
 import {
   CommandIcon,
   CornerDownLeftIcon,
-  FileTextIcon,
   PaperclipIcon,
   SendIcon,
   SparkleIcon,
   StopIcon,
-  XIcon,
   ZapIcon,
 } from "./icons";
 
 const MAX_TEXTAREA_HEIGHT = 200;
-const ACCEPTED_DOCS =
-  ".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 const MODES = [
   { id: "simple", label: "Simple", icon: ZapIcon, title: "Lower temperature -- faster, focused answers" },
   { id: "thinking", label: "Thinking", icon: SparkleIcon, title: "Higher temperature -- more exploratory reasoning" },
 ];
-
-function formatSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 // Turns the flat (already category-ordered) match list into render rows,
 // inserting a header row whenever the category changes. Each item row keeps
@@ -45,23 +35,11 @@ function toPaletteRows(matches) {
   return rows;
 }
 
-export default function ChatInput({
-  onSend,
-  onStop,
-  isStreaming,
-  mode,
-  onModeChange,
-  prefill,
-  attachments = [],
-  onAddFiles,
-  onRemoveAttachment,
-  onClearAttachments,
-}) {
+export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange, prefill, onOpenDocuments }) {
   const [value, setValue] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [justArrived, setJustArrived] = useState(false);
   const textareaRef = useRef(null);
-  const fileInputRef = useRef(null);
   const activeItemRef = useRef(null);
   const suggestions = useSuggestions();
   const { t } = useLanguage();
@@ -122,21 +100,13 @@ export default function ChatInput({
     if (!value.trim() || isStreaming) return;
     onSend(value);
     setValue("");
-    onClearAttachments?.(); // placeholder: attachments are visual only, nothing is uploaded
     requestAnimationFrame(() => resize(textareaRef.current));
   };
 
   const selectSuggestion = (text) => {
     onSend(text);
     setValue("");
-    onClearAttachments?.();
     requestAnimationFrame(() => resize(textareaRef.current));
-  };
-
-  const onPickFiles = (e) => {
-    if (e.target.files?.length) onAddFiles?.(e.target.files);
-    e.target.value = ""; // allow re-selecting the same file later
-    textareaRef.current?.focus();
   };
 
   return (
@@ -243,48 +213,12 @@ export default function ChatInput({
           </div>
         )}
 
-        {attachments.length > 0 && (
-          <div className="mb-1.5 px-1">
-            <div className="flex flex-wrap gap-1.5">
-              {attachments.map((file) => (
-                <span
-                  key={file.id}
-                  className="inline-flex max-w-[220px] items-center gap-1.5 rounded-lg border border-nexus-border bg-nexus-panel2 py-1 pl-2 pr-1 text-xs text-nexus-text"
-                >
-                  <FileTextIcon className="h-3.5 w-3.5 shrink-0 text-nexus-accent" />
-                  <span className="truncate">{file.name}</span>
-                  <span className="shrink-0 text-nexus-muted">{formatSize(file.size)}</span>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveAttachment?.(file.id)}
-                    aria-label={`Remove ${file.name}`}
-                    className="shrink-0 rounded p-0.5 text-nexus-muted transition-colors hover:bg-nexus-border hover:text-nexus-text"
-                  >
-                    <XIcon className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <p className="mt-1 text-[10px] text-nexus-muted">
-              Preview only — document analysis is coming soon; attachments are not read yet.
-            </p>
-          </div>
-        )}
-
         <div className="flex items-end gap-1.5">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPTED_DOCS}
-            multiple
-            onChange={onPickFiles}
-            className="hidden"
-          />
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach a PDF or Word document (preview — coming soon)"
-            aria-label="Attach a document"
+            onClick={onOpenDocuments}
+            title="Your documents — upload files to search in chat"
+            aria-label="Your documents"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-nexus-border bg-nexus-panel2 text-nexus-muted transition-all hover:border-nexus-accent/60 hover:text-nexus-accent active:scale-95"
           >
             <PaperclipIcon className="h-4 w-4" />

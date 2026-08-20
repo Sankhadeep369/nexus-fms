@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import AgentsPage from "./components/AgentsPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
+import DocumentsPanel from "./components/DocumentsPanel";
 import GuideModal from "./components/GuideModal";
 import Header from "./components/Header";
 import OptionsPanel from "./components/OptionsPanel";
 import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
-import { PaperclipIcon } from "./components/icons";
+import { UploadIcon } from "./components/icons";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
 import { DensityProvider } from "./context/DensityContext";
+import { DocumentsProvider, useDocuments } from "./context/DocumentsContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import { ProfileProvider } from "./context/ProfileContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -17,33 +19,16 @@ import { useChat } from "./hooks/useChat";
 
 const GUIDE_SEEN_KEY = "nexus-guide-seen";
 
-const DOC_EXT = /\.(pdf|docx?)$/i;
-
-// Builds the display-only attachment records (nothing is uploaded). Filters to
-// PDF/Word by extension and de-dupes so drag-drop and the picker stay in sync.
-function toAttachments(fileList, existing) {
-  const seen = new Set(existing.map((a) => a.id));
-  return Array.from(fileList ?? [])
-    .filter((f) => DOC_EXT.test(f.name))
-    .map((f) => ({ id: `${f.name}-${f.size}-${f.lastModified}`, name: f.name, size: f.size }))
-    .filter((a) => !seen.has(a.id));
-}
-
-function Chat({ prefill, onOpenGuide, onExample }) {
+function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
   const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, sendFeedback, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
-  const [attachments, setAttachments] = useState([]);
+  const { upload } = useDocuments();
   const [dragActive, setDragActive] = useState(false);
   const dragDepth = useRef(0);
 
   useEffect(() => {
     document.title = activeConversation.title === "New chat" ? "NEXUS" : `${activeConversation.title} · NEXUS`;
   }, [activeConversation.title]);
-
-  const addFiles = (fileList) =>
-    setAttachments((prev) => [...prev, ...toAttachments(fileList, prev)]);
-  const removeAttachment = (id) => setAttachments((prev) => prev.filter((a) => a.id !== id));
-  const clearAttachments = () => setAttachments([]);
 
   // Depth counter avoids the overlay flickering as the drag passes over children.
   const onDragEnter = (e) => {
@@ -59,7 +44,11 @@ function Chat({ prefill, onOpenGuide, onExample }) {
     e.preventDefault();
     dragDepth.current = 0;
     setDragActive(false);
-    if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length) {
+      files.forEach(upload); // add to the knowledge base (validated in DocumentsContext)
+      onOpenDocuments();
+    }
   };
 
   return (
@@ -89,17 +78,14 @@ function Chat({ prefill, onOpenGuide, onExample }) {
         mode={mode}
         onModeChange={setMode}
         prefill={prefill}
-        attachments={attachments}
-        onAddFiles={addFiles}
-        onRemoveAttachment={removeAttachment}
-        onClearAttachments={clearAttachments}
+        onOpenDocuments={onOpenDocuments}
       />
       {dragActive && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-nexus-bg/70 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-nexus-accent/60 bg-nexus-panel/80 px-8 py-6 text-center">
-            <PaperclipIcon className="h-6 w-6 text-nexus-accent" />
-            <p className="text-sm font-medium text-nexus-text">Drop PDF or Word documents to attach</p>
-            <p className="text-[11px] text-nexus-muted">Preview only — documents are not read yet.</p>
+            <UploadIcon className="h-6 w-6 text-nexus-accent" />
+            <p className="text-sm font-medium text-nexus-text">Drop files to add to your knowledge base</p>
+            <p className="text-[11px] text-nexus-muted">PDF, Word, TXT, MD — searched in chat</p>
           </div>
         </div>
       )}
@@ -116,6 +102,7 @@ export default function App() {
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [documentsOpen, setDocumentsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [chatPrefill, setChatPrefill] = useState(null);
 
@@ -127,12 +114,6 @@ export default function App() {
     }
   }, []);
 
-  const askInChat = (text) => {
-    setChatPrefill({ text, nonce: Date.now() });
-    setActiveTab("chat");
-  };
-
-  // Example chips pre-fill the composer (same path Agents uses to hand off a draft).
   const prefillChat = (text) => {
     setChatPrefill({ text, nonce: Date.now() });
     setActiveTab("chat");
@@ -141,37 +122,48 @@ export default function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-      <DensityProvider>
-      <ProfileProvider>
-        <ChatHistoryProvider>
-          <div className="relative flex h-screen flex-col">
-            <div className="aurora" aria-hidden="true" />
-            <Header
-              onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
-              onToggleOptions={() => setOptionsOpen(true)}
-              onOpenGuide={() => setGuideOpen(true)}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar
-                collapsed={sidebarCollapsed}
-                onClose={() => setSidebarCollapsed(true)}
-                onOpenProfile={() => setProfileOpen(true)}
-              />
-              {activeTab === "chat" ? (
-                <Chat prefill={chatPrefill} onOpenGuide={() => setGuideOpen(true)} onExample={prefillChat} />
-              ) : (
-                <AgentsPage onAskVendorQuestion={askInChat} />
-              )}
-            </div>
-            <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} />
-            <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
-            <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
-          </div>
-        </ChatHistoryProvider>
-      </ProfileProvider>
-      </DensityProvider>
+        <DensityProvider>
+          <ProfileProvider>
+            <DocumentsProvider>
+              <ChatHistoryProvider>
+                <div className="relative flex h-screen flex-col">
+                  <div className="aurora" aria-hidden="true" />
+                  <Header
+                    onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+                    onToggleOptions={() => setOptionsOpen(true)}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                  />
+                  <div className="flex flex-1 overflow-hidden">
+                    <Sidebar
+                      collapsed={sidebarCollapsed}
+                      onClose={() => setSidebarCollapsed(true)}
+                      onOpenProfile={() => setProfileOpen(true)}
+                    />
+                    {activeTab === "chat" ? (
+                      <Chat
+                        prefill={chatPrefill}
+                        onOpenGuide={() => setGuideOpen(true)}
+                        onExample={prefillChat}
+                        onOpenDocuments={() => setDocumentsOpen(true)}
+                      />
+                    ) : (
+                      <AgentsPage onAskVendorQuestion={prefillChat} />
+                    )}
+                  </div>
+                  <OptionsPanel
+                    open={optionsOpen}
+                    onClose={() => setOptionsOpen(false)}
+                    onOpenGuide={() => setGuideOpen(true)}
+                  />
+                  <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+                  <DocumentsPanel open={documentsOpen} onClose={() => setDocumentsOpen(false)} />
+                  <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+                </div>
+              </ChatHistoryProvider>
+            </DocumentsProvider>
+          </ProfileProvider>
+        </DensityProvider>
       </LanguageProvider>
     </ThemeProvider>
   );

@@ -195,6 +195,15 @@ export function ThumbDownIcon(props) {
   );
 }
 
+export function UploadIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M17 8l-5-5-5 5M12 3v12" />
+    </svg>
+  );
+}
+
 export function CalendarIcon(props) {
   return (
     <svg viewBox="0 0 24 24" {...base} {...props}>

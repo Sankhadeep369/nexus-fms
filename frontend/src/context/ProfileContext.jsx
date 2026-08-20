@@ -44,6 +44,19 @@ export function useProfile() {
   return useContext(ProfileContext);
 }
 
+// Stable id used to scope a user's uploaded documents (retrieval owner). Uses the
+// profile email when set, otherwise a per-device guest id so uploads stay separate
+// per browser even without an account.
+export function ownerId(profile) {
+  if (profile?.email) return profile.email.trim().toLowerCase();
+  let g = localStorage.getItem("nexus-guest-id");
+  if (!g) {
+    g = "guest-" + Math.random().toString(36).slice(2, 10);
+    localStorage.setItem("nexus-guest-id", g);
+  }
+  return g;
+}
+
 export function initials(name) {
   const parts = (name || "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "";

@@ -2,8 +2,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
 import { useDensity } from "../context/DensityContext";
+import { LANGUAGES, useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { CheckIcon, MoonIcon, SunIcon, TrashIcon, XIcon } from "./icons";
+import { CheckIcon, HelpCircleIcon, MoonIcon, SunIcon, TrashIcon, XIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -25,9 +26,10 @@ function exportChat(conversation) {
 const rowBtn =
   "flex w-full items-center justify-between rounded-xl border border-nexus-border bg-nexus-panel2 px-3 py-2.5 text-sm text-nexus-text transition-colors";
 
-export default function OptionsPanel({ open, onClose }) {
+export default function OptionsPanel({ open, onClose, onOpenGuide }) {
   const { theme, toggleTheme } = useTheme();
   const { density, setDensity } = useDensity();
+  const { lang, setLang } = useLanguage();
   const { clearAll, activeConversation } = useChatHistory();
   const [info, setInfo] = useState(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -101,6 +103,37 @@ export default function OptionsPanel({ open, onClose }) {
                 </div>
               </div>
               <p className="mt-1 px-1 text-[11px] text-nexus-muted">Compact fits more on smaller screens.</p>
+
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-nexus-border bg-nexus-panel2 px-3 py-2">
+                <span className="text-sm text-nexus-text">Language</span>
+                <select
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value)}
+                  className="rounded-lg border border-nexus-border bg-nexus-panel px-2 py-1 text-sm text-nexus-text focus:border-nexus-accent/60 focus:outline-none"
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.native}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-1 px-1 text-[11px] text-nexus-muted">Translates the interface; answers stay in English.</p>
+            </section>
+
+            <section className="mt-6">
+              <h3 className="text-[11px] font-medium uppercase tracking-wider text-nexus-muted">Help</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenGuide?.();
+                }}
+                className={`mt-2 hover:border-nexus-accent/50 ${rowBtn}`}
+              >
+                <span>How NEXUS works</span>
+                <HelpCircleIcon className="h-4 w-4" />
+              </button>
             </section>
 
             <section className="mt-6">

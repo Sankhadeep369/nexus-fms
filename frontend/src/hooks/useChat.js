@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
+import { ownerId, useProfile } from "../context/ProfileContext";
 import { parseSSEStream } from "../lib/sse";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -63,6 +64,7 @@ function freshAssistant(id) {
 
 export function useChat() {
   const { activeId, activeConversation, commitMessages } = useChatHistory();
+  const { profile } = useProfile();
   const [messages, setMessages] = useState(activeConversation.messages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [mode, setMode] = useState("simple");
@@ -113,7 +115,12 @@ export function useChat() {
         const response = await fetch(`${API_BASE}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: userMsg.content, mode: runMode, history: historyMessages }),
+          body: JSON.stringify({
+            query: userMsg.content,
+            mode: runMode,
+            history: historyMessages,
+            owner: ownerId(profile),
+          }),
           signal: controller.signal,
         });
 
@@ -218,7 +225,7 @@ export function useChat() {
         commitMessages(conversationId, finalMessages);
       }
     },
-    [commitMessages, mode]
+    [commitMessages, mode, profile]
   );
 
   const sendMessage = useCallback(

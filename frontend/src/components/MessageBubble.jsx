@@ -107,6 +107,11 @@ const markdownComponents = {
 // into a readable label and category badge.
 function formatSource(path) {
   const folder = path.split("/")[0];
+  if (folder === "user_docs") {
+    // user_docs/<owner>/<filename>#<n>  ->  a clean filename + a distinct badge.
+    const fn = path.split("/").pop().replace(/#\d+$/, "");
+    return { name: fn, category: "Your Document" };
+  }
   const filename = path.split("/").pop().replace(".txt", "").replace(/^\d+_/, "");
   const name = filename.replace(/_/g, " ");
   const category =

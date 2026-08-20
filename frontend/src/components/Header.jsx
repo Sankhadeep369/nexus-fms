@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, CircleDotIcon, HelpCircleIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
-import LanguageMenu from "./LanguageMenu";
+import { BotIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -13,7 +12,7 @@ const TABS = [
 
 const TAB_KEY = { chat: "tab_chat", agents: "tab_agents" };
 
-export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, activeTab, onTabChange }) {
+export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
   const [status, setStatus] = useState({ online: null, model: null });
@@ -95,24 +94,6 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, 
       </div>
 
       <div className="flex items-center gap-1.5">
-        <LanguageMenu />
-        <button
-          type="button"
-          onClick={onOpenGuide}
-          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
-          aria-label="How it works"
-          title="How it works"
-        >
-          <HelpCircleIcon className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={onToggleOptions}
-          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
-          aria-label="Open options"
-        >
-          <SlidersIcon className="h-4 w-4" />
-        </button>
         <button
           type="button"
           onClick={toggleTheme}
@@ -120,6 +101,15 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenGuide, 
           aria-label="Toggle theme"
         >
           {theme === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleOptions}
+          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
+          aria-label="Settings"
+          title="Settings"
+        >
+          <SlidersIcon className="h-4 w-4" />
         </button>
       </div>
     </header>
