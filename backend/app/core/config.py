@@ -138,9 +138,11 @@ class Settings(BaseSettings):
     # numeric/financial queries. 75 chars preserves boundary coverage at half the cost.
     retrieval_chunk_overlap_chars: int = 75
 
-    # --- Groq (query pre-processor + answer rewriter/validator) ---
+    # --- Groq (query pre-processor + answer rewriter/validator + agents) ---
     groq_api_key: str | None = None
-    groq_model: str = "llama-3.1-8b-instant"
+    # Groq retired the Llama-3.1 line (llama-3.1-8b-instant now 404s). gpt-oss-20b is
+    # the current fast general-purpose model — closest analog, clean JSON, ~1s.
+    groq_model: str = "openai/gpt-oss-20b"
     # Toggle the Groq query pre-processor (rewrites/classifies the query before retrieval)
     query_preprocessor_enabled: bool = True
     # Toggle the Groq answer rewriter (validates + rewrites the generated answer)
