@@ -99,6 +99,8 @@ def _doc_type_label(source_doc: str) -> str:
     REFERENCE / FM REFERENCE DOCUMENT). Derived from the self-describing corpus
     index (manifest + inferred roles) rather than a hardcoded folder map, so a
     new doc class is labelled correctly without a code change."""
+    if source_doc.startswith("user_docs/"):
+        return "UPLOADED DOCUMENT (most recent, authoritative)"
     from app.core.corpus_index import get_corpus_index
 
     return get_corpus_index().label_of(source_doc)
@@ -196,6 +198,9 @@ def _build_user_content(query: str, retrieved: list[dict]) -> str:
     )[:_MAX_CONTEXT_CHARS]
     return (
         "Context (retrieved from internal facilities documents):\n"
+        "- UPLOADED DOCUMENT entries are the MOST RECENT and AUTHORITATIVE. If they conflict "
+        "with any other context, with a CURRENT CONTRACT, or with your prior knowledge, use "
+        "the uploaded document's figures, names, and dates — they supersede everything else.\n"
         "- CURRENT CONTRACT entries are authoritative — use exact figures, names, and dates.\n"
         "- MARKET REFERENCE entries are synthetic benchmarks for comparison only — "
         "never present their figures as real contract values.\n"
@@ -268,6 +273,41 @@ def _site_rerank(chunks: list[dict], query: str) -> list[dict]:
         return 0 if hint.replace(" ", "") in doc.replace(" ", "").replace("_", "") else 1
 
     return sorted(chunks, key=key)  # stable: preserves relevance order within each group
+
+
+def _prefer_user_docs(retrieved: list[dict]) -> list[dict]:
+    """Uploaded documents take precedence over the base corpus: they move to the
+    front, and any base-corpus chunk about the SAME vendor is suppressed so a
+    superseded (old) figure never sits in context beside the new one. Fast path:
+    returns the list unchanged when there are no uploaded chunks (so behaviour with
+    no uploads is identical to before)."""
+    user_chunks = [c for c in retrieved if c["source_doc"].startswith("user_docs/")]
+    if not user_chunks:
+        return retrieved
+
+    from app.core.corpus_index import get_corpus_index
+
+    ci = get_corpus_index()
+
+    def vkey(name: str | None) -> str:
+        return " ".join((name or "").lower().split()[:3])
+
+    # Which contracted vendors do the uploaded chunks talk about?
+    vendor_keys = {vkey(d.vendor) for d in ci.current_docs if d.vendor}
+    conflict = {
+        vk for vk in vendor_keys
+        if vk and any(vk in uc["text"].lower() for uc in user_chunks)
+    }
+    src_vkey = {d.source_doc: vkey(d.vendor) for d in ci.current_docs if d.vendor}
+
+    corpus_kept = [
+        c for c in retrieved
+        if not c["source_doc"].startswith("user_docs/")
+        and src_vkey.get(c["source_doc"], "") not in conflict
+    ]
+    if conflict:
+        logger.info("user-doc precedence: suppressed base-corpus chunks for %s", sorted(conflict))
+    return user_chunks + corpus_kept
 
 
 class ChatPipeline:
@@ -1135,6 +1175,7 @@ class ChatPipeline:
                 or c["bm25_score"] >= settings.retrieval_min_bm25_score
             ]
             retrieved = _site_rerank(retrieved, retrieval_query)
+            retrieved = _prefer_user_docs(retrieved)
         else:
             # Standard retriever: fetch the full cross-encoder candidate pool
             # (reranker_candidates=20) so the relevance gate can rescue high-BM25
@@ -1150,6 +1191,8 @@ class ChatPipeline:
             # Site-preference re-rank BEFORE the top-k cut so a site-matched document
             # survives a same-vendor tie (e.g. IronGate Austin vs HQ).
             gated = _site_rerank(gated, retrieval_query)
+            # Uploaded docs take precedence + suppress the superseded same-vendor chunk.
+            gated = _prefer_user_docs(gated)
             retrieved = gated[:retrieval_k]
         yield {
             "type": "step",
