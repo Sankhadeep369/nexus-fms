@@ -275,12 +275,34 @@ def _site_rerank(chunks: list[dict], query: str) -> list[dict]:
     return sorted(chunks, key=key)  # stable: preserves relevance order within each group
 
 
+# Aspects an uploaded doc might supersede, detected from its text, and the
+# section-name keywords that identify the matching (superseded) corpus sections.
+# Section titles are human-authored and precise, so this is far more reliable than
+# embedding similarity (which is dominated by the shared vendor identity).
+_ASPECT_SIGNALS: dict[str, re.Pattern] = {
+    "pricing": re.compile(
+        r"\b(fee|fees|price|pricing|cost|costs|rate|rates|charge|charges|payment|amount|"
+        r"per\s+month|per\s+annum|monthly|annual|usd|inr)\b|[$₹]", re.IGNORECASE),
+    "sla": re.compile(r"\b(sla|service\s+level|response\s+time|attendance|turnaround|resolution\s+time)\b", re.IGNORECASE),
+    "scope": re.compile(r"\b(scope\s+of\s+services|deliverables|services\s+provided|inclusions|exclusions)\b", re.IGNORECASE),
+    "term": re.compile(r"\b(term|renewal|expiry|expiration|effective\s+date|duration|notice\s+period)\b", re.IGNORECASE),
+}
+_ASPECT_SECTION_KWS: dict[str, tuple[str, ...]] = {
+    "pricing": ("commercial", "fee", "fees", "pricing", "price", "payment", "cost", "rate", "charges", "financial", "consideration"),
+    "sla": ("sla", "service level", "response", "attendance"),
+    "scope": ("scope", "services", "deliverable"),
+    "term": ("term", "renewal", "duration", "termination"),
+}
+
+
 def _prefer_user_docs(retrieved: list[dict]) -> list[dict]:
     """Uploaded documents take precedence over the base corpus: they move to the
-    front, and any base-corpus chunk about the SAME vendor is suppressed so a
-    superseded (old) figure never sits in context beside the new one. Fast path:
-    returns the list unchanged when there are no uploaded chunks (so behaviour with
-    no uploads is identical to before)."""
+    front, and a base-corpus chunk for the SAME vendor is suppressed ONLY IF it covers
+    the same aspect the upload supersedes (e.g. an upload about pricing suppresses the
+    old 'Commercial Terms' section but KEEPS the SLA / Scope / Obligations sections).
+    So the new figure wins while the untouched contract details are still available.
+    Fast path: returns the list unchanged when nothing is uploaded (identical to
+    before)."""
     user_chunks = [c for c in retrieved if c["source_doc"].startswith("user_docs/")]
     if not user_chunks:
         return retrieved
@@ -292,21 +314,28 @@ def _prefer_user_docs(retrieved: list[dict]) -> list[dict]:
     def vkey(name: str | None) -> str:
         return " ".join((name or "").lower().split()[:3])
 
-    # Which contracted vendors do the uploaded chunks talk about?
     vendor_keys = {vkey(d.vendor) for d in ci.current_docs if d.vendor}
-    conflict = {
-        vk for vk in vendor_keys
-        if vk and any(vk in uc["text"].lower() for uc in user_chunks)
-    }
+    conflict = {vk for vk in vendor_keys if vk and any(vk in uc["text"].lower() for uc in user_chunks)}
     src_vkey = {d.source_doc: vkey(d.vendor) for d in ci.current_docs if d.vendor}
 
-    corpus_kept = [
-        c for c in retrieved
-        if not c["source_doc"].startswith("user_docs/")
-        and src_vkey.get(c["source_doc"], "") not in conflict
-    ]
+    # Which aspects does the uploaded content actually supersede?
+    up_text = " ".join(uc["text"] for uc in user_chunks)
+    aspects = [a for a, rx in _ASPECT_SIGNALS.items() if rx.search(up_text)]
+    section_kws = tuple(kw for a in aspects for kw in _ASPECT_SECTION_KWS[a])
+
+    def superseded(c: dict) -> bool:
+        if src_vkey.get(c["source_doc"], "") not in conflict:
+            return False  # different vendor — never suppressed
+        # Same vendor: suppress only sections matching a superseded aspect. If we
+        # can't tell the aspect, keep the chunk (upload-first + the authoritative
+        # prompt still make the new figure win) rather than lose complementary detail.
+        sec = (c.get("section") or "").lower()
+        return bool(section_kws) and any(kw in sec for kw in section_kws)
+
+    corpus_kept = [c for c in retrieved if not c["source_doc"].startswith("user_docs/") and not superseded(c)]
     if conflict:
-        logger.info("user-doc precedence: suppressed base-corpus chunks for %s", sorted(conflict))
+        logger.info("user-doc precedence: vendors=%s aspects=%s -> kept %d corpus chunks",
+                    sorted(conflict), aspects, len(corpus_kept))
     return user_chunks + corpus_kept
 
 
