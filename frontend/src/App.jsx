@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import AgentsPage from "./components/AgentsPage";
+import AnalysisPage from "./components/AnalysisPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
 import DocumentsPanel from "./components/DocumentsPanel";
@@ -147,6 +148,8 @@ export default function App() {
                         onExample={prefillChat}
                         onOpenDocuments={() => setDocumentsOpen(true)}
                       />
+                    ) : activeTab === "analysis" ? (
+                      <AnalysisPage />
                     ) : (
                       <AgentsPage onAskVendorQuestion={prefillChat} />
                     )}
