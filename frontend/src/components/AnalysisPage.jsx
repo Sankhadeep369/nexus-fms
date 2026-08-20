@@ -89,8 +89,8 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="scroll-thin flex-1 overflow-y-auto px-4 py-6">
-      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="scroll-thin flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+      <div className="mx-auto flex max-w-5xl flex-col gap-5">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-xl font-semibold text-nexus-text">Issue Analysis</h1>
@@ -136,7 +136,7 @@ export default function AnalysisPage() {
         )}
 
         {/* Setup */}
-        <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-4">
+        <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-5">
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-nexus-muted">Method</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {METHODS.map((m) => (
@@ -162,7 +162,7 @@ export default function AnalysisPage() {
             onChange={(e) => setIssue(e.target.value)}
             rows={3}
             placeholder="Describe the issue or failure to analyse…"
-            className="mt-3 w-full resize-none rounded-xl border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none"
+            className="mt-4 w-full resize-y rounded-xl border border-nexus-border bg-nexus-bg px-3 py-2.5 text-sm leading-relaxed text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none"
           />
           <div className="mt-2 flex items-center justify-between">
             <label className="flex items-center gap-2 text-xs text-nexus-muted">
@@ -184,13 +184,13 @@ export default function AnalysisPage() {
 
         {/* Result */}
         {data && Renderer && (
-          <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-4">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-nexus-text">
                 {METHODS.find((m) => m.id === data.method)?.name}
                 {data.grounded && <span className="ml-2 rounded bg-nexus-accent/10 px-1.5 py-0.5 text-[10px] text-nexus-accent">grounded</span>}
               </h2>
-              <div className="flex items-center gap-1.5 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <button type="button" onClick={save} className="rounded-lg border border-nexus-border px-2 py-1 text-nexus-muted hover:text-nexus-text">Save</button>
                 <button type="button" onClick={exportMd} className="rounded-lg border border-nexus-border px-2 py-1 text-nexus-muted hover:text-nexus-text">Export .md</button>
                 <button type="button" onClick={() => window.print()} className="rounded-lg border border-nexus-border px-2 py-1 text-nexus-muted hover:text-nexus-text">Print</button>

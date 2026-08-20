@@ -47,7 +47,7 @@ export function FiveWhys({ data, onChange }) {
               <button type="button" onClick={() => delWhy(i)} className="rounded p-0.5 text-nexus-muted hover:text-red-400"><XIcon className="h-3 w-3" /></button>
             </div>
             <input value={w.why} onChange={(e) => setWhy(i, "why", e.target.value)} className={`${field} mt-1`} placeholder="Why did it happen?" />
-            <input value={w.cause} onChange={(e) => setWhy(i, "cause", e.target.value)} className={`${field} mt-1.5`} placeholder="Because…" />
+            <textarea rows={2} value={w.cause} onChange={(e) => setWhy(i, "cause", e.target.value)} className={`${field} mt-1.5 resize-y`} placeholder="Because…" />
           </div>
         </div>
       ))}
@@ -56,7 +56,7 @@ export function FiveWhys({ data, onChange }) {
       </button>
       <div className="rounded-xl border border-nexus-accent/40 bg-nexus-accent/5 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-nexus-accent">Root cause</span>
-        <textarea rows={2} value={data.root_cause || ""} onChange={(e) => onChange({ ...data, root_cause: e.target.value })} className={`${field} mt-1 resize-none`} />
+        <textarea rows={2} value={data.root_cause || ""} onChange={(e) => onChange({ ...data, root_cause: e.target.value })} className={`${field} mt-1 resize-y`} />
       </div>
     </div>
   );
@@ -103,44 +103,57 @@ export function Ishikawa({ data, onChange }) {
   );
 }
 
+// Cards (foreignObject) wrap text natively — no fragile positioned <text>. Three
+// categories branch above the spine, three below; the head is the problem.
 function Fishbone({ problem, categories }) {
-  const W = 720, H = 340, midY = H / 2, spineX0 = 30, spineX1 = W - 150;
-  const bones = CATS.map((cat, i) => {
-    const up = i < 3;
-    const t = (i % 3) + 1; // 1..3 along spine
-    const bx = spineX0 + ((spineX1 - spineX0) * t) / 4;
-    const endX = bx - 55, endY = up ? midY - 120 : midY + 120;
-    return { cat, bx, endX, endY, up, causes: (categories[cat] || []).filter((c) => c.selected).map((c) => c.text) };
-  });
+  const W = 960, H = 340, midY = H / 2;
+  const spineX0 = 24, spineX1 = 720;
+  const cols = [170, 380, 590];
+  const cardW = 208, cardH = 122;
+  const top = ["Manpower", "Method", "Machine"];
+  const bottom = ["Material", "Measurement", "Environment"];
+
+  const branch = (cat, cx, isTop) => {
+    const causes = (categories[cat] || []).filter((c) => c.selected).map((c) => c.text);
+    const cardX = cx - cardW / 2;
+    const cardY = isTop ? 8 : H - cardH - 8;
+    const startY = isTop ? cardY + cardH : cardY; // card edge nearest the spine
+    return (
+      <g key={cat}>
+        <line x1={cx} y1={startY} x2={cx + 72} y2={midY} stroke="rgb(var(--nexus-border))" strokeWidth="1.5" />
+        <foreignObject x={cardX} y={cardY} width={cardW} height={cardH}>
+          <div className="flex h-full flex-col overflow-hidden rounded-lg border border-nexus-border bg-nexus-panel2 px-2.5 py-1.5">
+            <span className="text-[11px] font-semibold text-nexus-violet">{cat}</span>
+            {causes.length ? (
+              <ul className="mt-1 space-y-0.5 overflow-hidden">
+                {causes.map((c, i) => (
+                  <li key={i} className="flex gap-1 text-[10px] leading-snug text-nexus-muted">
+                    <span className="mt-px text-nexus-accent">•</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="mt-1 text-[10px] italic text-nexus-muted">no causes selected</span>
+            )}
+          </div>
+        </foreignObject>
+      </g>
+    );
+  };
+
   return (
-    <div className="scroll-thin overflow-x-auto rounded-xl border border-nexus-border bg-nexus-panel p-2">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 560 }}>
-        <line x1={spineX0} y1={midY} x2={spineX1} y2={midY} stroke="rgb(var(--nexus-border))" strokeWidth="2" />
-        <polygon points={`${spineX1},${midY - 10} ${spineX1 + 16},${midY} ${spineX1},${midY + 10}`} fill="rgb(var(--nexus-accent))" />
-        <foreignObject x={spineX1 + 12} y={midY - 34} width="140" height="68">
-          <div className="flex h-full items-center rounded-lg border border-nexus-accent/50 bg-nexus-accent/10 px-2 text-[10px] font-medium leading-tight text-nexus-text">
+    <div className="scroll-thin overflow-x-auto rounded-xl border border-nexus-border bg-nexus-panel p-3">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 680 }}>
+        <line x1={spineX0} y1={midY} x2={spineX1} y2={midY} stroke="rgb(var(--nexus-border))" strokeWidth="2.5" />
+        <polygon points={`${spineX1},${midY - 9} ${spineX1 + 15},${midY} ${spineX1},${midY + 9}`} fill="rgb(var(--nexus-accent))" />
+        <foreignObject x={spineX1 + 14} y={midY - 46} width={210} height={92}>
+          <div className="flex h-full items-center rounded-xl border border-nexus-accent/50 bg-nexus-accent/10 px-3 text-[11px] font-semibold leading-snug text-nexus-text">
             {problem}
           </div>
         </foreignObject>
-        {bones.map((b) => (
-          <g key={b.cat}>
-            <line x1={b.bx} y1={midY} x2={b.endX} y2={b.endY} stroke="rgb(var(--nexus-border))" strokeWidth="1.5" />
-            <text x={b.endX - 4} y={b.up ? b.endY - 6 : b.endY + 14} textAnchor="end" className="fill-nexus-violet text-[11px] font-semibold" style={{ fill: "rgb(var(--nexus-violet))" }}>
-              {b.cat}
-            </text>
-            {b.causes.slice(0, 4).map((c, j) => (
-              <text
-                key={j}
-                x={b.endX + 20 + j * ((b.bx - b.endX) / 5)}
-                y={(b.up ? b.endY : b.endY) + (b.up ? 14 + j * 15 : -6 - j * 15)}
-                className="text-[9px]"
-                style={{ fill: "rgb(var(--nexus-muted))" }}
-              >
-                • {c.length > 26 ? c.slice(0, 26) + "…" : c}
-              </text>
-            ))}
-          </g>
-        ))}
+        {top.map((cat, i) => branch(cat, cols[i], true))}
+        {bottom.map((cat, i) => branch(cat, cols[i], false))}
       </svg>
     </div>
   );
@@ -168,7 +181,7 @@ function TreeNode({ node, onChange, onDelete }) {
   return (
     <div className="flex flex-col items-center">
       <div className="group relative flex items-center gap-1 rounded-lg border border-nexus-border bg-nexus-panel2 px-2 py-1">
-        <input value={node.label} onChange={(e) => setLabel(e.target.value)} className="w-40 bg-transparent text-center text-[11px] text-nexus-text focus:outline-none" />
+        <textarea rows={2} value={node.label} onChange={(e) => setLabel(e.target.value)} className="w-44 resize-none bg-transparent text-center text-[11px] leading-tight text-nexus-text focus:outline-none" />
         {onDelete && (
           <button type="button" onClick={onDelete} className="rounded p-0.5 text-nexus-muted opacity-0 hover:text-red-400 group-hover:opacity-100"><XIcon className="h-3 w-3" /></button>
         )}
@@ -205,7 +218,7 @@ export function RcaReport({ data, onChange }) {
     <div className="space-y-4">
       <div>
         <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-nexus-muted">Impact</p>
-        <textarea rows={2} value={data.impact || ""} onChange={(e) => set("impact", e.target.value)} className={`${field} resize-none`} />
+        <textarea rows={3} value={data.impact || ""} onChange={(e) => set("impact", e.target.value)} className={`${field} resize-y`} />
       </div>
       <Section label="Timeline" k="timeline" />
       <Section label="Contributing factors" k="contributing_factors" />
