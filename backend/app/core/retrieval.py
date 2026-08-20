@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -162,9 +163,25 @@ def _min_max(arr: np.ndarray) -> np.ndarray:
     return (arr - lo) / (hi - lo)
 
 
+def _apply_owner_mask(combined: np.ndarray, owners: list, owner: str | None) -> np.ndarray:
+    """Base-corpus chunks (owner None) are always eligible; user-doc chunks only for
+    the requesting `owner`. Fast path: if there are no user docs at all, the array is
+    returned unchanged, so retrieval with no uploads is byte-identical to before."""
+    if not any(o is not None for o in owners):
+        return combined
+    mask = np.fromiter((o is None or o == owner for o in owners), dtype=bool, count=len(owners))
+    out = combined.copy()
+    out[~mask] = -1e9
+    return out
+
+
 class Retriever:
     def __init__(self):
         self.chunks = _load_chunks()
+        # Owner tag parallel to `chunks`: None = committed base corpus (always
+        # searched); a profile id = a user-uploaded doc (searched only for that user).
+        self.owners: list[str | None] = [None] * len(self.chunks)
+        self._lock = threading.RLock()
 
         self._bm25 = BM25Okapi([_tokenize(c.text) for c in self.chunks])
 
@@ -230,40 +247,66 @@ class Retriever:
         ranked = sorted(zip(scores, candidates), key=lambda x: -x[0])
         return [c for _, c in ranked[:k]]
 
-    def retrieve(self, query: str, k: int | None = None) -> list[dict]:
+    def add_documents(self, docs: list[dict]) -> None:
+        """Append user-uploaded chunks to the in-memory index (chunks + owners +
+        embeddings + BM25). Each doc needs source_doc, section, text, embedding
+        (float list), owner. Builds new structures and swaps them under the lock so a
+        concurrent retrieve() always sees a consistent chunks/embeddings/BM25 set."""
+        if not docs:
+            return
+        new_chunks = [Chunk(source_doc=d["source_doc"], section=d.get("section") or "", text=d["text"]) for d in docs]
+        new_owners = [d.get("owner") for d in docs]
+        new_emb = np.asarray([d["embedding"] for d in docs], dtype=np.float32)
+        with self._lock:
+            chunks = self.chunks + new_chunks
+            owners = self.owners + new_owners
+            embeddings = np.vstack([self._embeddings, new_emb]) if self._embeddings.size else new_emb
+            bm25 = BM25Okapi([_tokenize(c.text) for c in chunks])
+            self.chunks, self.owners, self._embeddings, self._bm25 = chunks, owners, embeddings, bm25
+        logger.info("retriever: +%d user chunks (total=%d)", len(new_chunks), len(self.chunks))
+
+    def retrieve(self, query: str, k: int | None = None, owner: str | None = None) -> list[dict]:
         """Return up to `k` chunks ranked by a hybrid BM25 + dense score, each with
         `source_doc`, `section`, `text`, `score` (combined, for ranking), `dense_score`
         (raw cosine similarity) and `bm25_score` (raw BM25 score) -- the latter two for
         the relevance gate.
 
+        `owner` scopes user-uploaded docs: the base corpus is always searched; a user
+        doc is only searched for its owner (None = base corpus only, the default).
+
         When the cross-encoder is enabled, `retrieval_reranker_candidates` chunks
         are fetched from the BM25+dense stage and then re-ranked to the final top-k.
         """
-        if not self.chunks:
+        # Consistent snapshot (add_documents swaps these atomically under the lock).
+        with self._lock:
+            chunks, owners, embeddings, bm25 = self.chunks, self.owners, self._embeddings, self._bm25
+        if not chunks:
             return []
         k = k or settings.retrieval_top_k
         # Fetch more candidates than needed when re-ranking is on; the cross-encoder
         # picks the best k from the wider set.
         fetch_k = max(k, settings.retrieval_reranker_candidates) if self._reranker else k
 
-        bm25_scores = np.asarray(self._bm25.get_scores(_tokenize(query)), dtype=np.float32)
+        bm25_scores = np.asarray(bm25.get_scores(_tokenize(query)), dtype=np.float32)
         query_emb = self._encode_query(query)
-        dense_scores = self._embeddings @ query_emb
+        dense_scores = embeddings @ query_emb
 
         w = settings.retrieval_bm25_weight
         combined = w * _min_max(bm25_scores) + (1 - w) * _min_max(dense_scores)
+        combined = _apply_owner_mask(combined, owners, owner)
 
         top_idx = np.argsort(-combined)[:fetch_k]
         candidates = [
             {
-                "source_doc": self.chunks[i].source_doc,
-                "section": self.chunks[i].section,
-                "text": self.chunks[i].text,
+                "source_doc": chunks[i].source_doc,
+                "section": chunks[i].section,
+                "text": chunks[i].text,
                 "score": float(combined[i]),
                 "dense_score": float(dense_scores[i]),
                 "bm25_score": float(bm25_scores[i]),
             }
             for i in top_idx
+            if combined[i] > -1e8  # drop owner-masked chunks
         ]
         return self._rerank(query, candidates, k)
 
@@ -303,7 +346,7 @@ class EntityAwareRetriever(Retriever):
     - Entity-Aware: entity-matched chunks first → BM25+dense for remainder
     """
 
-    def retrieve(self, query: str, k: int | None = None) -> list[dict]:
+    def retrieve(self, query: str, k: int | None = None, owner: str | None = None) -> list[dict]:
         from app.core.entity_registry import get_entity_registry
 
         k = k or settings.retrieval_top_k
@@ -311,48 +354,48 @@ class EntityAwareRetriever(Retriever):
         matched_docs = registry.find_docs(query)
 
         if not matched_docs:
-            # No entity match — fall back to standard retrieval
-            return super().retrieve(query, k)
+            # No entity match — fall back to standard retrieval (owner-scoped).
+            return super().retrieve(query, k, owner=owner)
+
+        # Consistent snapshot (add_documents swaps these atomically under the lock).
+        with self._lock:
+            chunks, owners, embeddings, bm25 = self.chunks, self.owners, self._embeddings, self._bm25
 
         # Separate chunks into: entity-anchored (matched docs) vs. rest
         anchor_doc = matched_docs[0]  # highest-scoring entity match
-        anchor_indices = [
-            i for i, c in enumerate(self.chunks)
-            if c.source_doc == anchor_doc
-        ]
-        rest_indices = [
-            i for i in range(len(self.chunks))
-            if i not in set(anchor_indices)
-        ]
+        anchor_indices = [i for i, c in enumerate(chunks) if c.source_doc == anchor_doc]
+        anchor_set0 = set(anchor_indices)
+        rest_indices = [i for i in range(len(chunks)) if i not in anchor_set0]
 
         # Score the full corpus normally
-        bm25_scores = np.asarray(
-            self._bm25.get_scores(_tokenize(query)), dtype=np.float32
-        )
+        bm25_scores = np.asarray(bm25.get_scores(_tokenize(query)), dtype=np.float32)
         query_emb = self._encode_query(query)
-        dense_scores = self._embeddings @ query_emb
+        dense_scores = embeddings @ query_emb
         w = settings.retrieval_bm25_weight
         combined = w * _min_max(bm25_scores) + (1 - w) * _min_max(dense_scores)
+        # Anchors are corpus docs (owner None) — always eligible. Owner-mask the fill
+        # pool so another user's uploaded chunks can't leak in.
+        combined = _apply_owner_mask(combined, owners, owner)
 
         # Anchor chunks: take up to ceil(k * 0.67) from the matched document
         anchor_slots = max(1, round(k * 0.67))
         anchor_sorted = sorted(anchor_indices, key=lambda i: -combined[i])
         chosen_anchors = anchor_sorted[:anchor_slots]
 
-        # Fill remaining slots from the rest of the corpus
+        # Fill remaining slots from the rest of the corpus (owner-masked chunks excluded)
         fill_slots = k - len(chosen_anchors)
         chosen_set = set(chosen_anchors)
         fill_sorted = sorted(rest_indices, key=lambda i: -combined[i])
-        chosen_fill = [i for i in fill_sorted if i not in chosen_set][:fill_slots]
+        chosen_fill = [i for i in fill_sorted if i not in chosen_set and combined[i] > -1e8][:fill_slots]
 
         final_indices = chosen_anchors + chosen_fill
         anchor_set = set(chosen_anchors)
 
         candidates = [
             {
-                "source_doc": self.chunks[i].source_doc,
-                "section": self.chunks[i].section,
-                "text": self.chunks[i].text,
+                "source_doc": chunks[i].source_doc,
+                "section": chunks[i].section,
+                "text": chunks[i].text,
                 "score": float(combined[i]),
                 "dense_score": float(dense_scores[i]),
                 "bm25_score": float(bm25_scores[i]),
@@ -369,3 +412,38 @@ class EntityAwareRetriever(Retriever):
 @lru_cache(maxsize=1)
 def get_entity_retriever() -> EntityAwareRetriever:
     return EntityAwareRetriever()
+
+
+def add_user_documents(docs: list[dict]) -> None:
+    """Append ingested chunks to BOTH live retriever singletons (standard + entity)."""
+    get_retriever().add_documents(docs)
+    get_entity_retriever().add_documents(docs)
+
+
+def rehydrate_user_documents() -> int:
+    """At startup, reload persisted user-doc chunks from Supabase into the in-memory
+    index so uploads survive Space restarts. Best-effort; returns the count added."""
+    from app.core.document_store import get_document_store
+
+    store = get_document_store()
+    if store is None:
+        return 0
+    try:
+        rows = store.all_chunks()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("doc rehydrate skipped (%s)", exc)
+        return 0
+    docs = [
+        {
+            "source_doc": r["source_doc"],
+            "section": r.get("section") or "",
+            "text": r["text"],
+            "embedding": r["embedding"],
+            "owner": r.get("owner"),
+        }
+        for r in rows
+        if r.get("embedding") and r.get("text")
+    ]
+    if docs:
+        add_user_documents(docs)
+    return len(docs)

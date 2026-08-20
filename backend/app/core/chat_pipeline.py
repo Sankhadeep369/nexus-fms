@@ -283,6 +283,7 @@ class ChatPipeline:
         mode: str = "simple",
         history: list[dict] | None = None,
         bypass_cache: bool = False,
+        owner: str | None = None,
     ) -> Iterator[dict[str, Any]]:
         t_start = time.time()
         history = history or []
@@ -393,19 +394,25 @@ class ChatPipeline:
         ):
             reason = ("action" if action_req
                       else "missing_data" if processed.missing_data else "out_of_scope")
-            msg = compose_decline(
-                action_req, processed.missing_data, processed.suggested_question,
-            )
-            logger.info("scope gate declined (%s): %r", reason, query[:80])
-            yield {"type": "step", "name": "scope_check", "status": "done", "detail": {"reason": reason}}
-            yield {"type": "token", "text": msg}
-            yield {
-                "type": "done",
-                "latency_ms": {"total": int((time.time() - t_start) * 1000)},
-                "cache_hit": None, "retrieved_sources": [],
-                "valid": True, "final_answer": msg, "declined": reason,
-            }
-            return
+            # User-document override: if the requester uploaded a doc that strongly
+            # matches this query, answer from it rather than declining. Action requests
+            # ("send an email") are still declined — a document can't perform them.
+            if owner and reason != "action" and self._user_doc_hit(processed.rewritten, owner):
+                logger.info("scope gate override: user-doc match for %r", query[:80])
+            else:
+                msg = compose_decline(
+                    action_req, processed.missing_data, processed.suggested_question,
+                )
+                logger.info("scope gate declined (%s): %r", reason, query[:80])
+                yield {"type": "step", "name": "scope_check", "status": "done", "detail": {"reason": reason}}
+                yield {"type": "token", "text": msg}
+                yield {
+                    "type": "done",
+                    "latency_ms": {"total": int((time.time() - t_start) * 1000)},
+                    "cache_hit": None, "retrieved_sources": [],
+                    "valid": True, "final_answer": msg, "declined": reason,
+                }
+                return
 
         # ── 2b. Clarification gate ────────────────────────────────────────────
         # If the preprocessor flagged the query as needing scope clarification
@@ -458,7 +465,7 @@ class ChatPipeline:
                 return
             retrieved = outcome.retrieved
         else:
-            retrieved = yield from self._standard_retrieval(cap, retrieval_query)
+            retrieved = yield from self._standard_retrieval(cap, retrieval_query, owner=owner)
 
         t_retrieval = time.time()
 
@@ -1094,8 +1101,20 @@ class ChatPipeline:
         logger.warning("contract_timeline agent failed — falling back to SLM")
         return _AgentOutcome(handled=False, retrieved=result.chunks_used)
 
+    def _user_doc_hit(self, query: str, owner: str) -> bool:
+        """True if the requester has an uploaded doc chunk that clears the dense gate
+        for this query — used to override the scope-gate decline. Fast (~ms)."""
+        try:
+            hits = self.retriever.retrieve(query, k=3, owner=owner)
+        except Exception:  # noqa: BLE001
+            return False
+        return any(
+            c["source_doc"].startswith("user_docs/") and c["dense_score"] >= self.retriever.min_dense_score
+            for c in hits
+        )
+
     def _standard_retrieval(
-        self, cap, retrieval_query: str
+        self, cap, retrieval_query: str, owner: str | None = None
     ) -> Iterator[dict[str, Any]]:
         # Entity capabilities (vendor/comparison) anchor to the correct contract
         # document before filling slots with BM25+dense matches; everything else
@@ -1109,7 +1128,7 @@ class ChatPipeline:
             # Entity-aware retriever: anchor:fill slot ratio is keyed to k, so
             # call with retrieval_k directly.  The 0.18 dense gate handles gate
             # failures for entity-anchored chunks without breaking slot allocation.
-            raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k)
+            raw_candidates = active_retriever.retrieve(retrieval_query, k=retrieval_k, owner=owner)
             retrieved = [
                 c for c in raw_candidates
                 if c["dense_score"] >= active_retriever.min_dense_score
@@ -1122,7 +1141,7 @@ class ChatPipeline:
             # chunks that the cross-encoder moved below position k.
             # Cross-encoder always evaluates max(k, 20) pairs anyway — no extra compute.
             fetch_k = settings.retrieval_reranker_candidates
-            all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k)
+            all_candidates = active_retriever.retrieve(retrieval_query, k=fetch_k, owner=owner)
             gated = [
                 c for c in all_candidates
                 if c["dense_score"] >= active_retriever.min_dense_score

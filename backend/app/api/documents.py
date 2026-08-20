@@ -46,7 +46,13 @@ async def upload_document(file: UploadFile = File(...), owner: str = Form("globa
 
     doc = await run_in_threadpool(store.save, owner, filename, result["meta"], result["chunks"])
 
-    # Phase 2 will also append result["chunks"] to the live retriever here.
+    # Append to the live in-memory index so the doc is searchable immediately (owner-
+    # scoped). Runs in a threadpool — the BM25 rebuild must not block the event loop.
+    from app.core.retrieval import add_user_documents
+
+    index_docs = [{**c, "owner": owner} for c in result["chunks"]]
+    await run_in_threadpool(add_user_documents, index_docs)
+
     return {
         "id": doc["id"],
         "filename": filename,

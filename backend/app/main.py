@@ -46,6 +46,18 @@ async def lifespan(app: FastAPI):
     get_llm()
 
     get_chat_pipeline()
+
+    # Reload any user-uploaded documents from Supabase into the in-memory index so
+    # they survive Space restarts. Best-effort — a failure here never blocks startup.
+    try:
+        from app.core.retrieval import rehydrate_user_documents
+
+        n = rehydrate_user_documents()
+        if n:
+            logger.info("Rehydrated %d user-document chunks into the retrieval index.", n)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("user-document rehydrate failed: %s", exc)
+
     logger.info("NEXUS backend ready.")
     yield
 

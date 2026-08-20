@@ -18,3 +18,6 @@ class ChatRequest(BaseModel):
     # record is generated fresh — a cache hit returns no retrieved_sources and would
     # otherwise corrupt retrieval_hit and geval aggregates.
     bypass_cache: bool = False
+    # Local-profile id (email) used to scope the user's own uploaded documents in
+    # retrieval. None/absent = base corpus only (unchanged behaviour, e.g. the eval).
+    owner: str | None = None
