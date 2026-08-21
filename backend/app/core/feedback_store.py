@@ -30,6 +30,18 @@ class FeedbackStore:
             }
         ).execute()
 
+    def summary(self) -> dict:
+        """Aggregate thumbs up/down counts (system-wide — feedback isn't per-user).
+        Best-effort: returns zeros on any error so the dashboard never breaks."""
+        try:
+            rows = self._client.table("feedback").select("rating,created_at").execute().data or []
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("feedback summary failed: %s", exc)
+            return {"up": 0, "down": 0, "total": 0}
+        up = sum(1 for r in rows if r.get("rating") == "up")
+        down = sum(1 for r in rows if r.get("rating") == "down")
+        return {"up": up, "down": down, "total": up + down}
+
 
 @lru_cache(maxsize=1)
 def get_feedback_store() -> FeedbackStore | None:

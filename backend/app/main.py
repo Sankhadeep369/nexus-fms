@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # defaulting reasoning_effort=low on every completion. Must import before any Groq use.
 from app.core import groq_patch  # noqa: F401, E402
 
-from app.api import analysis, calendar, chat, documents, feedback, reminders, suggestions
+from app.api import analysis, calendar, chat, documents, feedback, kpis, reminders, suggestions
 from app.core.chat_pipeline import get_chat_pipeline
 from app.core.config import settings
 from app.core.llm import get_llm
@@ -82,6 +82,7 @@ app.include_router(feedback.router)
 app.include_router(calendar.router)
 app.include_router(documents.router)
 app.include_router(analysis.router)
+app.include_router(kpis.router)
 
 
 @app.get("/health")

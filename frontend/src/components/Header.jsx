@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import { BotIcon, ChartIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -9,9 +9,10 @@ const TABS = [
   { id: "chat", label: "Chat", icon: SparkleIcon },
   { id: "agents", label: "Agents", icon: BotIcon },
   { id: "analysis", label: "Analysis", icon: SearchIcon },
+  { id: "dashboard", label: "Dashboard", icon: ChartIcon },
 ];
 
-const TAB_KEY = { chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis" };
+const TAB_KEY = { chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard" };
 
 export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();

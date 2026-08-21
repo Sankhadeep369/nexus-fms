@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ownerId, useProfile } from "../context/ProfileContext";
 import {
   METHODS,
@@ -28,10 +28,15 @@ function normalize(method, data) {
 
 const RENDERERS = { "5whys": FiveWhys, ishikawa: Ishikawa, fta: FaultTree, rca: RcaReport };
 
-export default function AnalysisPage() {
+export default function AnalysisPage({ prefill }) {
   const { profile } = useProfile();
   const [method, setMethod] = useState("5whys");
   const [issue, setIssue] = useState("");
+
+  // A KPI card can route here with the metric pre-loaded as the issue to analyse.
+  useEffect(() => {
+    if (prefill?.text) setIssue(prefill.text);
+  }, [prefill?.nonce, prefill?.text]);
   const [grounded, setGrounded] = useState(false);
   const [data, setData] = useState(null);
   const [capa, setCapa] = useState(null);

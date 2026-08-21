@@ -331,6 +331,14 @@ export function ArrowRightIcon(props) {
   );
 }
 
+export function ChartIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M3 3v18h18M8 16v-5M13 16V8M18 16v-8" />
+    </svg>
+  );
+}
+
 export function LogoIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

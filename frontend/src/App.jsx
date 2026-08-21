@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import AgentsPage from "./components/AgentsPage";
 import AnalysisPage from "./components/AnalysisPage";
+import DashboardPage from "./components/DashboardPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
 import DocumentsPanel from "./components/DocumentsPanel";
@@ -106,6 +107,7 @@ export default function App() {
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [chatPrefill, setChatPrefill] = useState(null);
+  const [analysisPrefill, setAnalysisPrefill] = useState(null);
 
   // Show the guide once, automatically, on a user's first visit.
   useEffect(() => {
@@ -118,6 +120,11 @@ export default function App() {
   const prefillChat = (text) => {
     setChatPrefill({ text, nonce: Date.now() });
     setActiveTab("chat");
+  };
+
+  const investigateKpi = (text) => {
+    setAnalysisPrefill({ text, nonce: Date.now() });
+    setActiveTab("analysis");
   };
 
   return (
@@ -149,7 +156,9 @@ export default function App() {
                         onOpenDocuments={() => setDocumentsOpen(true)}
                       />
                     ) : activeTab === "analysis" ? (
-                      <AnalysisPage />
+                      <AnalysisPage prefill={analysisPrefill} />
+                    ) : activeTab === "dashboard" ? (
+                      <DashboardPage onInvestigate={investigateKpi} />
                     ) : (
                       <AgentsPage onAskVendorQuestion={prefillChat} />
                     )}
