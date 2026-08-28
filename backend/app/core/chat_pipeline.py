@@ -569,8 +569,17 @@ class ChatPipeline:
             if cap.use_history
             else []
         )
+        # Append today's date so the model answers "what's today's date?" correctly
+        # instead of guessing from its training cutoff. Kept as a suffix so the cached
+        # static system-prompt prefix still matches for the KV cache.
+        _today = date.today()
+        dated_system = (
+            f"{self.system_prompt}\n\nFor reference, today's date is "
+            f"{_today.strftime('%A')}, {_today.day} {_today.strftime('%B %Y')}. "
+            "Use this when asked about the current date or any time-relative question."
+        )
         messages = [
-            {"role": "system", "content": self.system_prompt},
+            {"role": "system", "content": dated_system},
             *history_messages,
             {"role": "user", "content": _build_user_content(retrieval_query, retrieved)},
         ]

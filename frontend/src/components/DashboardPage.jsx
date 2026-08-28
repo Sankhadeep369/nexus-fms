@@ -9,6 +9,7 @@ import {
   importCsv,
   latestValue,
   loadKpis,
+  logBreach,
   newKpi,
   STATUS_META,
   statusOf,
@@ -24,8 +25,18 @@ export default function DashboardPage({ onInvestigate }) {
   const [derived, setDerived] = useState([]);
   const [active, setActive] = useState(null); // { kpi, isNew }
   const [showAdd, setShowAdd] = useState(false);
+  const [showBreach, setShowBreach] = useState(false);
+  const [flash, setFlash] = useState(null);
   const [importErr, setImportErr] = useState(null);
   const fileRef = useRef(null);
+
+  const recordBreach = (kind) => {
+    logBreach(kind);
+    setShowBreach(false);
+    reloadManual();
+    setFlash(`${kind === "system" ? "System" : "Compliance"} breach logged for this month.`);
+    setTimeout(() => setFlash(null), 2500);
+  };
 
   const email = profile?.email || "";
   const reloadManual = () => setManual(loadKpis());
@@ -89,6 +100,21 @@ export default function DashboardPage({ onInvestigate }) {
             </button>
             <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onImport} />
             <div className="relative">
+              <button type="button" onClick={() => setShowBreach((v) => !v)} className="rounded-lg border border-red-400/40 px-2.5 py-1.5 text-xs font-medium text-red-400 hover:bg-red-400/5">
+                Log breach
+              </button>
+              {showBreach && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowBreach(false)} />
+                  <div className="absolute right-0 z-20 mt-1.5 w-48 rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
+                    <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-nexus-muted">Record a breach</p>
+                    <button type="button" onClick={() => recordBreach("system")} className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">System breach</button>
+                    <button type="button" onClick={() => recordBreach("compliance")} className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">Compliance breach</button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="relative">
               <button type="button" onClick={() => setShowAdd((v) => !v)} className="flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-3 py-1.5 text-sm font-medium text-nexus-bg hover:shadow-glow-sm">
                 <PlusIcon className="h-3.5 w-3.5" /> Add KPI
               </button>
@@ -114,6 +140,7 @@ export default function DashboardPage({ onInvestigate }) {
         </div>
 
         {importErr && <p className="rounded-lg border border-red-400/40 bg-red-400/5 px-3 py-2 text-xs text-red-400">{importErr}</p>}
+        {flash && <p className="rounded-lg border border-emerald-400/40 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-400">{flash}</p>}
 
         {/* Needs attention */}
         {atRisk.length > 0 && (

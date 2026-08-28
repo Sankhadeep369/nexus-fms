@@ -2,17 +2,18 @@ import { useState } from "react";
 import {
   addValue,
   CATEGORIES,
-  defaultPeriod,
   deleteKpi,
   FREQUENCIES,
   fmtValue,
   latestValue,
   loadKpis,
+  periodFromDate,
   removeValue,
   seriesOf,
   STATUS_META,
   statsOf,
   statusOf,
+  todayISO,
   upsertKpi,
 } from "../../lib/kpis";
 import { TrashIcon, XIcon } from "../icons";
@@ -26,7 +27,7 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
   const derived = kpi.source === "derived";
   const [draft, setDraft] = useState(kpi);
   const [saved, setSaved] = useState(!isNew);
-  const [period, setPeriod] = useState(defaultPeriod(kpi.frequency));
+  const [dateStr, setDateStr] = useState(todayISO());
   const [val, setVal] = useState("");
   const [note, setNote] = useState("");
   const [chart, setChart] = useState("line");
@@ -48,8 +49,9 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
     onChanged();
   };
   const submitValue = () => {
-    if (val === "" || isNaN(Number(val)) || !period.trim()) return;
-    addValue(draft.id, period.trim(), val, note.trim());
+    const period = periodFromDate(dateStr, draft.frequency);
+    if (val === "" || isNaN(Number(val)) || !period) return;
+    addValue(draft.id, period, val, note.trim());
     setVal("");
     setNote("");
     reloadDraft();
@@ -152,35 +154,34 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
                   placeholder="optional"
                 />
               </label>
-              <label className="text-xs text-nexus-muted">
-                Warn at
-                <input
-                  type="number"
-                  value={draft.warn ?? ""}
-                  onChange={(e) => set("warn", e.target.value === "" ? null : Number(e.target.value))}
-                  className={`${field} mt-1`}
-                  placeholder="amber threshold"
-                />
-              </label>
-              <label className="text-xs text-nexus-muted">
-                Better when
-                <select value={draft.direction} onChange={(e) => set("direction", e.target.value)} className={`${field} mt-1`}>
-                  <option value="up">Higher</option>
-                  <option value="down">Lower</option>
-                </select>
-              </label>
-              <label className="text-xs text-nexus-muted">
-                Frequency
-                <select value={draft.frequency} onChange={(e) => set("frequency", e.target.value)} className={`${field} mt-1`}>
-                  {FREQUENCIES.map((f) => <option key={f}>{f}</option>)}
-                </select>
-              </label>
-              <div className="flex items-end">
-                <button type="button" onClick={saveDef} disabled={!draft.name.trim()} className="w-full rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-3 py-1.5 text-sm font-medium text-nexus-bg disabled:opacity-40">
-                  {isNew && !saved ? "Create" : "Save"}
-                </button>
-              </div>
             </div>
+
+            <details className="mt-2">
+              <summary className="cursor-pointer select-none py-1 text-xs text-nexus-muted hover:text-nexus-text">Advanced options</summary>
+              <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                <label className="text-xs text-nexus-muted">
+                  Better when
+                  <select value={draft.direction} onChange={(e) => set("direction", e.target.value)} className={`${field} mt-1`}>
+                    <option value="up">Higher is better</option>
+                    <option value="down">Lower is better</option>
+                  </select>
+                </label>
+                <label className="text-xs text-nexus-muted">
+                  Warn at
+                  <input type="number" value={draft.warn ?? ""} onChange={(e) => set("warn", e.target.value === "" ? null : Number(e.target.value))} className={`${field} mt-1`} placeholder="amber threshold" />
+                </label>
+                <label className="text-xs text-nexus-muted">
+                  Frequency
+                  <select value={draft.frequency} onChange={(e) => set("frequency", e.target.value)} className={`${field} mt-1`}>
+                    {FREQUENCIES.map((f) => <option key={f}>{f}</option>)}
+                  </select>
+                </label>
+              </div>
+            </details>
+
+            <button type="button" onClick={saveDef} disabled={!draft.name.trim()} className="mt-3 w-full rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-3 py-2 text-sm font-medium text-nexus-bg disabled:opacity-40 sm:w-auto sm:px-6">
+              {isNew && !saved ? "Create KPI" : "Save changes"}
+            </button>
 
             {/* Values */}
             <div className="mt-4 border-t border-nexus-border pt-4">
@@ -191,19 +192,20 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
                 <>
                   <div className="flex flex-wrap items-end gap-2">
                     <label className="text-xs text-nexus-muted">
-                      Period
-                      <input value={period} onChange={(e) => setPeriod(e.target.value)} className={`${field} mt-1 w-28`} />
+                      Date
+                      <input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)} className={`${field} mt-1 w-40`} />
                     </label>
                     <label className="text-xs text-nexus-muted">
                       Value
-                      <input type="number" value={val} onChange={(e) => setVal(e.target.value)} className={`${field} mt-1 w-24`} placeholder="0" />
+                      <input type="number" value={val} onChange={(e) => setVal(e.target.value)} className={`${field} mt-1 w-24`} placeholder="0" onKeyDown={(e) => e.key === "Enter" && submitValue()} />
                     </label>
                     <label className="min-w-[8rem] flex-1 text-xs text-nexus-muted">
                       Note (optional)
                       <input value={note} onChange={(e) => setNote(e.target.value)} className={`${field} mt-1`} onKeyDown={(e) => e.key === "Enter" && submitValue()} />
                     </label>
-                    <button type="button" onClick={submitValue} className="rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">Add</button>
+                    <button type="button" onClick={submitValue} className="rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-4 py-1.5 text-sm font-medium text-nexus-bg">Add</button>
                   </div>
+                  <p className="mt-1 text-[11px] text-nexus-muted">Recorded under {periodFromDate(dateStr, draft.frequency)} ({draft.frequency}).</p>
                   {(draft.values || []).length > 0 && (
                     <ul className="mt-3 space-y-1">
                       {[...draft.values].reverse().map((v) => (

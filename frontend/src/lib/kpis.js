@@ -28,6 +28,8 @@ export const FM_TEMPLATES = [
   { name: "Maintenance Cost / m²", category: "Energy / cost", unit: "₹", target: null, direction: "down", frequency: "monthly" },
   { name: "Audit Pass Rate", category: "Compliance", unit: "%", target: 100, direction: "up", frequency: "quarterly" },
   { name: "Incident Count", category: "Incidents", unit: "", target: null, direction: "down", frequency: "monthly" },
+  { name: "System Breaches", category: "Incidents", unit: "", target: 0, warn: 1, direction: "down", frequency: "monthly" },
+  { name: "Compliance Breaches", category: "Compliance", unit: "", target: 0, warn: 1, direction: "down", frequency: "monthly" },
   { name: "Tenant Satisfaction", category: "Service quality", unit: "/5", target: 4.2, direction: "up", frequency: "quarterly" },
 ];
 
@@ -257,9 +259,13 @@ export function downloadCsv(filename, text) {
   URL.revokeObjectURL(url);
 }
 
-// Default period label for a new data point, given the KPI's frequency.
-export function defaultPeriod(frequency) {
-  const d = new Date();
+export const todayISO = () => new Date().toISOString().slice(0, 10);
+
+// Convert a plain calendar date into the KPI's period bucket, so users can just
+// pick a date instead of typing "2026-08" / "2026-Q3".
+export function periodFromDate(dateStr, frequency) {
+  const d = dateStr ? new Date(dateStr) : new Date();
+  if (isNaN(d)) return "";
   const y = d.getFullYear();
   if (frequency === "weekly") {
     const oneJan = new Date(y, 0, 1);
@@ -268,4 +274,30 @@ export function defaultPeriod(frequency) {
   }
   if (frequency === "quarterly") return `${y}-Q${Math.floor(d.getMonth() / 3) + 1}`;
   return `${y}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Default period label for a new data point, given the KPI's frequency.
+export function defaultPeriod(frequency) {
+  return periodFromDate(todayISO(), frequency);
+}
+
+// ---- Breach quick-logging (simple one-click tracking) ----
+const BREACH = {
+  system: { name: "System Breaches", category: "Incidents" },
+  compliance: { name: "Compliance Breaches", category: "Compliance" },
+};
+
+// Find (or create) the breach counter, then increment this period's count by one.
+export function logBreach(kind, note = "") {
+  const spec = BREACH[kind];
+  if (!spec) return null;
+  let kpi = loadKpis().find((k) => k.name === spec.name);
+  if (!kpi) {
+    kpi = newKpi({ name: spec.name, category: spec.category, unit: "", target: 0, warn: 1, direction: "down", frequency: "monthly" });
+    upsertKpi(kpi);
+  }
+  const period = defaultPeriod("monthly");
+  const current = (loadKpis().find((k) => k.id === kpi.id)?.values || []).find((v) => v.period === period);
+  addValue(kpi.id, period, (current?.value || 0) + 1, note);
+  return kpi.id;
 }
