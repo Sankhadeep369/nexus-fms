@@ -110,7 +110,7 @@ export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeCha
   };
 
   return (
-    <div className="relative z-10 border-t border-nexus-border bg-nexus-panel/80 p-3 backdrop-blur-sm">
+    <div data-tour="composer" className="relative z-10 border-t border-nexus-border bg-nexus-panel/80 p-3 backdrop-blur-sm">
       <div className="mx-auto mb-1.5 flex max-w-3xl items-center gap-1 px-1">
         <div className="inline-flex items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
           {MODES.map(({ id, label, icon: Icon, title }) => (

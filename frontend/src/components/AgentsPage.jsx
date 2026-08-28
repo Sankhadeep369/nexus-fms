@@ -3,7 +3,7 @@ import IncidentTriageCard from "./agents/IncidentTriageCard";
 import ReminderAgent from "./agents/ReminderAgent";
 import VendorComparisonCard from "./agents/VendorComparisonCard";
 
-export default function AgentsPage({ onAskVendorQuestion }) {
+export default function AgentsPage({ onAskVendorQuestion, onHelp }) {
   const { canAgent, reminderPerms } = useAuth();
   const anyAgent = canAgent("incident_triage") || canAgent("vendor_comparison") || canAgent("reminder");
 
@@ -18,9 +18,9 @@ export default function AgentsPage({ onAskVendorQuestion }) {
           </p>
         </div>
 
-        {canAgent("incident_triage") && <IncidentTriageCard onAsk={onAskVendorQuestion} />}
-        {canAgent("vendor_comparison") && <VendorComparisonCard onAsk={onAskVendorQuestion} />}
-        {canAgent("reminder") && <ReminderAgent canCreate={reminderPerms.create} canManage={reminderPerms.manage} />}
+        {canAgent("incident_triage") && <IncidentTriageCard onAsk={onAskVendorQuestion} onHelp={() => onHelp?.("incident_triage")} />}
+        {canAgent("vendor_comparison") && <VendorComparisonCard onAsk={onAskVendorQuestion} onHelp={() => onHelp?.("vendor_comparison")} />}
+        {canAgent("reminder") && <ReminderAgent canCreate={reminderPerms.create} canManage={reminderPerms.manage} onHelp={() => onHelp?.("reminder")} />}
 
         {!anyAgent && (
           <div className="rounded-2xl border border-dashed border-nexus-border py-12 text-center text-sm text-nexus-muted">

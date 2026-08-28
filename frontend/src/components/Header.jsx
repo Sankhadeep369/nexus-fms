@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, ChartIcon, CircleDotIcon, HomeIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import { BotIcon, ChartIcon, CircleDotIcon, HelpCircleIcon, HomeIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -16,7 +16,7 @@ const TABS = [
 
 const TAB_KEY = { home: "tab_home", chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard", admin: "tab_admin" };
 
-export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
+export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
   const { user, isAdmin, canTool, logout } = useAuth();
@@ -81,7 +81,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
         </span>
       </div>
 
-      <div className="inline-flex items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
+      <div data-tour="tabs" className="inline-flex items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
         {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -103,6 +103,16 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          data-tour="help"
+          onClick={onOpenHelp}
+          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
+          aria-label="Help"
+          title="Help"
+        >
+          <HelpCircleIcon className="h-4 w-4" />
+        </button>
         <button
           type="button"
           onClick={toggleTheme}

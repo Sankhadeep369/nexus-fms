@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRightIcon, BellIcon } from "../icons";
+import { ArrowRightIcon, BellIcon, HelpCircleIcon } from "../icons";
 
 const SEVERITY_EXAMPLES = [
   "HVAC down on 3rd floor for 2 hours",
@@ -8,7 +8,7 @@ const SEVERITY_EXAMPLES = [
   "CCTV camera in parking offline since morning",
 ];
 
-export default function IncidentTriageCard({ onAsk }) {
+export default function IncidentTriageCard({ onAsk, onHelp }) {
   const [incident, setIncident] = useState("");
   const [startedAt, setStartedAt] = useState("");
 
@@ -23,18 +23,25 @@ export default function IncidentTriageCard({ onAsk }) {
 
   return (
     <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-5">
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-violet to-nexus-accent text-nexus-bg">
-          <BellIcon className="h-4.5 w-4.5" />
-        </span>
-        <div>
-          <h3 className="font-display text-sm font-semibold text-nexus-text">Incident Triage Agent</h3>
-          <p className="mt-0.5 text-xs leading-relaxed text-nexus-muted">
-            Report a facilities problem in plain language. The agent classifies it, identifies
-            the responsible vendor, checks the SLA response window, and drafts an escalation
-            email — all in under 5 seconds.
-          </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-violet to-nexus-accent text-nexus-bg">
+            <BellIcon className="h-4.5 w-4.5" />
+          </span>
+          <div>
+            <h3 className="font-display text-sm font-semibold text-nexus-text">Incident Triage Agent</h3>
+            <p className="mt-0.5 text-xs leading-relaxed text-nexus-muted">
+              Report a facilities problem in plain language. The agent classifies it, identifies
+              the responsible vendor, checks the SLA response window, and drafts an escalation
+              email — all in under 5 seconds.
+            </p>
+          </div>
         </div>
+        {onHelp && (
+          <button type="button" onClick={onHelp} title="How this works" aria-label="Help" className="shrink-0 rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent">
+            <HelpCircleIcon className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="mt-4">

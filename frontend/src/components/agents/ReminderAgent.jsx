@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useProfile } from "../../context/ProfileContext";
 import { useReminders } from "../../hooks/useReminders";
-import { BellIcon } from "../icons";
+import { BellIcon, HelpCircleIcon } from "../icons";
 import ReminderForm from "./ReminderForm";
 import ReminderList from "./ReminderList";
 
 const STORAGE_KEY = "nexus-reminder-email";
 
-export default function ReminderAgent({ canCreate = true, canManage = true }) {
+export default function ReminderAgent({ canCreate = true, canManage = true, onHelp }) {
   const { profile } = useProfile();
   const [email, setEmail] = useState(() => localStorage.getItem(STORAGE_KEY) || "");
   const [emailInput, setEmailInput] = useState("");
@@ -79,16 +79,23 @@ export default function ReminderAgent({ canCreate = true, canManage = true }) {
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.removeItem(STORAGE_KEY);
-            setEmail("");
-          }}
-          className="shrink-0 text-[11px] text-nexus-muted underline decoration-dotted hover:text-nexus-text"
-        >
-          change email
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {onHelp && (
+            <button type="button" onClick={onHelp} title="How this works" aria-label="Help" className="rounded-lg p-1 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent">
+              <HelpCircleIcon className="h-4 w-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem(STORAGE_KEY);
+              setEmail("");
+            }}
+            className="text-[11px] text-nexus-muted underline decoration-dotted hover:text-nexus-text"
+          >
+            change email
+          </button>
+        </div>
       </div>
 
       {error && (

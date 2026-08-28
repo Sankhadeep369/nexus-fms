@@ -6,8 +6,9 @@ import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
 import DashboardPage from "./components/DashboardPage";
 import DocumentsPanel from "./components/DocumentsPanel";
-import GuideModal from "./components/GuideModal";
+import GuidedTour from "./components/GuidedTour";
 import Header from "./components/Header";
+import HelpCenter from "./components/HelpCenter";
 import HomePage from "./components/HomePage";
 import LoginScreen from "./components/LoginScreen";
 import OptionsPanel from "./components/OptionsPanel";
@@ -110,8 +111,10 @@ function Shell() {
     () => typeof window !== "undefined" && window.innerWidth < 768
   );
   const [optionsOpen, setOptionsOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [help, setHelp] = useState({ open: false, section: "getting-started" });
+  const [tourOpen, setTourOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const openHelp = (section = "getting-started") => setHelp({ open: true, section });
   const [documentsOpen, setDocumentsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [chatPrefill, setChatPrefill] = useState(null);
@@ -122,10 +125,10 @@ function Shell() {
   if (isAdmin) allowed.push("admin");
   const effectiveTab = allowed.includes(activeTab) ? activeTab : allowed[0];
 
-  // Show the guide once, automatically, on a user's first visit.
+  // Run the guided tour once, automatically, on a user's first visit.
   useEffect(() => {
     if (!localStorage.getItem(GUIDE_SEEN_KEY)) {
-      setGuideOpen(true);
+      setTourOpen(true);
       localStorage.setItem(GUIDE_SEEN_KEY, "1");
     }
   }, []);
@@ -145,6 +148,7 @@ function Shell() {
       <Header
         onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         onToggleOptions={() => setOptionsOpen(true)}
+        onOpenHelp={() => openHelp("getting-started")}
         activeTab={effectiveTab}
         onTabChange={setActiveTab}
       />
@@ -159,7 +163,7 @@ function Shell() {
         ) : effectiveTab === "chat" ? (
           <Chat
             prefill={chatPrefill}
-            onOpenGuide={() => setGuideOpen(true)}
+            onOpenGuide={() => openHelp("chat")}
             onExample={prefillChat}
             onOpenDocuments={() => setDocumentsOpen(true)}
             canDocuments={canDocuments}
@@ -171,13 +175,22 @@ function Shell() {
         ) : effectiveTab === "admin" ? (
           <AdminPanel />
         ) : (
-          <AgentsPage onAskVendorQuestion={prefillChat} />
+          <AgentsPage onAskVendorQuestion={prefillChat} onHelp={openHelp} />
         )}
       </div>
-      <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} onOpenGuide={() => setGuideOpen(true)} />
+      <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} onOpenGuide={() => openHelp("getting-started")} />
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
       {canDocuments && <DocumentsPanel open={documentsOpen} onClose={() => setDocumentsOpen(false)} />}
-      <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <HelpCenter
+        open={help.open}
+        section={help.section}
+        onClose={() => setHelp((h) => ({ ...h, open: false }))}
+        onStartTour={() => {
+          setHelp((h) => ({ ...h, open: false }));
+          setTourOpen(true);
+        }}
+      />
+      {tourOpen && <GuidedTour onClose={() => setTourOpen(false)} />}
     </div>
   );
 }
