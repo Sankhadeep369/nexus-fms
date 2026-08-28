@@ -13,8 +13,9 @@ import {
 } from "../lib/home";
 import Widget from "./home/widgets";
 import { PlusIcon, XIcon } from "./icons";
+import OnboardingChecklist from "./OnboardingChecklist";
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, onOpenProfile }) {
   const { user } = useAuth();
   const username = user?.username;
   const [widgets, setWidgets] = useState(() => loadLayout(username));
@@ -126,6 +127,8 @@ export default function HomePage({ onNavigate }) {
             </button>
           </div>
         </div>
+
+        {!editing && <OnboardingChecklist onNavigate={onNavigate} onOpenProfile={onOpenProfile} />}
 
         <div
           className={`relative rounded-2xl ${editing ? "border border-dashed border-nexus-border bg-nexus-panel2/30 bg-grid" : ""}`}

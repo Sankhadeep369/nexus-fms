@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAppConfig } from "../context/AppConfigContext";
+import { useAuth } from "../context/AuthContext";
 import {
   deleteSnapshot,
   FEATURE_IDS,
@@ -8,6 +9,8 @@ import {
   restoreSnapshot,
   saveSnapshot,
 } from "../lib/appconfig";
+import { clearAudit, loadAudit, logAudit } from "../lib/audit";
+import { downloadBackup, importData } from "../lib/backup";
 import { TrashIcon } from "./icons";
 
 const field =
@@ -17,18 +20,44 @@ const heading = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-ne
 
 export default function AdminConfig() {
   const { config, update } = useAppConfig();
+  const { user } = useAuth();
+  const actor = user?.username;
   const [draft, setDraft] = useState(config);
   const [snaps, setSnaps] = useState(listSnapshots);
   const [label, setLabel] = useState("");
+  const [audit, setAudit] = useState(loadAudit);
+  const [msg, setMsg] = useState(null);
+  const fileRef = useRef(null);
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(config);
+  const saveSettings = () => {
+    update(draft);
+    setAudit(logAudit(actor, "Updated app settings"));
+  };
+  const snapshot = () => {
+    setSnaps(saveSnapshot(label));
+    setAudit(logAudit(actor, "Saved config snapshot", label || "unnamed"));
+    setLabel("");
+  };
+  const onImport = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const res = importData(await file.text());
+    if (res.error) return setMsg(res.error);
+    logAudit(actor, "Imported data backup", `${res.count} keys`);
+    if (window.confirm(`Imported ${res.count} items. Reload now to apply?`)) window.location.reload();
+  };
   const setBranding = (patch) => setDraft((d) => ({ ...d, branding: { ...d.branding, ...patch } }));
   const setAnnounce = (patch) => setDraft((d) => ({ ...d, announcement: { ...d.announcement, ...patch } }));
   const setFeature = (id, v) => setDraft((d) => ({ ...d, features: { ...d.features, [id]: v } }));
 
   const restore = (id) => {
     if (!window.confirm("Restore this snapshot? Current settings and users will be replaced, then the app reloads.")) return;
-    if (restoreSnapshot(id)) window.location.reload();
+    if (restoreSnapshot(id)) {
+      logAudit(actor, "Restored config snapshot");
+      window.location.reload();
+    }
   };
 
   return (
@@ -84,7 +113,7 @@ export default function AdminConfig() {
         </div>
       </div>
 
-      <button type="button" onClick={() => update(draft)} disabled={!dirty} className="rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-4 py-2 text-sm font-medium text-nexus-bg disabled:opacity-40">
+      <button type="button" onClick={saveSettings} disabled={!dirty} className="rounded-lg bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-4 py-2 text-sm font-medium text-nexus-bg disabled:opacity-40">
         {dirty ? "Save settings" : "Saved"}
       </button>
 
@@ -94,7 +123,7 @@ export default function AdminConfig() {
         <p className="mb-2.5 text-xs text-nexus-muted">Save a snapshot of the current settings and users, and restore it if a change causes problems.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Snapshot label (optional)" className={field} />
-          <button type="button" onClick={() => { setSnaps(saveSnapshot(label)); setLabel(""); }} className="shrink-0 rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">
+          <button type="button" onClick={snapshot} className="shrink-0 rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">
             Save snapshot
           </button>
         </div>
@@ -108,6 +137,41 @@ export default function AdminConfig() {
                 <button type="button" onClick={() => setSnaps(deleteSnapshot(s.id))} className="shrink-0 rounded p-1 text-nexus-muted hover:text-red-400">
                   <TrashIcon className="h-3.5 w-3.5" />
                 </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Backup & restore */}
+      <div className={card}>
+        <p className={heading}>Backup &amp; restore</p>
+        <p className="mb-2.5 text-xs text-nexus-muted">Export everything (users, settings, KPIs, home layouts, chats) to a file, or import it on another browser or device.</p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={downloadBackup} className="rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">Export data</button>
+          <button type="button" onClick={() => fileRef.current?.click()} className="rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">Import data</button>
+          <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onImport} />
+        </div>
+        {msg && <p className="mt-2 text-xs text-red-400">{msg}</p>}
+      </div>
+
+      {/* Audit log */}
+      <div className={card}>
+        <div className="mb-2 flex items-center justify-between">
+          <p className={`${heading} mb-0`}>Audit log</p>
+          {audit.length > 0 && (
+            <button type="button" onClick={() => setAudit(clearAudit())} className="text-[11px] text-nexus-muted underline decoration-dotted hover:text-nexus-text">Clear</button>
+          )}
+        </div>
+        {audit.length === 0 ? (
+          <p className="text-xs text-nexus-muted">No admin activity recorded yet.</p>
+        ) : (
+          <ul className="scroll-thin max-h-64 space-y-1 overflow-y-auto">
+            {audit.slice(0, 60).map((a) => (
+              <li key={a.id} className="flex items-baseline gap-2 rounded-lg bg-nexus-panel2 px-2.5 py-1.5 text-xs">
+                <span className="shrink-0 text-nexus-muted">{new Date(a.at).toLocaleString()}</span>
+                <span className="shrink-0 font-medium text-nexus-text">{a.actor}</span>
+                <span className="min-w-0 flex-1 truncate text-nexus-muted">{a.action}{a.detail ? ` — ${a.detail}` : ""}</span>
               </li>
             ))}
           </ul>

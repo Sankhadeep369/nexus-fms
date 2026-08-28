@@ -10,6 +10,7 @@ import {
   TOOLS,
   updateUser,
 } from "../lib/auth";
+import { logAudit } from "../lib/audit";
 import AdminConfig from "./AdminConfig";
 import { ChevronDownIcon, PlusIcon, TrashIcon, UserIcon } from "./icons";
 
@@ -25,7 +26,7 @@ function Toggle({ label, checked, onChange, disabled }) {
   );
 }
 
-function UserRow({ user, expanded, onToggle, onChanged, isSelf }) {
+function UserRow({ user, expanded, onToggle, onChanged, isSelf, actor }) {
   const [draft, setDraft] = useState(user);
   const [pw, setPw] = useState("");
   const admin = draft.role === "admin";
@@ -37,12 +38,14 @@ function UserRow({ user, expanded, onToggle, onChanged, isSelf }) {
 
   const save = () => {
     updateUser(user.username, { name: draft.name, role: draft.role, perms: draft.perms, password: pw || undefined });
+    logAudit(actor, "Updated user", `${user.username} (${draft.role})`);
     setPw("");
     onChanged();
   };
   const remove = () => {
     const res = deleteUser(user.username);
-    if (res.error) alert(res.error);
+    if (res.error) return alert(res.error);
+    logAudit(actor, "Deleted user", user.username);
     onChanged();
   };
 
@@ -142,6 +145,7 @@ export default function AdminPanel() {
   const add = () => {
     const res = createUser(form);
     if (res.error) return setError(res.error);
+    logAudit(user?.username, "Created user", `${form.username.trim().toLowerCase()} (${form.role})`);
     setForm({ username: "", name: "", password: "", role: "operator" });
     setError(null);
     reload();
@@ -204,6 +208,7 @@ export default function AdminPanel() {
               key={u.username}
               user={u}
               isSelf={u.username === user?.username}
+              actor={user?.username}
               expanded={expanded === u.username}
               onToggle={() => setExpanded(expanded === u.username ? null : u.username)}
               onChanged={reload}

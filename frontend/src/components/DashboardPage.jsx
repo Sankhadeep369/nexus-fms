@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppConfig } from "../context/AppConfigContext";
 import { useProfile } from "../context/ProfileContext";
+import { openKpiReport } from "../lib/report";
 import {
   downloadCsv,
   exportCsv,
@@ -21,6 +23,7 @@ import { PlusIcon, UploadIcon } from "./icons";
 
 export default function DashboardPage({ onInvestigate }) {
   const { profile } = useProfile();
+  const { brandName } = useAppConfig();
   const [manual, setManual] = useState(loadKpis);
   const [derived, setDerived] = useState([]);
   const [active, setActive] = useState(null); // { kpi, isNew }
@@ -92,6 +95,9 @@ export default function DashboardPage({ onInvestigate }) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => openKpiReport(all, brandName)} className="rounded-lg border border-nexus-border px-2.5 py-1.5 text-xs text-nexus-muted hover:text-nexus-text">
+              Report
+            </button>
             <button type="button" onClick={() => downloadCsv("nexus-kpis.csv", exportCsv(manual))} className="rounded-lg border border-nexus-border px-2.5 py-1.5 text-xs text-nexus-muted hover:text-nexus-text">
               Export CSV
             </button>

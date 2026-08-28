@@ -178,7 +178,7 @@ function Shell() {
           onOpenProfile={() => setProfileOpen(true)}
         />
         {effectiveTab === "home" ? (
-          <HomePage onNavigate={setActiveTab} />
+          <HomePage onNavigate={setActiveTab} onOpenProfile={() => setProfileOpen(true)} />
         ) : effectiveTab === "chat" ? (
           <Chat
             prefill={chatPrefill}
