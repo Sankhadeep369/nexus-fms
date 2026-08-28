@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProfile } from "../context/ProfileContext";
 import {
+  downloadCsv,
   exportCsv,
   fetchDerived,
+  fmtValue,
   FM_TEMPLATES,
   importCsv,
+  latestValue,
   loadKpis,
   newKpi,
   STATUS_META,
   statusOf,
   upsertKpi,
-  downloadCsv,
 } from "../lib/kpis";
 import KpiCard from "./dashboard/KpiCard";
 import KpiEditor from "./dashboard/KpiEditor";
@@ -41,6 +43,10 @@ export default function DashboardPage({ onInvestigate }) {
     const c = { green: 0, amber: 0, red: 0, neutral: 0 };
     all.forEach((k) => (c[statusOf(k)] += 1));
     return c;
+  }, [all]);
+  const atRisk = useMemo(() => {
+    const rank = { red: 0, amber: 1 };
+    return all.filter((k) => rank[statusOf(k)] != null).sort((a, b) => rank[statusOf(a)] - rank[statusOf(b)]);
   }, [all]);
 
   const openNew = (template) => {
@@ -108,6 +114,27 @@ export default function DashboardPage({ onInvestigate }) {
         </div>
 
         {importErr && <p className="rounded-lg border border-red-400/40 bg-red-400/5 px-3 py-2 text-xs text-red-400">{importErr}</p>}
+
+        {/* Needs attention */}
+        {atRisk.length > 0 && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-amber-400">Needs attention ({atRisk.length})</p>
+            <div className="flex flex-wrap gap-2">
+              {atRisk.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => setActive({ kpi: k, isNew: false })}
+                  className={`flex items-center gap-1.5 rounded-lg border bg-nexus-panel px-2.5 py-1.5 text-xs text-nexus-text transition-colors hover:border-nexus-accent/50 ${STATUS_META[statusOf(k)].ring}`}
+                >
+                  <span className={`h-2 w-2 rounded-full ${STATUS_META[statusOf(k)].dot}`} />
+                  {k.name}
+                  <span className="text-nexus-muted">{fmtValue(k, latestValue(k))}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Status summary */}
         {all.length > 0 && (

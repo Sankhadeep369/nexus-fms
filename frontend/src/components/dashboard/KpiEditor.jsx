@@ -11,11 +11,12 @@ import {
   removeValue,
   seriesOf,
   STATUS_META,
+  statsOf,
   statusOf,
   upsertKpi,
 } from "../../lib/kpis";
 import { TrashIcon, XIcon } from "../icons";
-import { LineChart } from "./charts";
+import { BarChart, LineChart } from "./charts";
 
 const field =
   "w-full rounded-lg border border-nexus-border bg-nexus-bg px-2.5 py-1.5 text-sm text-nexus-text placeholder:text-nexus-muted focus:border-nexus-accent/60 focus:outline-none";
@@ -28,6 +29,8 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
   const [period, setPeriod] = useState(defaultPeriod(kpi.frequency));
   const [val, setVal] = useState("");
   const [note, setNote] = useState("");
+  const [chart, setChart] = useState("line");
+  const stats = statsOf(draft);
 
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const status = statusOf(draft);
@@ -85,7 +88,41 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
 
         {derived && kpi.hint && <p className="mb-3 rounded-lg bg-nexus-panel2 px-3 py-2 text-xs text-nexus-muted">{kpi.hint}</p>}
 
-        <LineChart series={seriesOf(draft)} target={draft.target} unit={draft.unit} />
+        <div className="mb-1.5 flex items-center justify-end gap-1">
+          {["line", "bar"].map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setChart(c)}
+              className={`rounded-md px-2 py-0.5 text-[11px] capitalize ${chart === c ? "bg-nexus-accent/10 text-nexus-accent" : "text-nexus-muted hover:text-nexus-text"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        {chart === "bar" ? (
+          <BarChart series={seriesOf(draft)} target={draft.target} unit={draft.unit} />
+        ) : (
+          <LineChart series={seriesOf(draft)} target={draft.target} unit={draft.unit} />
+        )}
+
+        {stats && (
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {[
+              ["Latest", fmtValue(draft, stats.last)],
+              ["Avg", fmtValue(draft, stats.avg)],
+              ["Min", fmtValue(draft, stats.min)],
+              ["Max", fmtValue(draft, stats.max)],
+              ["vs prev", stats.changePct == null ? "—" : `${stats.changePct > 0 ? "+" : ""}${stats.changePct}%`],
+              ["% target", stats.pctToTarget == null ? "—" : `${stats.pctToTarget}%`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border border-nexus-border bg-nexus-panel2/40 px-2 py-1.5 text-center">
+                <p className="text-[10px] uppercase tracking-wide text-nexus-muted">{label}</p>
+                <p className="mt-0.5 text-sm font-semibold text-nexus-text">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {!derived && (
           <>
@@ -113,6 +150,16 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
                   onChange={(e) => set("target", e.target.value === "" ? null : Number(e.target.value))}
                   className={`${field} mt-1`}
                   placeholder="optional"
+                />
+              </label>
+              <label className="text-xs text-nexus-muted">
+                Warn at
+                <input
+                  type="number"
+                  value={draft.warn ?? ""}
+                  onChange={(e) => set("warn", e.target.value === "" ? null : Number(e.target.value))}
+                  className={`${field} mt-1`}
+                  placeholder="amber threshold"
                 />
               </label>
               <label className="text-xs text-nexus-muted">

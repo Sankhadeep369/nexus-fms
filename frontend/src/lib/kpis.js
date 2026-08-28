@@ -62,6 +62,7 @@ export function newKpi(base) {
     category: "Maintenance",
     unit: "",
     target: null,
+    warn: null,
     direction: "up",
     frequency: "monthly",
     values: [],
@@ -105,8 +106,33 @@ export function statusOf(kpi) {
   const v = latestValue(kpi);
   if (v == null || kpi.target == null) return "neutral";
   const t = kpi.target;
-  if (kpi.direction === "up") return v >= t ? "green" : v >= 0.9 * t ? "amber" : "red";
-  return v <= t ? "green" : v <= 1.1 * t ? "amber" : "red";
+  // Optional explicit warning threshold; otherwise fall back to a ±10% band.
+  if (kpi.direction === "up") {
+    const warn = kpi.warn ?? 0.9 * t;
+    return v >= t ? "green" : v >= warn ? "amber" : "red";
+  }
+  const warn = kpi.warn ?? 1.1 * t;
+  return v <= t ? "green" : v <= warn ? "amber" : "red";
+}
+
+// Summary statistics over a KPI's history — powers the detail view.
+export function statsOf(kpi) {
+  const series = seriesOf(kpi);
+  const vals = series.map((s) => Number(s.value)).filter((n) => !isNaN(n));
+  if (!vals.length) return null;
+  const last = vals[vals.length - 1];
+  const prev = vals.length >= 2 ? vals[vals.length - 2] : null;
+  const sum = vals.reduce((a, b) => a + b, 0);
+  return {
+    count: vals.length,
+    min: Math.min(...vals),
+    max: Math.max(...vals),
+    avg: Math.round((sum / vals.length) * 10) / 10,
+    last,
+    changePct: prev != null && prev !== 0 ? Math.round(((last - prev) / Math.abs(prev)) * 1000) / 10 : null,
+    pctToTarget: kpi.target ? Math.round((last / kpi.target) * 1000) / 10 : null,
+    lastPeriod: series[series.length - 1].period,
+  };
 }
 export function trendOf(kpi) {
   const v = latestValue(kpi);
