@@ -8,6 +8,7 @@ import DashboardPage from "./components/DashboardPage";
 import DocumentsPanel from "./components/DocumentsPanel";
 import GuideModal from "./components/GuideModal";
 import Header from "./components/Header";
+import HomePage from "./components/HomePage";
 import LoginScreen from "./components/LoginScreen";
 import OptionsPanel from "./components/OptionsPanel";
 import ProfilePanel from "./components/ProfilePanel";
@@ -117,7 +118,7 @@ function Shell() {
   const [analysisPrefill, setAnalysisPrefill] = useState(null);
 
   const canDocuments = canTool("documents");
-  const allowed = ["chat", "agents", "analysis", "dashboard"].filter(canTool);
+  const allowed = ["home", ...["chat", "agents", "analysis", "dashboard"].filter(canTool)];
   if (isAdmin) allowed.push("admin");
   const effectiveTab = allowed.includes(activeTab) ? activeTab : allowed[0];
 
@@ -153,10 +154,8 @@ function Shell() {
           onClose={() => setSidebarCollapsed(true)}
           onOpenProfile={() => setProfileOpen(true)}
         />
-        {!effectiveTab ? (
-          <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-nexus-muted">
-            You don’t have access to any tools yet. Ask an administrator to grant access.
-          </div>
+        {effectiveTab === "home" ? (
+          <HomePage onNavigate={setActiveTab} />
         ) : effectiveTab === "chat" ? (
           <Chat
             prefill={chatPrefill}

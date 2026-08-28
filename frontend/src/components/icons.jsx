@@ -347,6 +347,14 @@ export function ShieldIcon(props) {
   );
 }
 
+export function HomeIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5" />
+    </svg>
+  );
+}
+
 export function LogoIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

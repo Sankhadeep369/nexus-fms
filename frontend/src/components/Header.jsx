@@ -2,18 +2,19 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, ChartIcon, CircleDotIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import { BotIcon, ChartIcon, CircleDotIcon, HomeIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
 const TABS = [
+  { id: "home", label: "Home", icon: HomeIcon },
   { id: "chat", label: "Chat", icon: SparkleIcon },
   { id: "agents", label: "Agents", icon: BotIcon },
   { id: "analysis", label: "Analysis", icon: SearchIcon },
   { id: "dashboard", label: "Dashboard", icon: ChartIcon },
 ];
 
-const TAB_KEY = { chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard", admin: "tab_admin" };
+const TAB_KEY = { home: "tab_home", chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard", admin: "tab_admin" };
 
 export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
@@ -21,7 +22,8 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
   const { user, isAdmin, canTool, logout } = useAuth();
   const [status, setStatus] = useState({ online: null, model: null });
 
-  const visibleTabs = TABS.filter((tab) => canTool(tab.id));
+  // "home" is a personal space available to everyone; the rest are permission-gated.
+  const visibleTabs = TABS.filter((tab) => tab.id === "home" || canTool(tab.id));
   if (isAdmin) visibleTabs.push({ id: "admin", label: "Admin", icon: ShieldIcon });
 
   useEffect(() => {
