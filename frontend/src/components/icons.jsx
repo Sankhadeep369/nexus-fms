@@ -339,6 +339,14 @@ export function ChartIcon(props) {
   );
 }
 
+export function ShieldIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" {...base} {...props}>
+      <path d="M12 3 4 6v6c0 4.5 3.4 7.7 8 9 4.6-1.3 8-4.5 8-9V6l-8-3Z" />
+    </svg>
+  );
+}
+
 export function LogoIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>

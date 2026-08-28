@@ -172,25 +172,29 @@ export default function ReminderList({ reminders, onCancel, onUpdate }) {
                     />
                     {r.status === "pending" && (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingId(r.id);
-                            setExpandedId(null);
-                          }}
-                          title="Edit reminder"
-                          className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent"
-                        >
-                          <EditIcon className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onCancel(r.id)}
-                          title="Cancel reminder"
-                          className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-red-400"
-                        >
-                          <TrashIcon className="h-3.5 w-3.5" />
-                        </button>
+                        {onUpdate && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingId(r.id);
+                              setExpandedId(null);
+                            }}
+                            title="Edit reminder"
+                            className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent"
+                          >
+                            <EditIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {onCancel && (
+                          <button
+                            type="button"
+                            onClick={() => onCancel(r.id)}
+                            title="Cancel reminder"
+                            className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-red-400"
+                          >
+                            <TrashIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </>
                     )}
                   </div>

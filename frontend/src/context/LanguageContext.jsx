@@ -33,7 +33,7 @@ export const LANGUAGES = [
 
 // Core interface strings. Keys missing for a language fall back to English.
 const STRINGS = {
-  en: { tab_chat: "Chat", tab_agents: "Agents", tab_analysis: "Analysis", tab_dashboard: "Dashboard", input_placeholder: "Message NEXUS", mode_simple: "Simple", mode_thinking: "Thinking", new_chat: "New chat", search_chats: "Search chats", sign_in: "Sign in", try_example: "Try an example", see_how: "See how it works", language: "Language" },
+  en: { tab_chat: "Chat", tab_agents: "Agents", tab_analysis: "Analysis", tab_dashboard: "Dashboard", tab_admin: "Admin", input_placeholder: "Message NEXUS", mode_simple: "Simple", mode_thinking: "Thinking", new_chat: "New chat", search_chats: "Search chats", sign_in: "Sign in", try_example: "Try an example", see_how: "See how it works", language: "Language" },
   es: { tab_chat: "Chat", tab_agents: "Agentes", input_placeholder: "Escribe a NEXUS", mode_simple: "Simple", mode_thinking: "Reflexivo", new_chat: "Nuevo chat", search_chats: "Buscar chats", sign_in: "Iniciar sesión", try_example: "Prueba un ejemplo", see_how: "Cómo funciona", language: "Idioma" },
   fr: { tab_chat: "Chat", tab_agents: "Agents", input_placeholder: "Écrire à NEXUS", mode_simple: "Simple", mode_thinking: "Réflexion", new_chat: "Nouvelle discussion", search_chats: "Rechercher", sign_in: "Se connecter", try_example: "Essayer un exemple", see_how: "Comment ça marche", language: "Langue" },
   de: { tab_chat: "Chat", tab_agents: "Agenten", input_placeholder: "Nachricht an NEXUS", mode_simple: "Einfach", mode_thinking: "Nachdenken", new_chat: "Neuer Chat", search_chats: "Chats suchen", sign_in: "Anmelden", try_example: "Beispiel ausprobieren", see_how: "So funktioniert es", language: "Sprache" },

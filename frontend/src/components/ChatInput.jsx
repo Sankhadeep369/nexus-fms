@@ -35,7 +35,7 @@ function toPaletteRows(matches) {
   return rows;
 }
 
-export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange, prefill, onOpenDocuments }) {
+export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeChange, prefill, onOpenDocuments, showDocuments = true }) {
   const [value, setValue] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [justArrived, setJustArrived] = useState(false);
@@ -214,15 +214,17 @@ export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeCha
         )}
 
         <div className="flex items-end gap-1.5">
-          <button
-            type="button"
-            onClick={onOpenDocuments}
-            title="Your documents — upload files to search in chat"
-            aria-label="Your documents"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-nexus-border bg-nexus-panel2 text-nexus-muted transition-all hover:border-nexus-accent/60 hover:text-nexus-accent active:scale-95"
-          >
-            <PaperclipIcon className="h-4 w-4" />
-          </button>
+          {showDocuments && (
+            <button
+              type="button"
+              onClick={onOpenDocuments}
+              title="Your documents — upload files to search in chat"
+              aria-label="Your documents"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-nexus-border bg-nexus-panel2 text-nexus-muted transition-all hover:border-nexus-accent/60 hover:text-nexus-accent active:scale-95"
+            >
+              <PaperclipIcon className="h-4 w-4" />
+            </button>
+          )}
           <textarea
             ref={textareaRef}
             value={value}

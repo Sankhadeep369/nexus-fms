@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import AdminPanel from "./components/AdminPanel";
 import AgentsPage from "./components/AgentsPage";
 import AnalysisPage from "./components/AnalysisPage";
-import DashboardPage from "./components/DashboardPage";
 import ChatInput from "./components/ChatInput";
 import ChatWindow from "./components/ChatWindow";
+import DashboardPage from "./components/DashboardPage";
 import DocumentsPanel from "./components/DocumentsPanel";
 import GuideModal from "./components/GuideModal";
 import Header from "./components/Header";
+import LoginScreen from "./components/LoginScreen";
 import OptionsPanel from "./components/OptionsPanel";
 import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
 import { UploadIcon } from "./components/icons";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
 import { DensityProvider } from "./context/DensityContext";
 import { DocumentsProvider, useDocuments } from "./context/DocumentsContext";
@@ -21,7 +24,7 @@ import { useChat } from "./hooks/useChat";
 
 const GUIDE_SEEN_KEY = "nexus-guide-seen";
 
-function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
+function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments, canDocuments }) {
   const { messages, isStreaming, sendMessage, clarify, regenerate, editAndResend, stopGeneration, sendFeedback, mode, setMode } = useChat();
   const { activeConversation } = useChatHistory();
   const { upload } = useDocuments();
@@ -34,7 +37,7 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
 
   // Depth counter avoids the overlay flickering as the drag passes over children.
   const onDragEnter = (e) => {
-    if (!e.dataTransfer?.types?.includes("Files")) return;
+    if (!canDocuments || !e.dataTransfer?.types?.includes("Files")) return;
     dragDepth.current += 1;
     setDragActive(true);
   };
@@ -46,6 +49,7 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
     e.preventDefault();
     dragDepth.current = 0;
     setDragActive(false);
+    if (!canDocuments) return;
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) {
       files.forEach(upload); // add to the knowledge base (validated in DocumentsContext)
@@ -81,6 +85,7 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
         onModeChange={setMode}
         prefill={prefill}
         onOpenDocuments={onOpenDocuments}
+        showDocuments={canDocuments}
       />
       {dragActive && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-nexus-bg/70 backdrop-blur-sm">
@@ -95,7 +100,9 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments }) {
   );
 }
 
-export default function App() {
+function Shell() {
+  const { canTool, isAdmin } = useAuth();
+
   // Start collapsed on phones so the sidebar (an overlay drawer there) doesn't
   // cover the chat on first load; expanded on desktop where it sits inline.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
@@ -109,6 +116,11 @@ export default function App() {
   const [chatPrefill, setChatPrefill] = useState(null);
   const [analysisPrefill, setAnalysisPrefill] = useState(null);
 
+  const canDocuments = canTool("documents");
+  const allowed = ["chat", "agents", "analysis", "dashboard"].filter(canTool);
+  if (isAdmin) allowed.push("admin");
+  const effectiveTab = allowed.includes(activeTab) ? activeTab : allowed[0];
+
   // Show the guide once, automatically, on a user's first visit.
   useEffect(() => {
     if (!localStorage.getItem(GUIDE_SEEN_KEY)) {
@@ -121,62 +133,80 @@ export default function App() {
     setChatPrefill({ text, nonce: Date.now() });
     setActiveTab("chat");
   };
-
   const investigateKpi = (text) => {
     setAnalysisPrefill({ text, nonce: Date.now() });
     setActiveTab("analysis");
   };
 
   return (
+    <div className="relative flex h-screen flex-col">
+      <div className="aurora" aria-hidden="true" />
+      <Header
+        onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+        onToggleOptions={() => setOptionsOpen(true)}
+        activeTab={effectiveTab}
+        onTabChange={setActiveTab}
+      />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onClose={() => setSidebarCollapsed(true)}
+          onOpenProfile={() => setProfileOpen(true)}
+        />
+        {!effectiveTab ? (
+          <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-nexus-muted">
+            You don’t have access to any tools yet. Ask an administrator to grant access.
+          </div>
+        ) : effectiveTab === "chat" ? (
+          <Chat
+            prefill={chatPrefill}
+            onOpenGuide={() => setGuideOpen(true)}
+            onExample={prefillChat}
+            onOpenDocuments={() => setDocumentsOpen(true)}
+            canDocuments={canDocuments}
+          />
+        ) : effectiveTab === "analysis" ? (
+          <AnalysisPage prefill={analysisPrefill} />
+        ) : effectiveTab === "dashboard" ? (
+          <DashboardPage onInvestigate={investigateKpi} />
+        ) : effectiveTab === "admin" ? (
+          <AdminPanel />
+        ) : (
+          <AgentsPage onAskVendorQuestion={prefillChat} />
+        )}
+      </div>
+      <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} onOpenGuide={() => setGuideOpen(true)} />
+      <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      {canDocuments && <DocumentsPanel open={documentsOpen} onClose={() => setDocumentsOpen(false)} />}
+      <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+    </div>
+  );
+}
+
+function Gate() {
+  const { user } = useAuth();
+  if (!user) return <LoginScreen />;
+  return (
+    <LanguageProvider>
+      <DensityProvider>
+        <ProfileProvider>
+          <DocumentsProvider>
+            <ChatHistoryProvider>
+              <Shell />
+            </ChatHistoryProvider>
+          </DocumentsProvider>
+        </ProfileProvider>
+      </DensityProvider>
+    </LanguageProvider>
+  );
+}
+
+export default function App() {
+  return (
     <ThemeProvider>
-      <LanguageProvider>
-        <DensityProvider>
-          <ProfileProvider>
-            <DocumentsProvider>
-              <ChatHistoryProvider>
-                <div className="relative flex h-screen flex-col">
-                  <div className="aurora" aria-hidden="true" />
-                  <Header
-                    onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
-                    onToggleOptions={() => setOptionsOpen(true)}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                  />
-                  <div className="flex flex-1 overflow-hidden">
-                    <Sidebar
-                      collapsed={sidebarCollapsed}
-                      onClose={() => setSidebarCollapsed(true)}
-                      onOpenProfile={() => setProfileOpen(true)}
-                    />
-                    {activeTab === "chat" ? (
-                      <Chat
-                        prefill={chatPrefill}
-                        onOpenGuide={() => setGuideOpen(true)}
-                        onExample={prefillChat}
-                        onOpenDocuments={() => setDocumentsOpen(true)}
-                      />
-                    ) : activeTab === "analysis" ? (
-                      <AnalysisPage prefill={analysisPrefill} />
-                    ) : activeTab === "dashboard" ? (
-                      <DashboardPage onInvestigate={investigateKpi} />
-                    ) : (
-                      <AgentsPage onAskVendorQuestion={prefillChat} />
-                    )}
-                  </div>
-                  <OptionsPanel
-                    open={optionsOpen}
-                    onClose={() => setOptionsOpen(false)}
-                    onOpenGuide={() => setGuideOpen(true)}
-                  />
-                  <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
-                  <DocumentsPanel open={documentsOpen} onClose={() => setDocumentsOpen(false)} />
-                  <GuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
-                </div>
-              </ChatHistoryProvider>
-            </DocumentsProvider>
-          </ProfileProvider>
-        </DensityProvider>
-      </LanguageProvider>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

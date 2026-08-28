@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-import { BotIcon, ChartIcon, CircleDotIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
+import { BotIcon, ChartIcon, CircleDotIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 
@@ -12,12 +13,16 @@ const TABS = [
   { id: "dashboard", label: "Dashboard", icon: ChartIcon },
 ];
 
-const TAB_KEY = { chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard" };
+const TAB_KEY = { chat: "tab_chat", agents: "tab_agents", analysis: "tab_analysis", dashboard: "tab_dashboard", admin: "tab_admin" };
 
 export default function Header({ onToggleSidebar, onToggleOptions, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
+  const { user, isAdmin, canTool, logout } = useAuth();
   const [status, setStatus] = useState({ online: null, model: null });
+
+  const visibleTabs = TABS.filter((tab) => canTool(tab.id));
+  if (isAdmin) visibleTabs.push({ id: "admin", label: "Admin", icon: ShieldIcon });
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +80,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
       </div>
 
       <div className="inline-flex items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
-        {TABS.map(({ id, label, icon: Icon }) => (
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -113,6 +118,22 @@ export default function Header({ onToggleSidebar, onToggleOptions, activeTab, on
         >
           <SlidersIcon className="h-4 w-4" />
         </button>
+        {user && (
+          <>
+            <span className="ml-1 hidden max-w-[10rem] truncate text-xs text-nexus-muted sm:inline" title={`Signed in as ${user.name}`}>
+              {user.name}
+            </span>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOutIcon className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

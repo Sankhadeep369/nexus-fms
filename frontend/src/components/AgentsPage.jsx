@@ -1,8 +1,12 @@
+import { useAuth } from "../context/AuthContext";
 import IncidentTriageCard from "./agents/IncidentTriageCard";
 import ReminderAgent from "./agents/ReminderAgent";
 import VendorComparisonCard from "./agents/VendorComparisonCard";
 
 export default function AgentsPage({ onAskVendorQuestion }) {
+  const { canAgent, reminderPerms } = useAuth();
+  const anyAgent = canAgent("incident_triage") || canAgent("vendor_comparison") || canAgent("reminder");
+
   return (
     <div className="scroll-thin flex-1 overflow-y-auto px-4 py-6">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -14,9 +18,15 @@ export default function AgentsPage({ onAskVendorQuestion }) {
           </p>
         </div>
 
-        <IncidentTriageCard onAsk={onAskVendorQuestion} />
-        <VendorComparisonCard onAsk={onAskVendorQuestion} />
-        <ReminderAgent />
+        {canAgent("incident_triage") && <IncidentTriageCard onAsk={onAskVendorQuestion} />}
+        {canAgent("vendor_comparison") && <VendorComparisonCard onAsk={onAskVendorQuestion} />}
+        {canAgent("reminder") && <ReminderAgent canCreate={reminderPerms.create} canManage={reminderPerms.manage} />}
+
+        {!anyAgent && (
+          <div className="rounded-2xl border border-dashed border-nexus-border py-12 text-center text-sm text-nexus-muted">
+            You don’t have access to any agents. Ask an administrator to grant access.
+          </div>
+        )}
       </div>
     </div>
   );
