@@ -153,9 +153,11 @@ export default function AdminPanel() {
           <p className="mt-1 text-sm text-nexus-muted">Create users and choose which tools and agents each can use.</p>
         </div>
 
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
-          This is a UI-level gate: accounts live in this browser and it isn’t server-enforced yet. Fine for controlled use — we’ll harden it with backend login when you’re ready.
-        </p>
+        {/*
+          Implementation note (repo-only, not shown to users): this is currently a
+          UI-level gate — accounts and permissions live in localStorage on this device
+          and are not server-enforced. Harden with a backend login + token when ready.
+        */}
 
         {/* Create user */}
         <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-4">

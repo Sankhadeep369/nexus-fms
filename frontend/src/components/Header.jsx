@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
+import { initials } from "../context/ProfileContext";
 import { useTheme } from "../context/ThemeContext";
+import { ROLE_PRESETS } from "../lib/auth";
 import { BotIcon, ChartIcon, CircleDotIcon, HelpCircleIcon, HomeIcon, LogOutIcon, LogoIcon, MenuIcon, MoonIcon, SearchIcon, ShieldIcon, SlidersIcon, SparkleIcon, SunIcon } from "./icons";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
@@ -21,6 +23,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
   const { t } = useLanguage();
   const { user, isAdmin, canTool, logout } = useAuth();
   const [status, setStatus] = useState({ online: null, model: null });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // "home" is a personal space available to everyone; the rest are permission-gated.
   const visibleTabs = TABS.filter((tab) => tab.id === "home" || canTool(tab.id));
@@ -61,23 +64,19 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
           </span>
         </div>
         <span
-          className={`ml-2 hidden items-center gap-1.5 rounded-full border border-nexus-border px-2.5 py-1 text-[11px] text-nexus-muted sm:flex ${
-            status.online === null ? "opacity-50" : ""
-          }`}
+          className="ml-1 flex h-6 w-6 items-center justify-center"
+          title={status.online === null ? "Connecting…" : status.online ? `Online · ${status.model}` : "Backend offline"}
         >
-          <span className="relative flex h-3 w-3 shrink-0 items-center justify-center">
+          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
             {status.online && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-nexus-accent opacity-40" />
             )}
             <CircleDotIcon
-              className={`h-3 w-3 ${
+              className={`h-2.5 w-2.5 ${
                 status.online ? "text-nexus-accent" : status.online === false ? "text-red-400" : "text-nexus-muted"
               }`}
             />
           </span>
-          {status.online === null && "Connecting…"}
-          {status.online === true && `Online · ${status.model}`}
-          {status.online === false && "Backend offline"}
         </span>
       </div>
 
@@ -113,39 +112,40 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
         >
           <HelpCircleIcon className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-        </button>
-        <button
-          type="button"
-          onClick={onToggleOptions}
-          className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
-          aria-label="Settings"
-          title="Settings"
-        >
-          <SlidersIcon className="h-4 w-4" />
-        </button>
-        {user && (
-          <>
-            <span className="ml-1 hidden max-w-[10rem] truncate text-xs text-nexus-muted sm:inline" title={`Signed in as ${user.name}`}>
-              {user.name}
-            </span>
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg p-2 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOutIcon className="h-4 w-4" />
-            </button>
-          </>
-        )}
+
+        {/* Account menu — collapses theme, settings and sign-out to declutter the bar */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-[11px] font-semibold text-nexus-bg"
+            aria-label="Account menu"
+            title={user?.name}
+          >
+            {initials(user?.name || "")}
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 z-30 mt-1.5 w-52 rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
+                <div className="border-b border-nexus-border px-2.5 py-2">
+                  <p className="truncate text-sm font-medium text-nexus-text">{user?.name}</p>
+                  <p className="text-[11px] text-nexus-muted">{ROLE_PRESETS[user?.role]?.label || user?.role}</p>
+                </div>
+                <button type="button" onClick={() => { toggleTheme(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">
+                  {theme === "dark" ? <SunIcon className="h-4 w-4 text-nexus-muted" /> : <MoonIcon className="h-4 w-4 text-nexus-muted" />}
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                </button>
+                <button type="button" onClick={() => { setMenuOpen(false); onToggleOptions(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">
+                  <SlidersIcon className="h-4 w-4 text-nexus-muted" /> Settings
+                </button>
+                <button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">
+                  <LogOutIcon className="h-4 w-4 text-nexus-muted" /> Sign out
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
