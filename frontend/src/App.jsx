@@ -104,6 +104,7 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments, canDocuments }
 
 function Shell() {
   const { canTool, isAdmin } = useAuth();
+  const { createConversation } = useChatHistory();
 
   // Start collapsed on phones so the sidebar (an overlay drawer there) doesn't
   // cover the chat on first load; expanded on desktop where it sits inline.
@@ -135,6 +136,12 @@ function Shell() {
 
   const prefillChat = (text) => {
     setChatPrefill({ text, nonce: Date.now() });
+    setActiveTab("chat");
+  };
+  // Agents answer in their own fresh thread so the user's current chat is untouched.
+  const askInNewConversation = (text) => {
+    createConversation();
+    setChatPrefill({ text, nonce: Date.now(), autoSend: true });
     setActiveTab("chat");
   };
   const investigateKpi = (text) => {
@@ -175,7 +182,7 @@ function Shell() {
         ) : effectiveTab === "admin" ? (
           <AdminPanel />
         ) : (
-          <AgentsPage onAskVendorQuestion={prefillChat} onHelp={openHelp} />
+          <AgentsPage onAskVendorQuestion={askInNewConversation} onHelp={openHelp} />
         )}
       </div>
       <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} onOpenGuide={() => openHelp("getting-started")} />

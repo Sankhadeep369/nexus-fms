@@ -64,6 +64,12 @@ export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeCha
   // obvious something just arrived and is ready to review/edit before sending.
   useEffect(() => {
     if (!prefill) return;
+    // Agents hand off in a fresh conversation and want the question answered
+    // immediately, not just dropped into the composer for review.
+    if (prefill.autoSend) {
+      onSend(prefill.text);
+      return;
+    }
     setValue(prefill.text);
     setJustArrived(true);
     requestAnimationFrame(() => {
