@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { initials } from "../context/ProfileContext";
@@ -22,11 +23,13 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
   const { user, isAdmin, canTool, logout } = useAuth();
+  const { brandName, featureEnabled } = useAppConfig();
   const [status, setStatus] = useState({ online: null, model: null });
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // "home" is a personal space available to everyone; the rest are permission-gated.
-  const visibleTabs = TABS.filter((tab) => tab.id === "home" || canTool(tab.id));
+  // "home" is a personal space available to everyone; the rest need both the
+  // per-user permission and the global feature toggle.
+  const visibleTabs = TABS.filter((tab) => tab.id === "home" || (canTool(tab.id) && featureEnabled(tab.id)));
   if (isAdmin) visibleTabs.push({ id: "admin", label: "Admin", icon: ShieldIcon });
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
             <LogoIcon className="h-4 w-4" />
           </span>
           <span className="font-display text-base font-semibold tracking-tight text-nexus-text">
-            NEXUS
+            {brandName}
           </span>
         </div>
         <span

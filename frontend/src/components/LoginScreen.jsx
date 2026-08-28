@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
 import { LogoIcon } from "./icons";
 
 export default function LoginScreen() {
   const { login } = useAuth();
+  const { brandName } = useAppConfig();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
@@ -21,7 +23,7 @@ export default function LoginScreen() {
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg shadow-glow-sm">
             <LogoIcon className="h-6 w-6" />
           </span>
-          <h1 className="mt-3 font-display text-lg font-semibold text-nexus-text">Sign in to NEXUS</h1>
+          <h1 className="mt-3 font-display text-lg font-semibold text-nexus-text">Sign in to {brandName}</h1>
           <p className="mt-1 text-xs text-nexus-muted">Facilities-management assistant</p>
         </div>
 

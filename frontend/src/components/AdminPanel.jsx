@@ -10,6 +10,7 @@ import {
   TOOLS,
   updateUser,
 } from "../lib/auth";
+import AdminConfig from "./AdminConfig";
 import { ChevronDownIcon, PlusIcon, TrashIcon, UserIcon } from "./icons";
 
 const field =
@@ -131,6 +132,7 @@ export default function AdminPanel() {
   const [expanded, setExpanded] = useState(null);
   const [form, setForm] = useState({ username: "", name: "", password: "", role: "operator" });
   const [error, setError] = useState(null);
+  const [view, setView] = useState("users");
 
   const reload = () => {
     setUsers(loadUsers());
@@ -149,16 +151,33 @@ export default function AdminPanel() {
     <div className="scroll-thin flex-1 overflow-y-auto px-4 py-6 sm:px-6">
       <div className="mx-auto flex max-w-3xl flex-col gap-5">
         <div>
-          <h1 className="font-display text-xl font-semibold text-nexus-text">Access Control</h1>
-          <p className="mt-1 text-sm text-nexus-muted">Create users and choose which tools and agents each can use.</p>
+          <h1 className="font-display text-xl font-semibold text-nexus-text">Admin</h1>
+          <p className="mt-1 text-sm text-nexus-muted">Manage users and configure the app.</p>
         </div>
 
         {/*
           Implementation note (repo-only, not shown to users): this is currently a
-          UI-level gate — accounts and permissions live in localStorage on this device
-          and are not server-enforced. Harden with a backend login + token when ready.
+          UI-level gate — accounts, permissions and app config live in localStorage on
+          this device and are not server-enforced. Harden with a backend when ready.
         */}
 
+        <div className="inline-flex w-fit items-center gap-0.5 rounded-full border border-nexus-border bg-nexus-panel2 p-0.5">
+          {[["users", "Users"], ["settings", "Settings"]].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${view === id ? "bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg" : "text-nexus-muted hover:text-nexus-text"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {view === "settings" && <AdminConfig />}
+
+        {view === "users" && (
+        <>
         {/* Create user */}
         <div className="rounded-2xl border border-nexus-border bg-nexus-panel p-4">
           <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-nexus-muted">New user</p>
@@ -191,6 +210,8 @@ export default function AdminPanel() {
             />
           ))}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

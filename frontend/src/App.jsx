@@ -16,6 +16,7 @@ import OptionsPanel from "./components/OptionsPanel";
 import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
 import { UploadIcon } from "./components/icons";
+import { AppConfigProvider, useAppConfig } from "./context/AppConfigContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
 import { DensityProvider } from "./context/DensityContext";
@@ -108,7 +109,9 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments, canDocuments }
 
 function Shell() {
   const { canTool, isAdmin } = useAuth();
+  const { featureEnabled, announcement } = useAppConfig();
   const { createConversation } = useChatHistory();
+  const allow = (id) => canTool(id) && featureEnabled(id);
 
   // Start collapsed on phones so the sidebar (an overlay drawer there) doesn't
   // cover the chat on first load; expanded on desktop where it sits inline.
@@ -125,8 +128,8 @@ function Shell() {
   const [chatPrefill, setChatPrefill] = useState(null);
   const [analysisPrefill, setAnalysisPrefill] = useState(null);
 
-  const canDocuments = canTool("documents");
-  const allowed = ["home", ...["chat", "agents", "analysis", "dashboard"].filter(canTool)];
+  const canDocuments = allow("documents");
+  const allowed = ["home", ...["chat", "agents", "analysis", "dashboard"].filter(allow)];
   if (isAdmin) allowed.push("admin");
   const effectiveTab = allowed.includes(activeTab) ? activeTab : allowed[0];
 
@@ -163,6 +166,11 @@ function Shell() {
         activeTab={effectiveTab}
         onTabChange={setActiveTab}
       />
+      {announcement?.enabled && announcement.text && (
+        <div className={`shrink-0 px-4 py-2 text-center text-xs font-medium ${announcement.level === "warn" ? "bg-amber-500/15 text-amber-300" : "bg-nexus-accent/10 text-nexus-accent"}`}>
+          {announcement.text}
+        </div>
+      )}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           collapsed={sidebarCollapsed}
@@ -227,9 +235,11 @@ function Gate() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Gate />
-      </AuthProvider>
+      <AppConfigProvider>
+        <AuthProvider>
+          <Gate />
+        </AuthProvider>
+      </AppConfigProvider>
     </ThemeProvider>
   );
 }
