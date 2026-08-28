@@ -224,8 +224,8 @@ export default function ChatInput({ onSend, onStop, isStreaming, mode, onModeCha
             <button
               type="button"
               onClick={onOpenDocuments}
-              title="Your documents — upload files to search in chat"
-              aria-label="Your documents"
+              title="Knowledge base — upload documents (admin)"
+              aria-label="Knowledge base"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-nexus-border bg-nexus-panel2 text-nexus-muted transition-all hover:border-nexus-accent/60 hover:text-nexus-accent active:scale-95"
             >
               <PaperclipIcon className="h-4 w-4" />

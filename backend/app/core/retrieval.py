@@ -164,12 +164,13 @@ def _min_max(arr: np.ndarray) -> np.ndarray:
 
 
 def _apply_owner_mask(combined: np.ndarray, owners: list, owner: str | None) -> np.ndarray:
-    """Base-corpus chunks (owner None) are always eligible; user-doc chunks only for
-    the requesting `owner`. Fast path: if there are no user docs at all, the array is
+    """Base-corpus chunks (owner None) and admin-uploaded "global" chunks are always
+    eligible for every user; any other owner-tagged chunk is only eligible for the
+    requesting `owner`. Fast path: if there are no user docs at all, the array is
     returned unchanged, so retrieval with no uploads is byte-identical to before."""
     if not any(o is not None for o in owners):
         return combined
-    mask = np.fromiter((o is None or o == owner for o in owners), dtype=bool, count=len(owners))
+    mask = np.fromiter((o is None or o == "global" or o == owner for o in owners), dtype=bool, count=len(owners))
     out = combined.copy()
     out[~mask] = -1e9
     return out

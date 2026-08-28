@@ -3,12 +3,13 @@
 // panel. Everything funnels through this module so it can later be swapped for a
 // Supabase-backed, token-enforced implementation without touching the UI.
 
+// Note: document upload is an admin-only privilege (not a per-user permission),
+// so it is deliberately not listed here.
 export const TOOLS = [
   { id: "chat", label: "Chat" },
   { id: "agents", label: "Agents" },
   { id: "analysis", label: "Analysis" },
   { id: "dashboard", label: "Dashboard" },
-  { id: "documents", label: "Documents" },
 ];
 
 // The agents actually surfaced in the Agents tab.

@@ -1,14 +1,17 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { ownerId, useProfile } from "./ProfileContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
 const ACCEPT = /\.(pdf|docx?|txt|md|markdown)$/i;
 
+// Document upload is an admin-only privilege that updates the shared knowledge base
+// for every user, so it always targets the "global" owner (which retrieval treats as
+// eligible for all users).
+const GLOBAL_OWNER = "global";
+
 const DocumentsContext = createContext(null);
 
 export function DocumentsProvider({ children }) {
-  const { profile } = useProfile();
-  const owner = ownerId(profile);
+  const owner = GLOBAL_OWNER;
   const [documents, setDocuments] = useState([]);
   const [uploads, setUploads] = useState([]); // { id, name, status: "uploading"|"done"|"error", error }
 

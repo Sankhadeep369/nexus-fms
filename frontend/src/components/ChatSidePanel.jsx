@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSuggestions } from "../hooks/useSuggestions";
-import { CheckIcon, SparkleIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
+import { CheckIcon, SparkleIcon, ThumbDownIcon, ThumbUpIcon, XIcon } from "./icons";
+
+const COLLAPSE_KEY = "nexus-chat-panel-collapsed";
 
 function Rating({ target, onFeedback }) {
   const [rating, setRating] = useState(null);
@@ -71,10 +73,33 @@ function Rating({ target, onFeedback }) {
 export default function ChatSidePanel({ messages, onSend, onFeedback, disabled }) {
   const suggestions = useSuggestions();
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && m.content);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === "1");
+
+  const toggle = () => {
+    const v = !collapsed;
+    setCollapsed(v);
+    localStorage.setItem(COLLAPSE_KEY, v ? "1" : "0");
+  };
+
+  if (collapsed) {
+    return (
+      <div className="hidden w-10 shrink-0 flex-col items-center border-l border-nexus-border bg-nexus-panel/40 py-3 lg:flex">
+        <button type="button" onClick={toggle} title="Show suggestions" aria-label="Show suggestions" className="rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-accent">
+          <SparkleIcon className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <aside className="scroll-thin hidden w-72 shrink-0 flex-col overflow-y-auto border-l border-nexus-border bg-nexus-panel/40 lg:flex">
-      <div className="space-y-5 p-4">
+      <div className="flex items-center justify-between px-4 pt-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-nexus-muted">Assist</span>
+        <button type="button" onClick={toggle} title="Hide panel" aria-label="Hide panel" className="rounded-lg p-1 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text">
+          <XIcon className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="space-y-5 p-4 pt-3">
         <section>
           <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-nexus-muted">
             <SparkleIcon className="h-3.5 w-3.5 text-nexus-accent" /> Suggested

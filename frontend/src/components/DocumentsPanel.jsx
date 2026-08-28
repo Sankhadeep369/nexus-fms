@@ -34,7 +34,7 @@ export default function DocumentsPanel({ open, onClose }) {
             className="scroll-thin fixed right-0 top-0 z-40 flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-l border-nexus-border bg-nexus-panel p-4 shadow-2xl"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-nexus-text">Your documents</h2>
+              <h2 className="text-sm font-semibold text-nexus-text">Knowledge base</h2>
               <button
                 type="button"
                 onClick={onClose}
@@ -45,8 +45,8 @@ export default function DocumentsPanel({ open, onClose }) {
               </button>
             </div>
             <p className="mt-1 text-[11px] leading-relaxed text-nexus-muted">
-              Uploaded files are added to your knowledge base and searched in chat — and take
-              precedence over the built-in corpus when they overlap.
+              Uploaded files update the shared knowledge base for all users and are searched in
+              chat — and take precedence over the built-in corpus when they overlap.
             </p>
 
             {/* Upload dropzone */}

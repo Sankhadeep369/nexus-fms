@@ -128,7 +128,8 @@ function Shell() {
   const [chatPrefill, setChatPrefill] = useState(null);
   const [analysisPrefill, setAnalysisPrefill] = useState(null);
 
-  const canDocuments = allow("documents");
+  // Uploading/updating the knowledge base is an admin-only privilege.
+  const canDocuments = isAdmin && featureEnabled("documents");
   const allowed = ["home", ...["chat", "agents", "analysis", "dashboard"].filter(allow)];
   if (isAdmin) allowed.push("admin");
   const effectiveTab = allowed.includes(activeTab) ? activeTab : allowed[0];
