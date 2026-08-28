@@ -3,6 +3,7 @@ import AdminPanel from "./components/AdminPanel";
 import AgentsPage from "./components/AgentsPage";
 import AnalysisPage from "./components/AnalysisPage";
 import ChatInput from "./components/ChatInput";
+import ChatSidePanel from "./components/ChatSidePanel";
 import ChatWindow from "./components/ChatWindow";
 import DashboardPage from "./components/DashboardPage";
 import DocumentsPanel from "./components/DocumentsPanel";
@@ -61,34 +62,37 @@ function Chat({ prefill, onOpenGuide, onExample, onOpenDocuments, canDocuments }
 
   return (
     <div
-      className="relative flex flex-1 flex-col overflow-hidden"
+      className="relative flex flex-1 overflow-hidden"
       onDragEnter={onDragEnter}
       onDragOver={(e) => e.preventDefault()}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <ChatWindow
-        messages={messages}
-        onSend={sendMessage}
-        onClarify={clarify}
-        onRegenerate={regenerate}
-        onEditResend={editAndResend}
-        onFeedback={sendFeedback}
-        onOpenGuide={onOpenGuide}
-        onExample={onExample}
-        mode={mode}
-        disabled={isStreaming}
-      />
-      <ChatInput
-        onSend={sendMessage}
-        onStop={stopGeneration}
-        isStreaming={isStreaming}
-        mode={mode}
-        onModeChange={setMode}
-        prefill={prefill}
-        onOpenDocuments={onOpenDocuments}
-        showDocuments={canDocuments}
-      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <ChatWindow
+          messages={messages}
+          onSend={sendMessage}
+          onClarify={clarify}
+          onRegenerate={regenerate}
+          onEditResend={editAndResend}
+          onFeedback={sendFeedback}
+          onOpenGuide={onOpenGuide}
+          onExample={onExample}
+          mode={mode}
+          disabled={isStreaming}
+        />
+        <ChatInput
+          onSend={sendMessage}
+          onStop={stopGeneration}
+          isStreaming={isStreaming}
+          mode={mode}
+          onModeChange={setMode}
+          prefill={prefill}
+          onOpenDocuments={onOpenDocuments}
+          showDocuments={canDocuments}
+        />
+      </div>
+      <ChatSidePanel messages={messages} onSend={sendMessage} onFeedback={sendFeedback} disabled={isStreaming} />
       {dragActive && (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-nexus-bg/70 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-nexus-accent/60 bg-nexus-panel/80 px-8 py-6 text-center">
