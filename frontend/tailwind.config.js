@@ -20,7 +20,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        display: ["Archivo", "Hanken Grotesk", "system-ui", "sans-serif"],
+        sans: ["Hanken Grotesk", "system-ui", "sans-serif"],
       },
       boxShadow: {
         glow: "0 0 0 1px rgb(var(--nexus-accent) / 0.4), 0 8px 24px -8px rgb(var(--nexus-accent) / 0.45)",

@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
 import { LogoIcon } from "./icons";
+
+// three.js is heavy, so it loads only here as its own chunk — never on the work path.
+const Hero3D = lazy(() => import("./Hero3D"));
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -18,6 +21,9 @@ export default function LoginScreen() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-nexus-bg px-4">
       <div className="aurora" aria-hidden="true" />
+      <Suspense fallback={null}>
+        <Hero3D />
+      </Suspense>
       <form onSubmit={submit} className="relative z-10 w-full max-w-sm rounded-2xl border border-nexus-border bg-nexus-panel/80 p-6 shadow-glow backdrop-blur-sm">
         <div className="mb-5 flex flex-col items-center text-center">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg shadow-glow-sm">

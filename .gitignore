@@ -59,3 +59,8 @@ uvicorn.log
 .coverage
 htmlcov/
 backend/metrics_report.json
+
+# impeccable design-skill tooling (installed via npx impeccable, not app code)
+.github/agents/
+.github/hooks/
+.github/skills/
