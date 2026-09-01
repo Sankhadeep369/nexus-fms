@@ -83,7 +83,7 @@ function KpiTile({ widget, editing, onConfig }) {
         <p className="truncate text-xs font-medium text-nexus-text">{kpi.name}</p>
         <span className={`h-2 w-2 shrink-0 rounded-full ${meta.dot}`} />
       </div>
-      <p className="mt-1 font-display text-2xl font-semibold text-nexus-text">{fmtValue(kpi, latestValue(kpi))}</p>
+      <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-nexus-text">{fmtValue(kpi, latestValue(kpi))}</p>
       <div className="mt-auto">
         <Sparkline series={seriesOf(kpi)} />
       </div>

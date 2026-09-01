@@ -133,7 +133,7 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-nexus-border bg-nexus-panel2/40 px-2 py-1.5 text-center">
                 <p className="text-[10px] uppercase tracking-wide text-nexus-muted">{label}</p>
-                <p className="mt-0.5 text-sm font-semibold text-nexus-text">{value}</p>
+                <p className="mt-0.5 font-mono text-sm font-semibold text-nexus-text">{value}</p>
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
                       {[...draft.values].reverse().map((v) => (
                         <li key={v.period} className="flex items-center gap-2 rounded-lg bg-nexus-panel2 px-2.5 py-1.5 text-xs">
                           <span className="w-24 font-mono text-nexus-muted">{v.period}</span>
-                          <span className="font-semibold text-nexus-text">{fmtValue(draft, v.value)}</span>
+                          <span className="font-mono font-semibold text-nexus-text">{fmtValue(draft, v.value)}</span>
                           {v.note && <span className="truncate text-nexus-muted">— {v.note}</span>}
                           <button type="button" onClick={() => delValue(v.period)} className="ml-auto rounded p-1 text-nexus-muted hover:text-red-400">
                             <TrashIcon className="h-3.5 w-3.5" />

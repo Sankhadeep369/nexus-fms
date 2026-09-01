@@ -174,7 +174,7 @@ export default function DashboardPage({ onInvestigate }) {
                 >
                   <span className={`h-2 w-2 rounded-full ${STATUS_META[statusOf(k)].dot}`} />
                   {k.name}
-                  <span className="text-nexus-muted">{fmtValue(k, latestValue(k))}</span>
+                  <span className="font-mono text-nexus-muted">{fmtValue(k, latestValue(k))}</span>
                 </button>
               ))}
             </div>

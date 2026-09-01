@@ -8,13 +8,13 @@ colors:
   border: "#232A35"
   text: "#EBEFF4"
   muted: "#8E99A8"
-  accent: "#2DD4BF"
+  accent: "#00D3A7"
   accent-2: "#F59E0B"
   violet: "#A78BFA"
   bg-light: "#FAFBFC"
   panel-light: "#FFFFFF"
   text-light: "#161B20"
-  accent-light: "#0D9488"
+  accent-light: "#0B9C82"
 typography:
   display:
     fontFamily: "Archivo, Hanken Grotesk, system-ui, sans-serif"
@@ -33,6 +33,10 @@ typography:
     fontSize: "0.6875rem"
     fontWeight: 600
     letterSpacing: "0.06em"
+  metric:
+    fontFamily: "JetBrains Mono, ui-monospace, monospace"
+    fontWeight: 600
+    letterSpacing: "-0.01em"
 rounded:
   sm: "8px"
   md: "12px"
@@ -75,7 +79,7 @@ NEXUS is an **Operate**-mode product: a facilities-management console where the 
 
 All colors are CSS variables stored as `R G B` triples and consumed via `rgb(var(--nexus-*) / <alpha>)`, so opacity is always available and theming is a variable swap (`.light` class on the root).
 
-- `accent` (teal `#2DD4BF`, light `#0D9488`) — the single primary action/identity color. Buttons, active tabs, focus, links, sparklines.
+- `accent` (signal teal-green `#00D3A7`, light `#0B9C82`) — the single primary action/identity color. Buttons, active tabs, focus, links, sparklines, the 3D hero. A deliberate, owned tone (not the stock AI teal).
 - `accent-2` (amber `#F59E0B`) — warmth and warnings: at-risk KPIs, announcement banners, the secondary gradient stop on the hero only.
 - `violet` (`#A78BFA`) — **reserved** for AI/agent context (Agents tab active state, workflow step chips). Do not use as a general accent.
 - `bg / panel / panel-2 / border` — the four-step neutral elevation ramp.
@@ -89,7 +93,8 @@ Admins can override `accent` at runtime (branding); keep contrast in mind — th
 - **Display — Archivo** (600–800): headings, KPI numbers, wordmark, tab labels. Engineered, slightly technical; signals an operations tool, not a generic SaaS. Use `font-display`, tight tracking (`-0.01em`).
 - **Body — Hanken Grotesk** (400–600): all running text, inputs, controls. Set on `body`; inherited everywhere.
 - **Label**: 11px, weight 600, uppercase, `0.06em` tracking, `muted` color — section headers ("NEEDS ATTENTION", "SUGGESTED").
-- Numeric/metric emphasis uses Archivo weight 600, not a gradient. One display + one body face only; do not add more.
+- **Metric — JetBrains Mono** (`font-mono`, 600): the signature "instrument" face for all numbers that read as data — KPI values, stats, trend deltas, periods/timestamps. Precise, tabular, and distinctly operational. Never use it for prose.
+- One display + one body + one mono face only; do not add more, and never a gradient on text.
 
 ## Layout
 

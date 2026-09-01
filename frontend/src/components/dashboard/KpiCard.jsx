@@ -28,7 +28,7 @@ export default function KpiCard({ kpi, onOpen }) {
 
       <div className="mt-3 flex items-end justify-between gap-2">
         <div className="min-w-0">
-          <span className="font-display text-2xl font-semibold text-nexus-text">{fmtValue(kpi, v)}</span>
+          <span className="font-mono text-2xl font-semibold tracking-tight text-nexus-text">{fmtValue(kpi, v)}</span>
           {kpi.target != null && (
             <span className="ml-1 text-[11px] text-nexus-muted">
               / {kpi.target}
@@ -37,7 +37,7 @@ export default function KpiCard({ kpi, onOpen }) {
           )}
         </div>
         {trend && !trend.flat && (
-          <span className={`shrink-0 text-[11px] font-medium ${trend.improving ? "text-emerald-400" : "text-red-400"}`}>
+          <span className={`shrink-0 font-mono text-[11px] font-medium ${trend.improving ? "text-emerald-400" : "text-red-400"}`}>
             {trend.improving ? "▲" : "▼"} {Math.abs(Math.round(trend.delta * 10) / 10)}
           </span>
         )}

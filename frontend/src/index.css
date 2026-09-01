@@ -11,14 +11,15 @@
   --nexus-border: 35 42 53;
   --nexus-text: 235 239 244;
   --nexus-muted: 142 153 168;
-  /* Primary: teal. Secondary: amber. Purple is no longer the brand color --
-     see --nexus-violet below for where a deliberate purple hint is used. */
-  --nexus-accent: 45 212 191;
+  /* Primary: a deliberate "signal" teal-green (owned, distinct from the stock AI
+     teal). Secondary: amber, reserved for warnings. Purple is a sparing hint only --
+     see --nexus-violet below. */
+  --nexus-accent: 0 211 167;
   --nexus-accent2: 245 158 11;
   /* Sparing hint only -- agent/AI-specific UI (Agents tab, workflow steps). */
   --nexus-violet: 167 139 250;
 
-  --nexus-glow-1: 45 212 191;
+  --nexus-glow-1: 0 211 167;
   --nexus-glow-2: 245 158 11;
   --nexus-glow-opacity: 0.18;
 }
@@ -30,11 +31,11 @@
   --nexus-border: 224 228 234;
   --nexus-text: 22 27 32;
   --nexus-muted: 99 110 123;
-  --nexus-accent: 13 148 136;
+  --nexus-accent: 11 156 130;
   --nexus-accent2: 217 119 6;
   --nexus-violet: 124 58 237;
 
-  --nexus-glow-1: 45 212 191;
+  --nexus-glow-1: 0 211 167;
   --nexus-glow-2: 245 158 11;
   --nexus-glow-opacity: 0.12;
 }
