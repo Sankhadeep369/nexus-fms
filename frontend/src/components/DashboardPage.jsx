@@ -111,7 +111,7 @@ export default function DashboardPage({ onInvestigate }) {
               </button>
               {showBreach && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowBreach(false)} />
+                  <button type="button" aria-label="Close menu" className="fixed inset-0 z-10 cursor-default" onClick={() => setShowBreach(false)} />
                   <div className="absolute right-0 z-20 mt-1.5 w-48 rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
                     <p className="px-2.5 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-nexus-muted">Record a breach</p>
                     <button type="button" onClick={() => recordBreach("system")} className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">System breach</button>
@@ -126,7 +126,7 @@ export default function DashboardPage({ onInvestigate }) {
               </button>
               {showAdd && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowAdd(false)} />
+                  <button type="button" aria-label="Close menu" className="fixed inset-0 z-10 cursor-default" onClick={() => setShowAdd(false)} />
                   <div className="scroll-thin absolute right-0 z-20 mt-1.5 max-h-80 w-64 overflow-y-auto rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
                     <button type="button" onClick={() => openNew()} className="w-full rounded-lg px-2.5 py-2 text-left text-sm font-medium text-nexus-accent hover:bg-nexus-panel2">
                       + Blank custom KPI

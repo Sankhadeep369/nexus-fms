@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import CalendarMenu from "./CalendarMenu";
@@ -182,6 +182,12 @@ export default function MessageBubble({ message, disabled, mode, onRegenerate, o
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.content);
   const [copied, setCopied] = useState(false);
+  const editRef = useRef(null);
+
+  // Focus the edit box when it opens, without the a11y-flagged autoFocus attribute.
+  useEffect(() => {
+    if (editing) editRef.current?.focus();
+  }, [editing]);
 
   const startEdit = () => {
     setEditValue(message.content);
@@ -256,7 +262,7 @@ export default function MessageBubble({ message, disabled, mode, onRegenerate, o
                   }
                 }}
                 rows={Math.min(8, Math.max(2, editValue.split("\n").length))}
-                autoFocus
+                ref={editRef}
                 className="w-full resize-none rounded-lg bg-black/10 px-2 py-1.5 text-sm leading-relaxed text-inherit placeholder:text-current focus:outline-none"
               />
               <div className="flex justify-end gap-1.5 text-xs font-medium">

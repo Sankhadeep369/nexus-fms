@@ -129,7 +129,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
           </button>
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
+              <button type="button" aria-label="Close menu" className="fixed inset-0 z-20 cursor-default" onClick={() => setMenuOpen(false)} />
               <div className="absolute right-0 z-30 mt-1.5 w-52 rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
                 <div className="border-b border-nexus-border px-2.5 py-2">
                   <p className="truncate text-sm font-medium text-nexus-text">{user?.name}</p>

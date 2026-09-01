@@ -16,6 +16,7 @@ import {
   todayISO,
   upsertKpi,
 } from "../../lib/kpis";
+import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { TrashIcon, XIcon } from "../icons";
 import { BarChart, LineChart } from "./charts";
 
@@ -32,6 +33,7 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
   const [note, setNote] = useState("");
   const [chart, setChart] = useState("line");
   const stats = statsOf(draft);
+  useEscapeKey(onClose);
 
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const status = statusOf(draft);
@@ -67,10 +69,12 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-sm" />
       <div
-        className="scroll-thin max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-nexus-border bg-nexus-panel p-5 shadow-glow"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        className="scroll-thin relative max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-nexus-border bg-nexus-panel p-5 shadow-glow"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">

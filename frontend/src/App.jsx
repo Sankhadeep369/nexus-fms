@@ -1,17 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import AdminPanel from "./components/AdminPanel";
-import AgentsPage from "./components/AgentsPage";
-import AnalysisPage from "./components/AnalysisPage";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import ChatInput from "./components/ChatInput";
 import ChatSidePanel from "./components/ChatSidePanel";
 import ChatWindow from "./components/ChatWindow";
-import DashboardPage from "./components/DashboardPage";
 import DocumentsPanel from "./components/DocumentsPanel";
 import GuidedTour from "./components/GuidedTour";
 import Header from "./components/Header";
 import HelpCenter from "./components/HelpCenter";
-import HomePage from "./components/HomePage";
 import LoginScreen from "./components/LoginScreen";
+
+// Non-chat tabs are code-split so they don't weigh down the initial load.
+const HomePage = lazy(() => import("./components/HomePage"));
+const AgentsPage = lazy(() => import("./components/AgentsPage"));
+const AnalysisPage = lazy(() => import("./components/AnalysisPage"));
+const DashboardPage = lazy(() => import("./components/DashboardPage"));
+const AdminPanel = lazy(() => import("./components/AdminPanel"));
 import OptionsPanel from "./components/OptionsPanel";
 import ProfilePanel from "./components/ProfilePanel";
 import Sidebar from "./components/Sidebar";
@@ -178,25 +180,33 @@ function Shell() {
           onClose={() => setSidebarCollapsed(true)}
           onOpenProfile={() => setProfileOpen(true)}
         />
-        {effectiveTab === "home" ? (
-          <HomePage onNavigate={setActiveTab} onOpenProfile={() => setProfileOpen(true)} />
-        ) : effectiveTab === "chat" ? (
-          <Chat
-            prefill={chatPrefill}
-            onOpenGuide={() => openHelp("chat")}
-            onExample={prefillChat}
-            onOpenDocuments={() => setDocumentsOpen(true)}
-            canDocuments={canDocuments}
-          />
-        ) : effectiveTab === "analysis" ? (
-          <AnalysisPage prefill={analysisPrefill} />
-        ) : effectiveTab === "dashboard" ? (
-          <DashboardPage onInvestigate={investigateKpi} />
-        ) : effectiveTab === "admin" ? (
-          <AdminPanel />
-        ) : (
-          <AgentsPage onAskVendorQuestion={askInNewConversation} onHelp={openHelp} />
-        )}
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-nexus-border border-t-nexus-accent" aria-label="Loading" />
+            </div>
+          }
+        >
+          {effectiveTab === "home" ? (
+            <HomePage onNavigate={setActiveTab} onOpenProfile={() => setProfileOpen(true)} />
+          ) : effectiveTab === "chat" ? (
+            <Chat
+              prefill={chatPrefill}
+              onOpenGuide={() => openHelp("chat")}
+              onExample={prefillChat}
+              onOpenDocuments={() => setDocumentsOpen(true)}
+              canDocuments={canDocuments}
+            />
+          ) : effectiveTab === "analysis" ? (
+            <AnalysisPage prefill={analysisPrefill} />
+          ) : effectiveTab === "dashboard" ? (
+            <DashboardPage onInvestigate={investigateKpi} />
+          ) : effectiveTab === "admin" ? (
+            <AdminPanel />
+          ) : (
+            <AgentsPage onAskVendorQuestion={askInNewConversation} onHelp={openHelp} />
+          )}
+        </Suspense>
       </div>
       <OptionsPanel open={optionsOpen} onClose={() => setOptionsOpen(false)} onOpenGuide={() => openHelp("getting-started")} />
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />

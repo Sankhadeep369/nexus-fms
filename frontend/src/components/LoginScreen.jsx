@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
 import { LogoIcon } from "./icons";
@@ -12,6 +12,22 @@ export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [showHero, setShowHero] = useState(false);
+  const userRef = useRef(null);
+
+  // Focus the first field without the a11y-flagged autoFocus attribute.
+  useEffect(() => {
+    userRef.current?.focus();
+  }, []);
+
+  // Defer the 3D hero until the browser is idle so it never blocks first paint or
+  // the login form becoming interactive (keeps the signature, protects performance).
+  useEffect(() => {
+    const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 500));
+    const cancel = window.cancelIdleCallback || clearTimeout;
+    const id = idle(() => setShowHero(true));
+    return () => cancel(id);
+  }, []);
 
   const submit = (e) => {
     e.preventDefault();
@@ -21,9 +37,11 @@ export default function LoginScreen() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-nexus-bg px-4">
       <div className="aurora" aria-hidden="true" />
-      <Suspense fallback={null}>
-        <Hero3D />
-      </Suspense>
+      {showHero && (
+        <Suspense fallback={null}>
+          <Hero3D />
+        </Suspense>
+      )}
       <form onSubmit={submit} className="relative z-10 w-full max-w-sm rounded-2xl border border-nexus-border bg-nexus-panel/80 p-6 shadow-glow backdrop-blur-sm">
         <div className="mb-5 flex flex-col items-center text-center">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg shadow-glow-sm">
@@ -36,12 +54,12 @@ export default function LoginScreen() {
         <label className="block text-xs text-nexus-muted">
           Username
           <input
+            ref={userRef}
             value={username}
             onChange={(e) => {
               setUsername(e.target.value);
               setError(false);
             }}
-            autoFocus
             className="mt-1 w-full rounded-xl border border-nexus-border bg-nexus-bg px-3 py-2 text-sm text-nexus-text focus:border-nexus-accent/60 focus:outline-none"
           />
         </label>

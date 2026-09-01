@@ -102,7 +102,7 @@ export default function HomePage({ onNavigate, onOpenProfile }) {
                   </button>
                   {showAdd && (
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowAdd(false)} />
+                      <button type="button" aria-label="Close menu" className="fixed inset-0 z-10 cursor-default" onClick={() => setShowAdd(false)} />
                       <div className="absolute right-0 z-20 mt-1.5 w-44 rounded-xl border border-nexus-border bg-nexus-panel p-1.5 shadow-glow">
                         {WIDGET_TYPES.map((t) => (
                           <button key={t.type} type="button" onClick={() => add(t.type)} className="block w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-nexus-text hover:bg-nexus-panel2">

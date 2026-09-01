@@ -150,6 +150,13 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
                             e.stopPropagation();
                             deleteConversation(c.id);
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteConversation(c.id);
+                            }
+                          }}
                           className="shrink-0 rounded-md p-1 text-nexus-muted opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
                           aria-label="Delete conversation"
                         >

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 import { HELP_SECTIONS } from "../lib/help";
 import { CheckIcon, SparkleIcon, XIcon } from "./icons";
 
@@ -8,15 +9,18 @@ export default function HelpCenter({ open, section, onClose, onStartTour }) {
   useEffect(() => {
     if (open && section) setActive(section);
   }, [open, section]);
+  useEscapeKey(onClose, open);
 
   if (!open) return null;
   const current = HELP_SECTIONS.find((s) => s.id === active) || HELP_SECTIONS[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button type="button" aria-label="Close help" onClick={onClose} className="absolute inset-0 cursor-default bg-black/50 backdrop-blur-sm" />
       <div
-        className="flex h-[80vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-nexus-border bg-nexus-panel shadow-glow"
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        className="relative flex h-[80vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-nexus-border bg-nexus-panel shadow-glow"
       >
         {/* Nav */}
         <div className="scroll-thin hidden w-52 shrink-0 overflow-y-auto border-r border-nexus-border bg-nexus-panel2/50 p-2 sm:block">
