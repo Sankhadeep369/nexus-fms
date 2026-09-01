@@ -10,6 +10,7 @@ import {
   TOOLS,
   updateUser,
 } from "../lib/auth";
+import { useConfirm, useNotify } from "../context/ConfirmContext";
 import { logAudit } from "../lib/audit";
 import AdminConfig from "./AdminConfig";
 import { ChevronDownIcon, PlusIcon, TrashIcon, UserIcon } from "./icons";
@@ -27,6 +28,8 @@ function Toggle({ label, checked, onChange, disabled }) {
 }
 
 function UserRow({ user, expanded, onToggle, onChanged, isSelf, actor }) {
+  const confirm = useConfirm();
+  const notify = useNotify();
   const [draft, setDraft] = useState(user);
   const [pw, setPw] = useState("");
   const admin = draft.role === "admin";
@@ -42,9 +45,16 @@ function UserRow({ user, expanded, onToggle, onChanged, isSelf, actor }) {
     setPw("");
     onChanged();
   };
-  const remove = () => {
+  const remove = async () => {
+    const ok = await confirm({
+      title: "Delete user?",
+      message: `Remove "${user.username}"? They will lose access. This can't be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = deleteUser(user.username);
-    if (res.error) return alert(res.error);
+    if (res.error) return notify(res.error, "Can't delete");
     logAudit(actor, "Deleted user", user.username);
     onChanged();
   };

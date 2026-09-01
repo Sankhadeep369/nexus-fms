@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
+import { useConfirm } from "../context/ConfirmContext";
 import {
   deleteSnapshot,
   FEATURE_IDS,
@@ -21,6 +22,7 @@ const heading = "mb-3 text-[11px] font-semibold uppercase tracking-wider text-ne
 export default function AdminConfig() {
   const { config, update } = useAppConfig();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const actor = user?.username;
   const [draft, setDraft] = useState(config);
   const [snaps, setSnaps] = useState(listSnapshots);
@@ -46,14 +48,22 @@ export default function AdminConfig() {
     const res = importData(await file.text());
     if (res.error) return setMsg(res.error);
     logAudit(actor, "Imported data backup", `${res.count} keys`);
-    if (window.confirm(`Imported ${res.count} items. Reload now to apply?`)) window.location.reload();
+    if (await confirm({ title: "Import complete", message: `Imported ${res.count} items. Reload now to apply them?`, confirmLabel: "Reload" })) {
+      window.location.reload();
+    }
   };
   const setBranding = (patch) => setDraft((d) => ({ ...d, branding: { ...d.branding, ...patch } }));
   const setAnnounce = (patch) => setDraft((d) => ({ ...d, announcement: { ...d.announcement, ...patch } }));
   const setFeature = (id, v) => setDraft((d) => ({ ...d, features: { ...d.features, [id]: v } }));
 
-  const restore = (id) => {
-    if (!window.confirm("Restore this snapshot? Current settings and users will be replaced, then the app reloads.")) return;
+  const restore = async (id) => {
+    const ok = await confirm({
+      title: "Restore this snapshot?",
+      message: "Current settings and users will be replaced with the snapshot, then the app reloads.",
+      confirmLabel: "Restore",
+      danger: true,
+    });
+    if (!ok) return;
     if (restoreSnapshot(id)) {
       logAudit(actor, "Restored config snapshot");
       window.location.reload();

@@ -20,6 +20,7 @@ import Sidebar from "./components/Sidebar";
 import { UploadIcon } from "./components/icons";
 import { AppConfigProvider, useAppConfig } from "./context/AppConfigContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ConfirmProvider } from "./context/ConfirmContext";
 import { ChatHistoryProvider, useChatHistory } from "./context/ChatHistoryContext";
 import { DensityProvider } from "./context/DensityContext";
 import { DocumentsProvider, useDocuments } from "./context/DocumentsContext";
@@ -234,7 +235,9 @@ function Gate() {
         <ProfileProvider>
           <DocumentsProvider>
             <ChatHistoryProvider>
-              <Shell />
+              <ConfirmProvider>
+                <Shell />
+              </ConfirmProvider>
             </ChatHistoryProvider>
           </DocumentsProvider>
         </ProfileProvider>

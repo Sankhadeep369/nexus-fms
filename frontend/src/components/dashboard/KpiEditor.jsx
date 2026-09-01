@@ -16,6 +16,7 @@ import {
   todayISO,
   upsertKpi,
 } from "../../lib/kpis";
+import { useConfirm } from "../../context/ConfirmContext";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { TrashIcon, XIcon } from "../icons";
 import { BarChart, LineChart } from "./charts";
@@ -26,6 +27,7 @@ const field =
 // kpi: an existing KPI (manual or derived) or a fresh unsaved draft (source manual, not yet stored).
 export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigate }) {
   const derived = kpi.source === "derived";
+  const confirm = useConfirm();
   const [draft, setDraft] = useState(kpi);
   const [saved, setSaved] = useState(!isNew);
   const [dateStr, setDateStr] = useState(todayISO());
@@ -62,7 +64,14 @@ export default function KpiEditor({ kpi, isNew, onClose, onChanged, onInvestigat
     removeValue(draft.id, p);
     reloadDraft();
   };
-  const remove = () => {
+  const remove = async () => {
+    const ok = await confirm({
+      title: "Delete KPI?",
+      message: `"${draft.name}" and its history will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     deleteKpi(draft.id);
     onChanged();
     onClose();

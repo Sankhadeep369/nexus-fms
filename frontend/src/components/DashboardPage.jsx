@@ -41,12 +41,18 @@ export default function DashboardPage({ onInvestigate }) {
     setTimeout(() => setFlash(null), 2500);
   };
 
+  const [derivedLoading, setDerivedLoading] = useState(true);
   const email = profile?.email || "";
   const reloadManual = () => setManual(loadKpis());
 
   useEffect(() => {
     let alive = true;
-    fetchDerived(email).then((d) => alive && setDerived(d));
+    setDerivedLoading(true);
+    fetchDerived(email).then((d) => {
+      if (!alive) return;
+      setDerived(d);
+      setDerivedLoading(false);
+    });
     return () => {
       alive = false;
     };
@@ -147,6 +153,12 @@ export default function DashboardPage({ onInvestigate }) {
 
         {importErr && <p className="rounded-lg border border-red-400/40 bg-red-400/5 px-3 py-2 text-xs text-red-400">{importErr}</p>}
         {flash && <p className="rounded-lg border border-emerald-400/40 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-400">{flash}</p>}
+        {derivedLoading && (
+          <p className="flex items-center gap-2 text-xs text-nexus-muted">
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-nexus-border border-t-nexus-accent" />
+            Loading live metrics…
+          </p>
+        )}
 
         {/* Needs attention */}
         {atRisk.length > 0 && (

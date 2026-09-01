@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useChatHistory } from "../context/ChatHistoryContext";
+import { useConfirm } from "../context/ConfirmContext";
 import { useLanguage } from "../context/LanguageContext";
 import { initials, useProfile } from "../context/ProfileContext";
 import { HistoryIcon, PlusIcon, SearchIcon, TrashIcon, UserIcon } from "./icons";
@@ -42,7 +43,18 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
   const { conversations, activeId, createConversation, selectConversation, deleteConversation } = useChatHistory();
   const { profile } = useProfile();
   const { t } = useLanguage();
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
+
+  const removeConversation = async (c) => {
+    const ok = await confirm({
+      title: "Delete chat?",
+      message: `"${c.title}" will be removed. This can't be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (ok) deleteConversation(c.id);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -148,13 +160,13 @@ export default function Sidebar({ collapsed, onClose, onOpenProfile }) {
                           tabIndex={0}
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteConversation(c.id);
+                            removeConversation(c);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               e.stopPropagation();
-                              deleteConversation(c.id);
+                              removeConversation(c);
                             }
                           }}
                           className="shrink-0 rounded-md p-1 text-nexus-muted opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
