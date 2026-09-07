@@ -52,7 +52,6 @@ This repository is the **application layer**: a FastAPI backend that runs the mo
 - A per-user **drag-and-drop widget canvas** (greeting, shortcuts, KPI tiles, notes) — move/resize in Customize mode; layout saved per user. Hand-rolled pointer drag/resize, no drag library.
 
 ### Access control & admin
-- **Optional login** — sign in, or **continue as a guest** (full everyday tools; admin locked). Seeded admin: `admin` / `admin123`.
 - **Role-based access** — admins create users and toggle per-user access to tools, agents, and reminder create/manage rights (role presets + fine-tuning).
 - **Admin settings** — branding (name/accent), announcement banner, global feature toggles, config **snapshots & rollback**, full **backup/restore** (export/import all data as JSON), and an **audit log**.
 - Knowledge-base document upload is an **admin-only** privilege that updates the shared corpus for every user.
