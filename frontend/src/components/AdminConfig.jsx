@@ -29,7 +29,26 @@ export default function AdminConfig() {
   const [label, setLabel] = useState("");
   const [audit, setAudit] = useState(loadAudit);
   const [msg, setMsg] = useState(null);
+  const [docToken, setDocToken] = useState(() => {
+    try {
+      return localStorage.getItem("nexus-doc-token") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [docTokenSaved, setDocTokenSaved] = useState(false);
   const fileRef = useRef(null);
+
+  const saveDocToken = () => {
+    try {
+      localStorage.setItem("nexus-doc-token", docToken.trim());
+    } catch {
+      /* ignore */
+    }
+    setDocTokenSaved(true);
+    setTimeout(() => setDocTokenSaved(false), 2000);
+    logAudit(actor, "Updated knowledge-base admin token");
+  };
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(config);
   const saveSettings = () => {
@@ -151,6 +170,20 @@ export default function AdminConfig() {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Knowledge-base admin token */}
+      <div className={card}>
+        <p className={heading}>Knowledge base access</p>
+        <p className="mb-2.5 text-xs text-nexus-muted">
+          Uploading/replacing shared documents requires this token, which must match <code className="rounded bg-nexus-panel2 px-1">DOCUMENTS_ADMIN_TOKEN</code> on the server. It stays on this device and is never shipped in the app bundle.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input type="password" value={docToken} onChange={(e) => setDocToken(e.target.value)} placeholder="Admin upload token" className={field} />
+          <button type="button" onClick={saveDocToken} className="shrink-0 rounded-lg border border-nexus-border px-3 py-1.5 text-sm text-nexus-text hover:border-nexus-accent/50">
+            {docTokenSaved ? "Saved" : "Save token"}
+          </button>
+        </div>
       </div>
 
       {/* Backup & restore */}

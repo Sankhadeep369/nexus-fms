@@ -1,9 +1,10 @@
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 
 from app.core.config import settings
 from app.core.document_store import get_document_store
 from app.core.ingest import SUPPORTED_EXT, ingest_document
+from app.core.rate_limit import rate_limiter
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -15,11 +16,24 @@ def _require_store():
     return store
 
 
+def require_admin_token(x_admin_token: str | None = Header(default=None)) -> None:
+    """Writing the shared knowledge base is admin-only. Fails closed: if no admin
+    token is configured on the server, writes are refused entirely."""
+    expected = settings.documents_admin_token
+    if not expected:
+        raise HTTPException(
+            status_code=403,
+            detail="Knowledge-base writes are disabled: set DOCUMENTS_ADMIN_TOKEN on the server.",
+        )
+    if x_admin_token != expected:
+        raise HTTPException(status_code=403, detail="A valid admin token is required to change the knowledge base.")
+
+
 def _norm_owner(owner: str | None) -> str:
     return (owner or "global").strip().lower() or "global"
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_admin_token), Depends(rate_limiter(10))])
 async def upload_document(file: UploadFile = File(...), owner: str = Form("global")):
     """Ingest one document: parse (OCR if scanned) -> chunk -> SLM enrich -> embed ->
     persist. The heavy work runs in a threadpool so it never blocks the event loop or
@@ -63,13 +77,13 @@ async def upload_document(file: UploadFile = File(...), owner: str = Form("globa
     }
 
 
-@router.get("")
+@router.get("", dependencies=[Depends(rate_limiter(30))])
 def list_documents(owner: str = "global"):
     store = _require_store()
     return store.list_for_owner(_norm_owner(owner))
 
 
-@router.delete("/{doc_id}")
+@router.delete("/{doc_id}", dependencies=[Depends(require_admin_token), Depends(rate_limiter(20))])
 def delete_document(doc_id: str, owner: str = "global"):
     store = _require_store()
     if not store.delete(doc_id, _norm_owner(owner)):

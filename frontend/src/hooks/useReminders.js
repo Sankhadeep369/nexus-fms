@@ -45,7 +45,8 @@ export function useReminders(email) {
 
   const updateReminder = useCallback(
     async (id, { title, dueDate, dueTime, system, notes, relatedVendor }) => {
-      const res = await fetch(`${API_BASE}/agents/reminders/${id}`, {
+      // email is sent as the ownership check the backend enforces.
+      const res = await fetch(`${API_BASE}/agents/reminders/${id}?email=${encodeURIComponent(email)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -60,16 +61,16 @@ export function useReminders(email) {
       if (!res.ok) throw new Error("Failed to update reminder");
       refresh();
     },
-    [refresh]
+    [email, refresh]
   );
 
   const cancelReminder = useCallback(
     async (id) => {
-      const res = await fetch(`${API_BASE}/agents/reminders/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/agents/reminders/${id}?email=${encodeURIComponent(email)}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to cancel reminder");
       refresh();
     },
-    [refresh]
+    [email, refresh]
   );
 
   return { reminders, loading, error, createReminder, updateReminder, cancelReminder, refresh };

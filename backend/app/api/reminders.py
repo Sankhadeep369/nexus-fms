@@ -1,9 +1,10 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
 from app.core.agents.email_sender import send_reminder_confirmation_email
 from app.core.agents.reminder_agent import check_and_send_due_reminders
 from app.core.agents.reminder_store import get_reminder_store
 from app.core.config import settings
+from app.core.rate_limit import rate_limiter
 from app.schemas.reminders import ReminderCreate, ReminderResponse, ReminderUpdate
 
 router = APIRouter(prefix="/agents/reminders", tags=["reminders"])
@@ -19,7 +20,7 @@ def _require_store():
     return store
 
 
-@router.post("", response_model=ReminderResponse)
+@router.post("", response_model=ReminderResponse, dependencies=[Depends(rate_limiter(15))])
 def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks) -> dict:
     store = _require_store()
     created = store.create(
@@ -51,31 +52,40 @@ def create_reminder(reminder: ReminderCreate, background_tasks: BackgroundTasks)
     return created
 
 
-@router.get("", response_model=list[ReminderResponse])
+@router.get("", response_model=list[ReminderResponse], dependencies=[Depends(rate_limiter(60))])
 def list_reminders(email: str = Query(..., description="Recipient email to list reminders for")) -> list[dict]:
     store = _require_store()
     return store.list_for_email(email)
 
 
-@router.patch("/{reminder_id}", response_model=ReminderResponse)
-def update_reminder(reminder_id: str, patch: ReminderUpdate) -> dict:
+@router.patch("/{reminder_id}", response_model=ReminderResponse, dependencies=[Depends(rate_limiter(30))])
+def update_reminder(
+    reminder_id: str,
+    patch: ReminderUpdate,
+    email: str = Query(..., description="Owner email — must match the reminder's recipient"),
+) -> dict:
     store = _require_store()
     fields = patch.model_dump(exclude_unset=True, mode="json")
-    updated = store.update(reminder_id, fields)
+    # Ownership check: the update only applies to a reminder whose recipient_email
+    # matches the caller-supplied email, so a bare reminder id can't be tampered with.
+    updated = store.update(reminder_id, fields, owner_email=email)
     if updated is None:
         raise HTTPException(
             status_code=404,
-            detail="Reminder not found or not editable (only pending reminders can be edited).",
+            detail="Reminder not found, not yours, or not editable (only pending reminders can be edited).",
         )
     return updated
 
 
-@router.delete("/{reminder_id}")
-def cancel_reminder(reminder_id: str) -> dict:
+@router.delete("/{reminder_id}", dependencies=[Depends(rate_limiter(30))])
+def cancel_reminder(
+    reminder_id: str,
+    email: str = Query(..., description="Owner email — must match the reminder's recipient"),
+) -> dict:
     store = _require_store()
-    ok = store.cancel(reminder_id)
+    ok = store.cancel(reminder_id, owner_email=email)
     if not ok:
-        raise HTTPException(status_code=404, detail="Reminder not found or already sent/cancelled.")
+        raise HTTPException(status_code=404, detail="Reminder not found, not yours, or already sent/cancelled.")
     return {"cancelled": True}
 
 

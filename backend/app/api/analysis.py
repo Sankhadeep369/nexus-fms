@@ -1,9 +1,10 @@
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.core.analysis import generate_analysis, generate_capa
+from app.core.rate_limit import rate_limiter
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -20,14 +21,14 @@ class CapaRequest(BaseModel):
     root_causes: list[str] = Field(default_factory=list)
 
 
-@router.post("/generate")
+@router.post("/generate", dependencies=[Depends(rate_limiter(30))])
 def generate(req: GenerateRequest) -> dict:
     """First-pass structured analysis for the chosen methodology. Optionally grounded
     in the requester's corpus + uploaded docs. Off the chat path."""
     return generate_analysis(req.method, req.issue, req.grounded, req.owner)
 
 
-@router.post("/capa")
+@router.post("/capa", dependencies=[Depends(rate_limiter(30))])
 def capa(req: CapaRequest) -> dict:
     """Corrective + preventive actions for the refined root cause(s)."""
     return generate_capa(req.issue, req.root_causes)

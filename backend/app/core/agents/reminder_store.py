@@ -69,21 +69,27 @@ class ReminderStore:
                 raise
         return result.data[0]
 
-    def update(self, reminder_id: str, fields: dict[str, Any]) -> dict[str, Any] | None:
+    def update(self, reminder_id: str, fields: dict[str, Any], owner_email: str | None = None) -> dict[str, Any] | None:
         """Update a still-pending reminder. Returns the updated row, or None if it
-        doesn't exist or is no longer pending (sent/cancelled reminders are frozen)."""
+        doesn't exist, isn't owned by `owner_email`, or is no longer pending
+        (sent/cancelled reminders are frozen)."""
         if not fields:
-            result = self._client.table("reminders").select("*").eq("id", reminder_id).execute()
+            q = self._client.table("reminders").select("*").eq("id", reminder_id)
+            if owner_email:
+                q = q.eq("recipient_email", owner_email)
+            result = q.execute()
             return result.data[0] if result.data else None
 
         def _do(payload: dict[str, Any]):
-            return (
+            q = (
                 self._client.table("reminders")
                 .update(payload)
                 .eq("id", reminder_id)
                 .eq("status", "pending")
-                .execute()
             )
+            if owner_email:
+                q = q.eq("recipient_email", owner_email)
+            return q.execute()
 
         try:
             result = _do(fields)
@@ -106,14 +112,16 @@ class ReminderStore:
         )
         return result.data
 
-    def cancel(self, reminder_id: str) -> bool:
-        result = (
+    def cancel(self, reminder_id: str, owner_email: str | None = None) -> bool:
+        q = (
             self._client.table("reminders")
             .update({"status": "cancelled"})
             .eq("id", reminder_id)
             .eq("status", "pending")
-            .execute()
         )
+        if owner_email:
+            q = q.eq("recipient_email", owner_email)
+        result = q.execute()
         return len(result.data) > 0
 
     def find_due(self, as_of: date) -> list[dict[str, Any]]:

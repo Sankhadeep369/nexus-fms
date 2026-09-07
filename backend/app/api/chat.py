@@ -1,10 +1,11 @@
 import json
 from collections.abc import Iterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sse_starlette.sse import EventSourceResponse
 
 from app.core.chat_pipeline import get_chat_pipeline
+from app.core.rate_limit import rate_limiter
 from app.schemas.chat import ChatRequest
 
 router = APIRouter(tags=["chat"])
@@ -16,7 +17,7 @@ def _event_stream(query: str, mode: str, history: list, bypass_cache: bool, owne
         yield {"event": event["type"], "data": json.dumps(event)}
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(rate_limiter(30))])
 def chat(request: ChatRequest) -> EventSourceResponse:
     history = [{"role": m.role, "content": m.content} for m in request.history]
     return EventSourceResponse(

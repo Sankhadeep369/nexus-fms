@@ -173,6 +173,10 @@ class Settings(BaseSettings):
     # Shared secret required as a query param on the cron-triggered check
     # endpoint so public internet traffic can't spam-trigger reminder checks.
     reminder_check_secret: str | None = None
+    # Shared secret required (as the X-Admin-Token header) to write the shared
+    # knowledge base. The admin holds it (entered in Admin > Settings); it is NEVER
+    # shipped in the frontend bundle. Writes fail closed when this is unset.
+    documents_admin_token: str | None = None
 
     # --- Self-serve document ingestion ---
     document_max_mb: int = 10          # reject uploads larger than this

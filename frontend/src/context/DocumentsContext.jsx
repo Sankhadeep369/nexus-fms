@@ -5,8 +5,16 @@ const ACCEPT = /\.(pdf|docx?|txt|md|markdown)$/i;
 
 // Document upload is an admin-only privilege that updates the shared knowledge base
 // for every user, so it always targets the "global" owner (which retrieval treats as
-// eligible for all users).
+// eligible for all users). Writes carry the admin token the server requires.
 const GLOBAL_OWNER = "global";
+const DOC_TOKEN_KEY = "nexus-doc-token";
+const adminToken = () => {
+  try {
+    return localStorage.getItem(DOC_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+};
 
 const DocumentsContext = createContext(null);
 
@@ -37,10 +45,18 @@ export function DocumentsProvider({ children }) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("owner", owner);
-        const res = await fetch(`${API_BASE}/documents`, { method: "POST", body: fd });
+        const res = await fetch(`${API_BASE}/documents`, {
+          method: "POST",
+          headers: { "X-Admin-Token": adminToken() },
+          body: fd,
+        });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          throw new Error(d.detail || `Upload failed (${res.status})`);
+          const msg =
+            res.status === 403
+              ? "Upload blocked: set the knowledge-base admin token in Admin → Settings (and DOCUMENTS_ADMIN_TOKEN on the server)."
+              : d.detail || `Upload failed (${res.status})`;
+          throw new Error(msg);
         }
         setUploads((u) => u.map((x) => (x.id === id ? { ...x, status: "done" } : x)));
         refresh();
@@ -57,6 +73,7 @@ export function DocumentsProvider({ children }) {
     async (docId) => {
       await fetch(`${API_BASE}/documents/${docId}?owner=${encodeURIComponent(owner)}`, {
         method: "DELETE",
+        headers: { "X-Admin-Token": adminToken() },
       }).catch(() => {});
       refresh();
     },
