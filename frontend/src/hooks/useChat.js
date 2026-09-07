@@ -70,10 +70,19 @@ export function useChat() {
   const [mode, setMode] = useState("simple");
   const conversationIdRef = useRef(activeId);
   const abortControllerRef = useRef(null);
+  const mountedRef = useRef(false);
 
   // Switching conversations swaps the working message list to the selected one.
+  // The initial mount is skipped: `messages` is already initialised from
+  // activeConversation above, and clobbering it here would wipe a message that an
+  // agent hand-off auto-sends on the very same mount (child ChatInput's autosend
+  // effect runs BEFORE this parent effect) — the triage "nothing renders" bug.
   useEffect(() => {
     conversationIdRef.current = activeId;
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     setMessages(activeConversation.messages);
   }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
