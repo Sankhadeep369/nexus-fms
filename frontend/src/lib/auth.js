@@ -140,23 +140,51 @@ export function deleteUser(username) {
   return { users: saveUsers(users.filter((u) => u.username !== username)) };
 }
 
+const GUEST_KEY = "nexus-guest";
+
+// A signed-out visitor who chose "continue without signing in". Full access to the
+// everyday tools; admin (and the admin-only knowledge-base upload) stays locked.
+export function guestUser() {
+  return {
+    username: "guest",
+    name: "Guest",
+    role: "guest",
+    perms: {
+      tools: { chat: true, agents: true, analysis: true, dashboard: true, documents: false },
+      agents: mapAll(AGENTS, true),
+      reminder: { create: true, manage: false },
+    },
+  };
+}
+
 export function login(username, password) {
   const uname = (username || "").trim().toLowerCase();
   const u = loadUsers().find((x) => x.username === uname && x.password === password);
   if (!u) return null;
   localStorage.setItem(SESSION_KEY, uname);
+  localStorage.removeItem(GUEST_KEY);
   return sanitize(u);
+}
+
+export function continueAsGuest() {
+  localStorage.setItem(GUEST_KEY, "1");
+  localStorage.removeItem(SESSION_KEY);
+  return guestUser();
 }
 
 export function logout() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(GUEST_KEY);
 }
 
 export function currentUser() {
   const uname = localStorage.getItem(SESSION_KEY);
-  if (!uname) return null;
-  const u = loadUsers().find((x) => x.username === uname);
-  return u ? sanitize(u) : null;
+  if (uname) {
+    const u = loadUsers().find((x) => x.username === uname);
+    if (u) return sanitize(u);
+  }
+  if (localStorage.getItem(GUEST_KEY)) return guestUser();
+  return null;
 }
 
 // Never hand the password around the app.

@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import { currentUser, login as doLogin, logout as doLogout } from "../lib/auth";
+import { continueAsGuest as doGuest, currentUser, login as doLogin, logout as doLogout } from "../lib/auth";
 
 const AuthContext = createContext(null);
 
@@ -10,11 +10,13 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       isAdmin: user?.role === "admin",
+      isGuest: user?.role === "guest",
       login: (u, p) => {
         const res = doLogin(u, p);
         if (res) setUser(res);
         return res;
       },
+      continueAsGuest: () => setUser(doGuest()),
       logout: () => {
         doLogout();
         setUser(null);

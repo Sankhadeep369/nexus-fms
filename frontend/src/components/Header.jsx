@@ -22,7 +22,7 @@ const TAB_KEY = { home: "tab_home", chat: "tab_chat", agents: "tab_agents", anal
 export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, activeTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
   const { t } = useLanguage();
-  const { user, isAdmin, canTool, logout } = useAuth();
+  const { user, isAdmin, isGuest, canTool, logout } = useAuth();
   const { brandName, featureEnabled } = useAppConfig();
   const [status, setStatus] = useState({ online: null, model: null });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -143,7 +143,7 @@ export default function Header({ onToggleSidebar, onToggleOptions, onOpenHelp, a
                   <SlidersIcon className="h-4 w-4 text-nexus-muted" /> Settings
                 </button>
                 <button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm text-nexus-text hover:bg-nexus-panel2">
-                  <LogOutIcon className="h-4 w-4 text-nexus-muted" /> Sign out
+                  <LogOutIcon className="h-4 w-4 text-nexus-muted" /> {isGuest ? "Sign in" : "Sign out"}
                 </button>
               </div>
             </>

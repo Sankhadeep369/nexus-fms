@@ -1,13 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useAppConfig } from "../context/AppConfigContext";
 import { useAuth } from "../context/AuthContext";
-import { LogoIcon } from "./icons";
+import { LogoIcon, XIcon } from "./icons";
 
 // three.js is heavy, so it loads only here as its own chunk — never on the work path.
 const Hero3D = lazy(() => import("./Hero3D"));
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, continueAsGuest } = useAuth();
   const { brandName } = useAppConfig();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -43,6 +43,15 @@ export default function LoginScreen() {
         </Suspense>
       )}
       <form onSubmit={submit} className="relative z-10 w-full max-w-sm rounded-2xl border border-nexus-border bg-nexus-panel/80 p-6 shadow-glow backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={continueAsGuest}
+          aria-label="Continue without signing in"
+          title="Continue without signing in"
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-nexus-muted transition-colors hover:bg-nexus-panel2 hover:text-nexus-text"
+        >
+          <XIcon className="h-4 w-4" />
+        </button>
         <div className="mb-5 flex flex-col items-center text-center">
           <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 text-nexus-bg shadow-glow-sm">
             <LogoIcon className="h-6 w-6" />
@@ -83,6 +92,13 @@ export default function LoginScreen() {
           className="mt-5 w-full rounded-xl bg-gradient-to-br from-nexus-accent to-nexus-accent2 px-4 py-2.5 text-sm font-medium text-nexus-bg transition-all hover:shadow-glow-sm active:scale-95"
         >
           Sign in
+        </button>
+        <button
+          type="button"
+          onClick={continueAsGuest}
+          className="mt-3 w-full text-center text-xs text-nexus-muted underline decoration-dotted underline-offset-2 transition-colors hover:text-nexus-text"
+        >
+          Continue without signing in
         </button>
       </form>
     </div>
